@@ -1,0 +1,12 @@
+
+
+
+mysql -h ewn2.skytruth.org -u scraper -pEsyfylE48CD2D0gB6V6Y -D NRC_Data -e "select * from EXPORT_FracFocusReport where published<'2012-11-01'" -B > FracFocusReport-2012-11-01.txt
+
+
+mysql -h ewn2.skytruth.org -u scraper -pEsyfylE48CD2D0gB6V6Y -D NRC_Data -e "select c.* from EXPORT_FracFocusChemical c JOIN EXPORT_FracFocusReport r on c.pdf_seqid=r.pdf_seqid where r.published < '2012-11-01'" -B > FracFocusChemical-2012-11-01.txt
+
+
+mysql -h ewn2.skytruth.org -u scraper -pEsyfylE48CD2D0gB6V6Y -D NRC_Data -e "select * from EXPORT_FracFocusCombined where published<'2012-11-01'" -B > FracFocusCombined-2012-11-01.txt
+
+

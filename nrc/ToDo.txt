@@ -1,0 +1,193 @@
+* TODO correct google geocoding when a diff state is returned
+
+* TODO add static map to email update
+
+* TODO Fix NRC timestamp 5 hour offset problem
+    think problem is MYSQL and diff timezone on ewn2 vs. local
+    can we override TZ in mysql datetime?
+
+* TODO fix tag filter query and change index type so that it can be used (like region)
+    IMPORTANT: CASE INSENSITIVE!
+
+* TODO Add source item id for RSS, PA and WV scrapers
+
+* IN DEVELOPMENT Sites Feature
+    ON insert to feedentry - test to see if lat/lng is within the geometry of an existing site.  If so, then store the id of that site
+    If no site is found, create a new site at this location of the feedentry, use the UUID of the feedentry as the id of the site
+    site is created with a 500m radius around the center point
+    Consider updating the center point of the site once there are multiple associated feedentries - compute some sort of centroid
+    
+    DO NOT associate sites for feedentries with location approximated from city_state or zip
+    
+* Change feedentry.id from varchar to uuid
+
+    TODO: Determine if the trigger will need to be changed - need to replicate the trigger locally and try it
+    TODO: Make sure the insert rules are not being used and then delete them
+    
+    // Setp 1 - crate new column, populate and index    ALTER TABLE feedentry  ADD COLUMN id_new uuid;    update feedentry set id_new = cast (id as uuid);    ALTER TABLE feedentry ALTER COLUMN id_new SET NOT NULL;        ALTER INDEX public.feedentry_id RENAME TO feedentry_id_old;
+    CREATE UNIQUE INDEX feedentry_id  ON feedentry  USING btree  (id_new);            // Step 2 As single transaction swap new_id in to 'id'        ALTER TABLE feedentry RENAME id  TO id_old;
+    ALTER TABLE feedentry RENAME id_new  TO id;
+        // Step 3 Drop the old id column (and index)        ALTER TABLE feedentry DROP CASCADE COLUMN id_old;
+
+
+
+* Add more detailed tracking for emails sent - maybe make a general logging feature in a mysql table
+
+* put region name in RSS feed header when region filter is used
+
+* extract feed title from RSS feed and use in email subject for subscriptions
+
+* Add name in KML DOCUMENT tag
+
+
+DONE Implement street address geocoding     
+DONE Add source item id to the FeedEntry table so we can map back to NRC Report numbers
+    DONE : test implementation in NrcFeedGenerator
+DONE Scraper for PA Permit data
+DONE Eliminate delete of subscription record when someone unsubscribes
+DONE Remove SkyTruthAnalysis from alerts when there is no analysis
+DONE New geotagging in skytruth blog feed
+    embed geo using [] notation
+DONE Data: PA Permits and Spuds
+DONE Data: WV Permits
+    http://www.dep.wv.gov/oil-and-gas/databaseinfo/Pages/OGD.aspx
+
+
+* restrict default feed to exclude non-release and minor incidents - maybe also exclude 'drilling'
+
+* Add "drilling activity" tag to all permits and spuds
+
+* crowdsource tagging?  ask people to suggest a tag - pick from a list of suggest a new one
+
+* Layout: re-work email foramt - use basecamp and mailchimp as models
+
+* Feedback tab 
+    include wish list - coming soon
+* What's New section
+* Description of data sources in About
+
+* GeoCode: Add State Lease Blocks
+    DONE LA
+    TODO TX
+    TODO MI
+    TODO AL
+    
+* GeoCode: River mile markers
+
+* Geocode: extract Lat/Lng in the format:
+    LAT: 30N .35692'   LONG: 86W .26632'
+    e.g. http://www.nrc.uscg.mil/reports/rwservlet?standard_web+inc_seq=986266
+
+
+* New Map pin for EXPLICIT NRC reports
+
+* KML: Add dattimes back in as an option - need to add a timespan somewhere
+    Might want to organize in folders by month
+
+* Activate database.purgeOldBotTaskStatus on every 100th bot run
+
+* Add to feedentry the concept of a "related incident"
+
+* Identify NRC numbers in descriptions of new NRC reports and create link between original and revised reports
+
+
+Scraping Targets
+
+http://www.epa.gov/enviro/geo_data.html- all kinds of enviro data including TRI, Superfund sites, NPDES info, much more.
+
+Location-based search and results - http://www.epa.gov/enviro/index.html
+KMLs by EPA region of all EPA-regulated facilities - http://www.epa.gov/enviro/html/frs_demo/geospatial_data/geo_data_regions.html
+
+
+Data: USGS water alerts http://water.usgs.gov/wateralert/
+
+Data: Find ozone air quality reports for the east coast and publish red alerts
+
+
+
+
+Simple and visually succinct presentation.
+The kml was very nice and I've saved it locally.
+
+Near-term or usability suggestions:
+
+FIXED   
+1) It is a bit slow updating when zooming or panning, and I could not
+tell at first if there were no incidents within the current view or if
+it was still processing updates.
+- Recommend a "Updating" and animated icon so users can see
+information is still to arrive.
+
+
+
+2) No indication of alert's span of dates to let a user know a) how
+far back the alerts go or b) how recent they are.  Are the alerts
+"ongoing", "historical", "resolved/closed"?
+- Addressing this is probably a user-familiarization exercise.  It may
+be that I am simply not familiar with how the NRC and NOAA report
+systems work.
+
+FIXED
+3) It was difficult to tell what map-point belonged to which incident.
+- An on-map or in-browser pop-up like what happens within the
+GoogleEarth kml when hovering the mouse over a map-point would be
+perfect.
+
+
+Longer-term or further-development suggestions:
+1) For USA users (and other nations as appropriate), provide users a
+point of contact telephone number for further information.
+- It'd be nice to have regulatory contact numbers I could call if I
+was a concerned citizen.
+-- However, I also recognize this could be a huge amount of work for
+you to suss out the appropriate agencies for each type of incident.
+--- Possibly, you could provide contact information for each state's
+agency that handles environmental emergency response actions.
+
+2) Tie into the many US EPA kml files providing information on
+regulated facilities, air quality data, Superfund sites, etc.
+- It might be handy for folks to see incidents alongside EPA's
+register of regulated facilities or Superfund sites.
+-- If not within your online Alerts map, then possibly as an option
+within your kml.
+
+
+
+
+DONE * BUG: Some NRC Reports fail to retrieve the full report
+    Need to separate full report and materials report into separate Bots
+    Then make full report fail if it gets and empty report body back
+    Would be nice to have a way to count the re-tries
+    
+DONE identify release/non-release
+    view NrcReleaseIncidents
+    severity=non-release
+        
+DONE identify minor release
+    severity=minor
+
+        select * from NrcReleaseIncidents WHERE 
+        (`reported_spill_volume` IS NULL OR `reported_spill_volume` < 100) AND
+        (`min_spill_volume` IS NULL OR `min_spill_volume` < 100) AND
+        (`material_name` like 'HYDRAULIC%' OR 
+        `material_name` in ('REFRIGERANT GASES','OIL, FUEL: NO. 1-D','OIL, FUEL: NO. 2-D'));
+        
+        if((`NrcReleaseIncidents`.`incidenttype` = 'UNKNOWN SHEEN'),((`NrcReleaseIncidents`.`reported_spill_volume` is not null) or (`NrcReleaseIncidents`.`min_spill_volume` > 10)),1))
+              
+DONE identify major release
+    severity=major
+    same as BigSpill?
+    
+DONE identify gulf region
+    region=gulf of mexico
+    water, states, not atlantic ocean
+    need state lease blcoks
+    need bounding polygon
+    
+DONE identify oil spill
+    release_type=oil spill
+    select material names
+        OIL: CRUDE
+        CONDENSATE
+        UNKNOWN OIL
+    medium_affected : water

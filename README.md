@@ -1,4 +1,1 @@
-scraper
-=======
-
-SkyTruth Scraper
+# SkyTruth Web Scraper Tool

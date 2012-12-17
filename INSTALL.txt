@@ -1,0 +1,78 @@
+INSTALL
+
+
+
+DEV ENVIRONMENT
+    pip install virtualenv
+    pip install virtualenvwrapper
+    
+    ** setup virtualenvwrapper - http://virtualenvwrapper.readthedocs.org/en/latest/
+    
+    mkvirtualenv scraperdev
+    workon scraperdev
+    pip install scrapy feedparser xlrd mysql-python python-dateutil psycopg2 pdfminer beautifulsoup
+    
+    ** manual install of FTTools (should setup so we can install directly from the git repo)
+   
+    
+    
+    
+Prerequisites
+
+Python 2.6+
+Scrapy 0.16         pip install scrapy      (web scrpaing framework)
+Feedparser 5.1      pip install feedparser  (for parsing RSS feeds)
+xlrd 0.7            pip install xldr        (for parsing excel files)
+mysql-python        pip install mysql-python    (python interface to mysql) 
+python-dateutil 2.1 pip install python-dateutil (fuzzy date parsing)    
+psycopg2            pip install psycopg2    (python interface to PostGreSQL)
+FTTools 1.1.5       [manaul install]        (fusion table sync utility)
+pdfminer 20110515   pip install pdfminer    (pdf parser)
+beautifulsoup 3.2.1 pip install beautifulsoup   (html parser)   
+    
+
+MYSQL database setup
+    create a new database
+    create a user will full permissions to the db
+    import schema/mysql.sql
+    
+    test data in ./data/
+    
+    
+PGSQL database setup
+    create a new database
+    create a user with full permissions to the db
+    install POSTGIS extensions into database
+        CREATE EXTENSION postgis;
+    import schema/pgsql.sql
+    
+    
+Scraper Settings
+    update nrc/nrc/settings.py
+    set database parameters
+    
+
+
+Test Scenarios
+
+Dependency test
+
+    scrapy crawl BotMonitor
+        with an empty database this should do nothing.  But it will test all teh dependencies nicely
+    
+
+RssFeeds
+    import data/RssFeed_Data.sql into the mysql database
+    scrapy crawl RssFeedScraper
+    
+    This should scrape items from 2 feeds and generate some alerts
+    
+    
+        
+
+
+
+    
+    
+    
+    

@@ -1,0 +1,33 @@
+SkyTruth Alerts Tags
+
+
+Source Tags
+    NRC         - reported from the National Response Center
+    NOAA
+    SkyTruth    - all reports authored by SkyTruth
+    PADEP       - Pennsylvania DEP oil and gas drilling permits and reports
+    WVDEP       - West Virginia DEP oil and gas drilling permits and reports
+
+Other Tags
+
+    frack       - frack related drilling activity
+    drilling    - any drilling activity - includes permits issued, drilling progress reports, spuds
+    spud        - drilling spud report; indicates that drilling has started
+    marcellus   - marcellus shale related activity (generally drilling permits and reports)    
+    permit      - permit issued
+    release     - the incident involves a release of potentially hazardous materials into the environment
+                  this includes things oil and fuel spills, and toxic gas releases but does not include 
+                  things like drilling activity reports or earthquakes
+        
+    
+    BigSpill    - large spill (over 100 gallons)
+    SheenSizeMismatch - for NRC spill reports, this tag indicates a substantial mismatch between the size of the sheen reported on the surface of the water and the volume of pollutant that was reported to have been spilled
+    
+
+Released Material Tags
+    
+    oil
+    fuel
+    mechanical
+    other
+    

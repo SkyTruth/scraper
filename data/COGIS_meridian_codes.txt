@@ -1,0 +1,8 @@
+COGCC Meridian Codes
+
+"6" 6th Principal Meridian
+"C" Costilla Survey (COGCC Assigned)
+"M" Southern 34N Townships (COGCC Assigned)
+"N" New Mexico Principal Meridian
+"U" Ute Meridian
+

@@ -1,0 +1,75 @@
+How To Configure Regions for Alerts
+
+Import a new Region
+
+Use QGIS plugin spit to import the shapefile into the Postgres database
+Set the SRID to match the data
+    WGS84 = 4326
+    
+    NAD 27 UTM 17N    SRID=26717
+    NAD 27 UTM 18N    SRID=26718
+    
+    NAD 83 UTM 17N    SRID=26917
+    NAD 83 UTM 18N    SRID=26918
+
+
+Move the geometry into the region table.  For example:
+    
+    insert into region (name, code, the_geom, kml) select 'West Virginia' as name, 'WV' as code, 
+        ST_Transform(the_geom, 4326) as the_geom, 
+        ST_asKML(ST_Transform(the_geom, 4326)) as kml 
+        from "wvStateBoundary100k_USGS_200203_ll83";
+
+    insert into region (name, code, the_geom, kml) 
+
+    select 
+        substring("COUNTY_NAM" from 1 for 1) || lower(substring("COUNTY_NAM" from 2)) || ' County, PA' as name, 
+        "COUNTY_NAM" || '_PA' as code, 
+        ST_Transform(the_geom, 4326) as the_geom,
+        ST_asKML(ST_Transform(the_geom, 4326)) as kml
+        
+    from "PaCounty2011_01";
+
+    insert into region (name, code, the_geom, kml) 
+	select hu_10_name || ' Watershed' as name, 'HUC10_' || huc_10 as code, 
+        ST_Transform(the_geom, 4326) as the_geom, 
+        ST_asKML(ST_Transform(the_geom, 4326)) as kml 
+        from "HUC10_Monongahela";
+
+Create the simplified outine with this (replace 'KY' with the code of your new region)
+
+  
+    update region r1 set simple_geom = 
+        (select (ST_Dump(the_geom)).geom from region r2 
+        where r1.code = r2.code 
+        order by ST_NPoints((ST_Dump(the_geom)).geom) desc limit 1)
+    where r1.code = 'KY'
+
+and then this:
+
+    update region set simple_geom = 
+    ST_Simplify(simple_geom, 
+        greatest (
+        	(ST_YMax(simple_geom) - ST_YMin(simple_geom)), 
+        	case when (ST_XMax(simple_geom) - ST_XMin(simple_geom)) < 180 then ST_XMax(simple_geom) - ST_XMin(simple_geom) ELSE 0 END
+        	) / 75
+        )
+    where code = 'KY'
+
+
+    
+You can update recent alerts to associate them with the new region like this:
+
+    update feedentry
+    	set regions = regions || ARRAY[region.id]
+    from region
+    where 
+    	st_contains (region.the_geom, feedentry.the_geom) 
+    	and region.id = 177
+    	and feedentry.regions && ARRAY[32,35,53,56]    
+
+Note the final where clause "feedentry.regions && ARRAY[32,35,53,56]"   This improves the performance by limiting the search to 
+records already in regions that overlap the new region - in this case the 4 counties that contain the national forest bounday
+
+
+

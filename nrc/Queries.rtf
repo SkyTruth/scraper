@@ -1,0 +1,27 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf350
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 select count(*), month(incident_datetime), day(incident_datetime) from NrcScrapedReport where incident_datetime < '2007-01-01' group by month(incident_datetime), day(incident_datetime);\
+\
+\
+select p.*, r.* from NrcScrapedReport r JOIN NrcParsedReport p ON r.reportnum=p.reportnum\
+where year(r.incident_datetime) < 2007\
+and r.state in ('AL', 'FL', 'TX', 'MS', 'LA')\
+and r.calltype = 'INCIDENT'\
+and r.description not like "ATON%"\
+and r.incidenttype not in ( 'RAILROAD', 'RAILROAD NON-RELEASE', 'AIRCRAFT', 'MOBILE');\
+\
+select * from  BotTaskStatus b join NrcScrapedReport r ON b.task_id=r.reportnum\
+where bot='NrcExtractor' and r.incident_datetime < '2007-01-01';\
+\
+select * from NrcScrapedReport r Left Join NrcScrapedFullReport f on r.reportnum = f.reportnum \
+where f.reportnum is null;\
+\
+select r.reportnum from NrcScrapedFullReport r Left Join NrcParsedReport p on r.reportnum = p.reportnum \
+where p.reportnum is null;\
+\
+select r.reportnum from NrcParsedReport r Left Join NrcAnalysis a on r.reportnum = a.reportnum \
+where a.reportnum is null;}
