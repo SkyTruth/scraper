@@ -1,0 +1,97 @@
+# Sequel Pro dump
+# Version 1191
+# http://code.google.com/p/sequel-pro
+#
+# Host: ewn2.skytruth.org (MySQL 5.1.41-3ubuntu12.10)
+# Database: NRC_Data
+# Generation Time: 2013-01-02 16:16:46 -0500
+# ************************************************************
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+
+# Dump of table NrcMaterials
+# ------------------------------------------------------------
+
+LOCK TABLES `NrcMaterials` WRITE;
+/*!40000 ALTER TABLE `NrcMaterials` DISABLE KEYS */;
+INSERT INTO `NrcMaterials` (`id`,`pattern`,`group_label`)
+VALUES
+	(1,'OIL: CRUDE','oil'),
+	(2,'CONDENSATE','oil'),
+	(3,'UNKNOWN OIL','oil'),
+	(4,'GASOLINE','fuel'),
+	(5,'OIL: DIESEL','fuel'),
+	(6,'OIL, FUEL: ','fuel'),
+	(7,'JET FUEL','fuel'),
+	(8,'FUEL OIL','fuel'),
+	(9,'HYDRAULIC','mechanical'),
+	(10,'OIL, MISC: LUBRICATING','mechanical'),
+	(11,'TRANSMISSION FLUID','mechanical'),
+	(12,'OIL, MISC: MOTOR','mechanical'),
+	(13,'OIL, MISC: TRANSFORMER','mechanical');
+
+/*!40000 ALTER TABLE `NrcMaterials` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+# Dump of table NrcUnits
+# ------------------------------------------------------------
+
+LOCK TABLES `NrcUnits` WRITE;
+/*!40000 ALTER TABLE `NrcUnits` DISABLE KEYS */;
+INSERT INTO `NrcUnits` (`id`,`unit_type`,`pattern`,`standardized_unit`,`conversion_factor`)
+VALUES
+	(2,'LENGTH','METER','FEET',3.2808399),
+	(3,'LENGTH','MILE','FEET',5280),
+	(4,'VOLUME','GALLON','GALLON',1),
+	(5,'VOLUME','BARREL','GALLON',42),
+	(6,'VOLUME','TEASPOON','GALLON',0.00130208333),
+	(7,'VOLUME','CUP','GALLON',0.0625),
+	(8,'VOLUME','CUBIC F[EO][EO]T','GALLON',7.48051948),
+	(9,'VOLUME','DROP','GALLON',1.71321916083e-05),
+	(10,'VOLUME','LITER','GALLON',0.264172052358),
+	(11,'VOLUME','QUART','GALLON',0.25),
+	(12,'WEIGHT','OUNCE','POUND',0.0625),
+	(13,'WEIGHT','POUND','POUND',1),
+	(14,'WEIGHT','TON','POUND',2000),
+	(15,'LENGTH','Y','FEET',3),
+	(16,'LENGTH','INCH','FEET',0.083333333333),
+	(17,'OTHER','EACH','EACH',1),
+	(18,'VOLUME','PINT','GALLON',0.125),
+	(19,'VOLUME','TABLESPOON','GALLON',0.00390625),
+	(20,'OTHER','OTHER','OTHER',1),
+	(21,'OTHER','PART\\(S\\) PER MILLION','PART(S) PER MILLION',1),
+	(22,'OTHER','MIL CBF','MIL CBF',1),
+	(23,'OTHER','MILCURIE','MILCURIE(S)',1),
+	(24,'VOLUME','CUBIC METER','GALLON',264.172052),
+	(25,'WEIGHT','GRAM','POUND',0.00220462262),
+	(26,'VOLUME','CUBIC YARD','GALLON',201.974026),
+	(27,'LENGTH','KILOMETER','FEET',3280.8399),
+	(28,'OTHER','UNK','UNKNOWN',1),
+	(29,'OTHER','N/A','NONE',1),
+	(30,'OTHER','CURIE','CURIE',1),
+	(31,'LENGTH','F','FEET',1),
+	(32,'OTHER','UKN','UNKNOWN',1),
+	(33,'OTHER','NONE','NONE',1),
+	(34,'LENGTH','`[\\s]*FEET','FEET',1);
+
+/*!40000 ALTER TABLE `NrcUnits` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+
+
+
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
