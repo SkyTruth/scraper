@@ -31,7 +31,8 @@ from nrc.spiders.FracFocusScraper import FracFocusScraper
 class FracFocusPDFDownloader(FracFocusScraper):
     name = "FracFocusPDFDownloader"
     task_conditions = {'FracFocusReport':'NEW'}
-    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
+#    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
+    download_url = 'http://www.fracfocusdata.org/fracfocusfind/Download.aspx'
     job_item_limit = 1000
     max_download_attempts = 3
 

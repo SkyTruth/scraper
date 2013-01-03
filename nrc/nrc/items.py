@@ -215,6 +215,10 @@ class NrcScrapedReport(Item):
         input_processor = MapCompose(normalize_url),
         )
 
+    def __repr__(self):
+        return "NrcScrapedReport(reportnum=%s, incident_datetime=%s)" % (self['reportnum'], self['incident_datetime'])
+        
+        
 class NrcScrapedFullReport(Item):
     reportnum = SingleField()
     full_report_body = SingleField()

@@ -8,7 +8,6 @@ from scrapy.http import Request, Response, TextResponse
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.shell import inspect_response
 from scrapy import log
-#from scrapy.stats import stats
 
 from nrc.database import NrcDatabase
 from nrc.NrcBot import NrcBot

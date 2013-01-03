@@ -33,3 +33,20 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+#scrapy
+.scrapy
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# keep settings.py out of the repo because it contains db password
+settings.py

@@ -17,9 +17,7 @@ from scrapy import log
 from scrapy.contrib.loader import XPathItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 
-#from scrapy.xlib.ClientForm import ParseFile
 from BeautifulSoup import BeautifulSoup
-#from scrapy.stats import stats
 
 from nrc.NrcBot import NrcBot
 from nrc.items import FracFocusScrape
@@ -39,7 +37,8 @@ class FracFocusScraper(NrcBot):
     name = "FracFocusScraper"
     allowed_domains = None
 #    allowed_domains = ["hydraulicfracturingdisclosure.org"]
-    base_url = "http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Default.aspx"
+#    base_url = "http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Default.aspx"
+    base_url = "http://www.fracfocusdata.org/fracfocusfind/Default.aspx"
     job_item_limit = 7  # maximum total items to process in one job execution
 
     get_counties_form_data = {
@@ -149,10 +148,9 @@ class FracFocusScraper(NrcBot):
 
     def scrape_and_next(self, response):
         response_parts = self.response2dict (response)
-#        self._print_response_parts (response_parts)
         num_pages = response.meta['num_pages']
         response = self.update_response(response.meta['full_response'], response_parts)
-
+        
         # scrape page and goto next
         for item in self.scrape_content_items(response):
             yield item
@@ -188,13 +186,19 @@ class FracFocusScraper(NrcBot):
     # integreate new div content from the response into the original page
     def update_response (self, response, response_parts):
         soup = BeautifulSoup(response.body)
+#        print response.body
+        update_divs = []
         for key,content in response_parts.items():
-#            print key
+#            print "_%s_" % key
             action,div_id = key.split('|')
             if 'updatePanel' == action:
                 div=soup.find(id=div_id)
                 if div:
-                    div.string = content
+                    update_divs.append ((div, content))
+        for update in update_divs:
+            update[0].clear ()
+            update[0].append(BeautifulSoup(update[1]))
+            
         return response.replace (body=str(soup))
 
     # create a new form request
@@ -229,7 +233,7 @@ class FracFocusScraper(NrcBot):
 
         stats.inc_value ('_pages', spider=self)
         reports = hxs.select ('//table[@id="MainContent_DocumentList1_GridView1"]//tr')
-
+        
         for report in reports:
             l = XPathItemLoader(FracFocusScrape(), report)
             for name, params in FracFocusScrape.fields.items():
@@ -242,7 +246,11 @@ class FracFocusScraper(NrcBot):
                     stats.inc_value ('_new_count', spider=self)
 #                print item['operator']
                     yield item
-
+        if not stats.get_value('_existing_count') and not stats.get_value('_new_count'):
+            self.log('%s No records found' % (response.meta['cookiejar']), log.WARNING)
+        
+        
+        
     def extract_NoBot_ClientState (self, response):
         match = re.search(u'<div id="MainContent_NoBot1_NoBotSamplePanel" style="height:(\d+)px;width:(\d+)px;visibility:hidden;position:absolute;">', response.body)
         if match:

@@ -52,6 +52,7 @@ class NrcBot(BaseSpider):
         dispatcher.connect(self.spider_closed, signal=signals.spider_closed)
         if 'task_id' in kwargs:
             self.task_id = kwargs['task_id']
+        self.task_params = kwargs            
 
 
     def start_requests(self):
@@ -115,6 +116,7 @@ class NrcBot(BaseSpider):
         if (params):
             params = dict (zip ([p['key'] for p in params],[p['value'] for p in params]))
             params ['task_id'] = task_id
+            params.update (self.task_params)
             return params
         else:
             return task_id

@@ -35,8 +35,11 @@ class NrcScraper(BaseSpider):
         if 'enddate' in kwargs:
             self.enddate = datetime.strptime(kwargs['enddate'],'%Y-%m-%d')
         interval = timedelta (10) # ten days
-        self.startdate = self.db.latestReportDate() - timedelta(days=10)
-        if self.startdate is None:
+        last_report_dt = self.db.latestReportDate()
+        
+        if last_report_dt:
+            self.startdate = (last_report_dt - timedelta(days=10))
+        else:    
             self.startdate = self.enddate - interval
         if 'startdate' in kwargs:
             self.startdate = datetime.strptime(kwargs['startdate'],'%Y-%m-%d')

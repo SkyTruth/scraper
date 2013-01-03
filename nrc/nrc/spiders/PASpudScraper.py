@@ -31,7 +31,6 @@ class PASpudScraper (AtomPubScraper):
 
         l=ItemLoader (PA_Spud())
 
-        l.add_value ('Well_API__', row['WELL_API'])
         l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
         l.add_value ('SPUD_Date', self.parse_date(row['SPUD_DATE']))
         l.add_value ('County', row['COUNTY'])
@@ -51,6 +50,9 @@ class PASpudScraper (AtomPubScraper):
 
         l.add_value ('Unconventional', row['UNCONVENTIONAL'])
         l.add_value ('Region', row['REGION'])
+
+        l.add_value ('Well_API__', '37-%s-00-00' % row['PERMIT_NUMBER'])
+
 
         item = l.load_item()
         if item['Well_API__'] and item ['SPUD_Date']:

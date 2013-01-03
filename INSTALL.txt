@@ -29,6 +29,7 @@ psycopg2            pip install psycopg2    (python interface to PostGreSQL)
 FTTools 1.1.5       [manaul install]        (fusion table sync utility)
 pdfminer 20110515   pip install pdfminer    (pdf parser)
 beautifulsoup 3.2.1 pip install beautifulsoup   (html parser)   
+fracfocustool 0.0.2	[manual install]	(FracFocus.org pdf parser)
     
 
 MYSQL database setup

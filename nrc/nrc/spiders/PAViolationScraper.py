@@ -13,7 +13,6 @@ from scrapy.http import Request, Response, TextResponse
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.shell import inspect_response
 from scrapy import log
-#from scrapy.stats import stats
 
 from nrc.items import PA_Violation, FeedEntry, FeedEntryTag, PA_DrillingPermit
 from nrc.database import NrcDatabase
@@ -77,7 +76,7 @@ class PAViolationScraper (AtomPubScraper):
 #        print item['ViolationID']
 
         if item['ViolationID']:
-            stats = self.scraper.stats
+            stats = self.crawler.stats
             existing_item = self.db.loadItem (item, {'ViolationID': item['ViolationID']})
 
             if existing_item:

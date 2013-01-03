@@ -15,7 +15,6 @@ from scrapy.http import Request, Response, TextResponse, FormRequest
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.shell import inspect_response
 from scrapy import log
-#from scrapy.stats import stats
 from scrapy.selector import HtmlXPathSelector
 
 
@@ -42,12 +41,6 @@ class WVPermitScraper (NrcBot):
         'datum']
 
     county_ids = None
-#    county_ids = ['009']
-
-#    county_ids = ['001','003','005','007','009','011','013','015','017','019','021','023','025','027','029','031','033','035',
-#        '037','039','041','043','045','049','051','053','047','055','057','059','061','063','065','067','069','200',
-#        '071','073','075','077','079','081','083','085','087','089','091','093','095','998','097','099','101','103',
-#        '105','107','109']
     counties = {
         '001' : 'Barbour',
         '003' : 'Berkeley',
@@ -108,7 +101,7 @@ class WVPermitScraper (NrcBot):
         '109' : 'Wyoming'
     }
 
-    def get_next_county_id (self):
+    def get_next_county_id (self, task):
         if self.county_ids == None:
             self.county_ids = self.counties.keys()
             shuffle(self.county_ids)
@@ -118,6 +111,9 @@ class WVPermitScraper (NrcBot):
         return None
 
     def process_item(self, task):
+        if task.get('county_id'):
+            self.county_ids = [task.get('county_id')]
+            
         yield self.form_request(task)
 
     def form_request(self, task):
@@ -129,7 +125,8 @@ class WVPermitScraper (NrcBot):
 
     def parse_form(self, response):
         task = response.meta['task']
-        county_id = self.get_next_county_id()
+        
+        county_id = self.get_next_county_id(task)
         if county_id:
             self.log('Requesting permit data for county %s: %s' % (county_id, self.counties[county_id]), log.INFO)
             request = FormRequest.from_response(response,

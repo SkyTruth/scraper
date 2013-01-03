@@ -175,4 +175,6 @@ CREATE INDEX idx_regions_the_geom
   ON region
   USING gist
   (the_geom);
+  
+GRANT ALL ON TABLE spatial_ref_sys TO scraper;  
 
