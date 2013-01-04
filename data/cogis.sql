@@ -39,15 +39,15 @@ CREATE TABLE `cogisspill` (
   KEY `doc_num_index` (`doc_num`)
 ) ENGINE=InnoDB AUTO_INCREMENT=530 DEFAULT CHARSET=utf8$$
 
-LOCK TABLES `bottask` WRITE;
+LOCK TABLES `BotTask` WRITE;
 /*!40000 ALTER TABLE `bottask` DISABLE KEYS */;
-INSERT INTO `bottask` VALUES (124,'CogisScraper','scrape_insp',0),(125,'CogisScraper','scrape_spill',0);
+INSERT INTO `BotTask` VALUES (124,'CogisScraper','scrape_insp',0),(125,'CogisScraper','scrape_spill',0);
 /*!40000 ALTER TABLE `bottask` ENABLE KEYS */;
 UNLOCK TABLES;
 
-LOCK TABLES `bottaskparams` WRITE;
+LOCK TABLES `BotTaskParams` WRITE;
 /*!40000 ALTER TABLE `bottaskparams` DISABLE KEYS */;
-INSERT INTO `bottaskparams` VALUES (124,'CogisScraper','target_url','http://cogcc.state.co.us/cogis/IncidentSearch.asp'),(125,'CogisScraper','target_url','http://cogcc.state.co.us/cogis/IncidentSearch.asp'),(124,'CogisScraper','table','insp'),(125,'CogisScraper','table','spill'),(124,'CogisScraper','count','20'),(125,'CogisScraper','count','20');
+INSERT INTO `BotTaskParams` VALUES (124,'CogisScraper','target_url','http://cogcc.state.co.us/cogis/IncidentSearch.asp'),(125,'CogisScraper','target_url','http://cogcc.state.co.us/cogis/IncidentSearch.asp'),(124,'CogisScraper','table','insp'),(125,'CogisScraper','table','spill'),(124,'CogisScraper','count','20'),(125,'CogisScraper','count','20');
 /*!40000 ALTER TABLE `bottaskparams` ENABLE KEYS */;
 UNLOCK TABLES;
 
