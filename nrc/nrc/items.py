@@ -640,6 +640,9 @@ class FracFocusParseChemical (NrcItem):
     cas_number = ContentField ()
     additive_concentration = SingleField ()
     hf_fluid_concentration = SingleField ()
+    ingredient_weight = SingleField (
+            input_processor = MapCompose(strip_non_digits)
+        )
     comments = ContentField ()
 
 
@@ -683,6 +686,7 @@ class FracFocusReportChemical (NrcItem):
     cas_number = ContentField ()
     additive_concentration = SingleField ()
     hf_fluid_concentration = SingleField ()
+    ingredient_weight = SingleField ()     
     comments = ContentField ()
     weight = ContentField ()
     cas_type = ContentField()
