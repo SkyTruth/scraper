@@ -21,7 +21,7 @@ class UshahidiPublisher (FeedPublisher):
     allowed_domains = None
     
     def process_feed_item(self, item, feed_params):
-
+        
         # extract location name from the title
         re_match = re.search(r"[\s]near[\s](.*)$", item['title']) or re.search(r"[\s]in[\s](.*)$", item['title'])
         if re_match:
@@ -70,8 +70,8 @@ class UshahidiPublisher (FeedPublisher):
         yield request
                 
     def submit_report_success(self, response):
-#        print response.body
-#        print response.meta['report']
+        print response.body
+        print response.meta['report']
         result = json.loads(response.body)
         if result['payload']['success'] == 'true':
             self.log('published feed item %s to Ushahidi API %s' % (response.meta['item']['id'], response.meta['feed_params']['api_url']), log.INFO)

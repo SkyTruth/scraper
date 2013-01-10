@@ -23,6 +23,7 @@ ITEM_PIPELINES = [
 DOWNLOADER_MIDDLEWARES = {
     'nrc.middlewares.CustomCookiesMiddleware': 700,
     'scrapy.contrib.downloadermiddleware.cookies.CookiesMiddleware': None,
+    'scrapy.contrib.downloadermiddleware.httpauth.HttpAuthMiddleware': None,
 }
 
 #CONCURRENT_REQUESTS_PER_SPIDER = 1
