@@ -1113,7 +1113,7 @@ CREATE TABLE `ft_nrc_incident_reports` (
 
 
 
-DROP TABLE `ft_nrc_incident_reports`;
+#DROP TABLE `ft_nrc_incident_reports`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `ft_nrc_incident_reports`
 AS select
    if((`r`.`time_stamp` > `p`.`time_stamp`),`r`.`time_stamp`,
