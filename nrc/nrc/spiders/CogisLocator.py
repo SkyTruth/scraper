@@ -56,6 +56,7 @@ class CogisLocator (NrcBot):
     local_task_params = {
             'task_id':'1001',
             'source_task_id':'124',
+            'feedsource_id':'1001',
             'Item':'CogisInspection',
             'loc_key_field':'insp_api_num',
             'target_fields':'site_lat, site_lng, operator',
@@ -217,12 +218,13 @@ class CogisLocator (NrcBot):
         l.add_value ('lat', params['lat'])
         l.add_value ('lng', params['lng'])
 
-        # Don't know what this is, but it can't be null.
-        l.add_value ('source_id', task['task_id'])
+        l.add_value ('source_id', task['feedsource_id'])
 
         feed_item = l.load_item()
 
-        if feed_item.get('lat') and feed_item.get('lng'):
+        if (feed_item.get('lat') and feed_item.get('lng')
+            and (datetime.now().date() - feed_item.get('incident_datetime'))
+                 <= timedelta(days=60)):
             yield feed_item
 #            for tag in self.get_tags(item):
 #                yield self.create_tag (feed_entry_id, tag)
