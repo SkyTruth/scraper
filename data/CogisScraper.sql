@@ -19,9 +19,9 @@
 -- Dumping data for table `bottask`
 --
 
-LOCK TABLES `bottask` WRITE;
+LOCK TABLES `BotTask` WRITE;
 /*!40000 ALTER TABLE `bottask` DISABLE KEYS */;
-INSERT INTO `bottask` VALUES
+INSERT INTO `BotTask` VALUES
     (124,'CogisScraper','scrape_insp',0),
     (125,'CogisSpillScraper','scrape_spill',0);
 /*!40000 ALTER TABLE `bottask` ENABLE KEYS */;
@@ -31,9 +31,9 @@ UNLOCK TABLES;
 -- Dumping data for table `bottaskparams`
 --
 
-LOCK TABLES `bottaskparams` WRITE;
+LOCK TABLES `BotTaskParams` WRITE;
 /*!40000 ALTER TABLE `bottaskparams` DISABLE KEYS */;
-INSERT INTO `bottaskparams` VALUES 
+INSERT INTO `BotTaskParams` VALUES 
     (124,'CogisScraper','target_url','http://cogcc.state.co.us/cogis/IncidentSearch.asp'),
     (124,'CogisScraper','table','insp'),
     (124,'CogisScraper','count','3'),
@@ -47,9 +47,9 @@ UNLOCK TABLES;
 -- Dumping data for table `feedsource`
 --
 
-LOCK TABLES `feedsource` WRITE;
+LOCK TABLES `FeedSource` WRITE;
 /*!40000 ALTER TABLE `feedsource` DISABLE KEYS */;
-INSERT INTO `feedsource` VALUES (1001,'COGIS');
+INSERT INTO `FeedSource` VALUES (1001,'COGIS');
 /*!40000 ALTER TABLE `feedsource` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -19,9 +19,9 @@
 -- Dumping data for table `bottask`
 --
 
-LOCK TABLES `bottask` WRITE;
+LOCK TABLES `BotTask` WRITE;
 /*!40000 ALTER TABLE `bottask` DISABLE KEYS */;
-INSERT INTO `bottask` VALUES (126,'NightfireScraper','scrape',0);
+INSERT INTO `BotTask` VALUES (126,'NightfireScraper','scrape',0);
 /*!40000 ALTER TABLE `bottask` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -29,9 +29,9 @@ UNLOCK TABLES;
 -- Dumping data for table `bottaskparams`
 --
 
-LOCK TABLES `bottaskparams` WRITE;
+LOCK TABLES `BotTaskParams` WRITE;
 /*!40000 ALTER TABLE `bottaskparams` DISABLE KEYS */;
-INSERT INTO `bottaskparams` VALUES (126,'NightfireScraper','target_url','http://www.ngdc.noaa.gov/dmsp/data/viirs_fire/'),(126,'NightfireScraper','file_count','3'),(126,'NightfireScraper','record_count','20');
+INSERT INTO `BotTaskParams` VALUES (126,'NightfireScraper','target_url','http://www.ngdc.noaa.gov/dmsp/data/viirs_fire/'),(126,'NightfireScraper','file_count','3'),(126,'NightfireScraper','record_count','20');
 /*!40000 ALTER TABLE `bottaskparams` ENABLE KEYS */;
 UNLOCK TABLES;
 
