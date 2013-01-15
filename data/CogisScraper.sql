@@ -44,67 +44,14 @@ INSERT INTO `bottaskparams` VALUES
 UNLOCK TABLES;
 
 --
--- Table structure for table `cogisinspection`
+-- Dumping data for table `feedsource`
 --
 
-DROP TABLE IF EXISTS `cogisinspection`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisinspection` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `doc_num` varchar(15) NOT NULL,
-  `county_code` varchar(10) DEFAULT NULL,
-  `county_name` varchar(30) DEFAULT NULL,
-  `date` date DEFAULT NULL,
-  `doc_href` varchar(120) DEFAULT NULL,
-  `loc_id` varchar(15) DEFAULT NULL,
-  `operator` varchar(60) DEFAULT NULL,
-  `insp_api_num` varchar(30) DEFAULT NULL,
-  `insp_status` varchar(15) DEFAULT NULL,
-  `insp_overall` varchar(30) DEFAULT NULL,
-  `ir_pass_fail` varchar(10) DEFAULT NULL,
-  `fr_pass_fail` varchar(10) DEFAULT NULL,
-  `violation` varchar(10) DEFAULT NULL,
-  `site_lat` varchar(20) DEFAULT NULL,
-  `site_lng` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `doc_num_index` (`doc_num`),
-  KEY `lat` (`site_lat`),
-  KEY `lng` (`site_lng`)
-) ENGINE=InnoDB AUTO_INCREMENT=2557 DEFAULT CHARSET=utf8 COMMENT='COGIS well inspection records';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-
---
--- Table structure for table `cogisspill`
---
-
-DROP TABLE IF EXISTS `cogisspill`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisspill` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `doc_num` varchar(15) NOT NULL,
-  `county_code` varchar(10) DEFAULT NULL,
-  `county_name` varchar(30) DEFAULT NULL,
-  `date` date DEFAULT NULL,
-  `doc_href` varchar(120) DEFAULT NULL,
-  `facility_id` varchar(15) DEFAULT NULL,
-  `operator_num` varchar(15) DEFAULT NULL,
-  `company_name` varchar(60) DEFAULT NULL,
-  `groundwater` varchar(10) DEFAULT NULL,
-  `surfacewater` varchar(10) DEFAULT NULL,
-  `berm_contained` varchar(10) DEFAULT NULL,
-  `spill_area` varchar(15) DEFAULT NULL,
-  `spill_lat` varchar(20) DEFAULT NULL,
-  `spill_lng` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idcogisspill_UNIQUE` (`id`),
-  KEY `doc_num_index` (`doc_num`),
-  KEY `lat` (`spill_lat`),
-  KEY `lng` (`spill_lng`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
+LOCK TABLES `feedsource` WRITE;
+/*!40000 ALTER TABLE `feedsource` DISABLE KEYS */;
+INSERT INTO `feedsource` VALUES (1001,'COGIS');
+/*!40000 ALTER TABLE `feedsource` ENABLE KEYS */;
+UNLOCK TABLES;
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
