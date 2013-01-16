@@ -4,10 +4,10 @@
 -- Table structure for table `cogisinspection`
 --
 
-DROP TABLE IF EXISTS `cogisinspection`;
+DROP TABLE IF EXISTS `CogisInspection`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisinspection` (
+CREATE TABLE `CogisInspection` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,
@@ -36,10 +36,10 @@ CREATE TABLE `cogisinspection` (
 -- Table structure for table `cogisspill`
 --
 
-DROP TABLE IF EXISTS `cogisspill`;
+DROP TABLE IF EXISTS `CogisSpill`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisspill` (
+CREATE TABLE `CogisSpill` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,

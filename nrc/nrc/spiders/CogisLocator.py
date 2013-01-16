@@ -66,7 +66,7 @@ class CogisLocator (NrcBot):
     allowed_domains = None
 
     def process_item(self, task):
-        if isinstance(task, types.LongType):
+        if not isinstance(task, dict):
             keyval = task
             task = dict(self.local_task_params.items())
 
@@ -223,11 +223,26 @@ class CogisLocator (NrcBot):
         feed_item = l.load_item()
 
         if (feed_item.get('lat') and feed_item.get('lng')
-            and (datetime.now().date() - feed_item.get('incident_datetime'))
+            and feed_item.get('incident_datetime') and (datetime.now().date() - feed_item.get('incident_datetime'))
                  <= timedelta(days=60)):
             yield feed_item
-#            for tag in self.get_tags(item):
-#                yield self.create_tag (feed_entry_id, tag)
+            for tag in self.get_tags(item):
+                yield self.create_tag (feed_entry_id, tag)
+
+
+    def get_tags (self, item):
+        tags = []
+        if (isinstance(item, CogisInspection)):
+            tags.append ('violation')
+
+        if (isinstance(item, CogisSpill)):
+            tags.append ('spill')
+            tags.append ('release')
+
+        tags.append ('drilling')
+        tags.append ('COGIS')
+
+        return tags
 
 class CogisSpillLocator (CogisLocator):
     name = 'CogisSpillLocator'
@@ -235,6 +250,7 @@ class CogisSpillLocator (CogisLocator):
     local_task_params = {
             'task_id':'1002',
             'source_task_id':'125',
+            'feedsource_id':'1001',         
             'Item':'CogisSpill',
             'loc_key_field':'facility_id',
             'target_fields':'spill_lat, spill_lng, company_name',

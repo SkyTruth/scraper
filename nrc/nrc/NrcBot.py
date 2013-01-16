@@ -16,7 +16,7 @@ from scrapy import log
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy import signals
 
-from nrc.items import NrcParsedReport, NrcTag, BotTaskError
+from nrc.items import NrcParsedReport, NrcTag, BotTaskError, FeedEntryTag
 from nrc.database import NrcDatabase
 from nrc import settings
 from nrc.GeoDatabase import GeoDatabase
@@ -179,12 +179,21 @@ class NrcBot(BaseSpider):
         server.sendmail(settings.MAIL_FROM, settings.MAIL_TO, header+message)
         server.quit()
 
+    # used for NRC reports only
     def make_tag (self, task_id, tag, comment=None):
         t = ItemLoader (NrcTag())
         t.add_value ('reportnum', task_id)
         t.add_value ('tag', tag)
         t.add_value ('comment', comment)
         return t.load_item()
+
+    # used for FeedEntry Tags
+    def create_tag (self, feed_entry_id, tag, comment = ''):
+        l = ItemLoader (FeedEntryTag())
+        l.add_value ('feed_entry_id', feed_entry_id)
+        l.add_value ('tag', tag)
+        l.add_value ('comment', comment)
+        return l.load_item()
 
     def make_bot_task_error (self, task_id, code, message=''):
         t = ItemLoader (BotTaskError())
