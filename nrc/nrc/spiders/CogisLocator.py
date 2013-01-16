@@ -47,7 +47,7 @@ Well API Record: <a href="$well_href">$api</a><br/>
 Operator: $operator<br/>
 Report Date: $date<br/>
 County: $county<br/>
-Notes: $notestring<br/>
+$notestring
 <a href="$doc_href">View original report</a><br/>
 """)
 
@@ -181,6 +181,7 @@ class CogisLocator (NrcBot):
         params['api'] = item['insp_api_num']
         params['title_tmpl'] = insp_title_template
         params['summ_tmpl'] = insp_summ_template
+        params['notestring'] = ""
         params['notes'] = []
         return self.create_feed_entry(item, task, params)
 
@@ -192,6 +193,7 @@ class CogisLocator (NrcBot):
         params['api'] = item['facility_id']
         params['title_tmpl'] = spill_title_template
         params['summ_tmpl'] = spill_summ_template
+        params['notestring'] = ""
         params['notes'] = []
         if item['groundwater'].upper() == 'Y':
             params['notes'].append('groundwater affected')
@@ -210,7 +212,9 @@ class CogisLocator (NrcBot):
                                "FacilityDetail.asp?facid={0}&type=WELL"
                                .format(facility_id))
         params['content_tmpl'] = content_template
-        params['notestring'] = ', '.join(params['notes'])
+        if params['notes']:
+            params['notestring'] = ("Notes: %s<br/>"
+                                    % (', '.join(params['notes']),))
 
         # create a new feed item
         l=ItemLoader (FeedEntry())
