@@ -66,13 +66,13 @@ CREATE TABLE `CogisSpill` (
 
 
 --
--- Table structure for table `nightfire_file`
+-- Table structure for table `Nightfire_file`
 --
 
-DROP TABLE IF EXISTS `nightfire_file`;
+DROP TABLE IF EXISTS `Nightfire_file`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `nightfire_file` (
+CREATE TABLE `Nightfire_file` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `filename` varchar(60) NOT NULL,
   `time_stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,13 +82,13 @@ CREATE TABLE `nightfire_file` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `nightfire_record`
+-- Table structure for table `Nightfire_record`
 --
 
-DROP TABLE IF EXISTS `nightfire_record`;
+DROP TABLE IF EXISTS `Nightfire_record`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `nightfire_record` (
+CREATE TABLE `Nightfire_record` (
   `file_num` int(11) NOT NULL,
   `ID` int(11) NOT NULL,
   `Lat_GMTCO` double DEFAULT NULL,
