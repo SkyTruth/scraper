@@ -165,7 +165,14 @@ class NrcDatabase(object):
     def getBotTasks (self, bot, task_id=None):
         c = self.db.cursor(DictCursor)
         if not task_id:
-            sql = "SELECT t.id as task_id FROM BotTask t LEFT JOIN BotTaskStatus s ON t.id = s.task_id AND t.bot = s.bot WHERE t.bot = %s AND ((s.task_id is NULL) or (TIMESTAMPDIFF(SECOND, s.time_stamp, NOW()) > t.process_interval_secs)) ORDER BY t.id ASC"
+            sql = ( "SELECT t.id as task_id "
+                    "FROM BotTask t LEFT JOIN BotTaskStatus s "
+                        "ON t.id = s.task_id AND t.bot = s.bot "
+                    "WHERE t.bot = %s AND "
+                        "((s.task_id is NULL) or "
+                            "(TIMESTAMPDIFF(SECOND, s.time_stamp, NOW()) "
+                            " > t.process_interval_secs)) "
+                    "ORDER BY t.id ASC")
             c.execute (sql, bot)
             return c.fetchall ()
         else:
@@ -183,6 +190,20 @@ class NrcDatabase(object):
         c = self.db.cursor()
         c.execute (sql, (bot, task_id, key, value))
 
+    def getBotJob (self, job_param):
+        c = self.db.cursor(DictCursor)
+        sql = ("SELECT * FROM BotJob WHERE job_id='%s' or job_name='%s'"
+               % (job_param, job_param))
+        c.execute (sql)
+        job_rec = c.fetchone ()
+        if job_rec is None:
+            log.msg ("Job '%s' not found." % (job_param, ), level=log.ERROR)
+        return job_rec['job_id'], job_rec['job_name'], job_rec['job_bot']
+
+    def getBotJobParams (self, job_id):
+        c = self.db.cursor(DictCursor)
+        c.execute( "SELECT * from BotJobParams WHERE job_id=%s", (job_id,))
+        return c.fetchall()
 
     def updateBotTaskLastProcessed (self, task_id):
         sql = "UPDATE BotTask SET last_processed=NOW() WHERE id=%s"
