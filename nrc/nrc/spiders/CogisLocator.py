@@ -47,6 +47,8 @@ Well API Record: <a href="$well_href">$api</a><br/>
 Operator: $operator<br/>
 Report Date: $date<br/>
 County: $county<br/>
+$notestring
+<a href="$doc_href">View original report</a><br/>
 """)
 
 # COGIS Records Geolocator
@@ -145,6 +147,8 @@ class CogisLocator (NrcBot):
             assert False
             return None
         for field_name, value in cogis_rec.items():
+            if field_name == 'timestamp':
+                continue
             item[field_name] = value
         return item
 
@@ -177,6 +181,8 @@ class CogisLocator (NrcBot):
         params['api'] = item['insp_api_num']
         params['title_tmpl'] = insp_title_template
         params['summ_tmpl'] = insp_summ_template
+        params['notestring'] = ""
+        params['notes'] = []
         return self.create_feed_entry(item, task, params)
 
     def create_spill_feed_entry (self, item, task):
@@ -187,6 +193,12 @@ class CogisLocator (NrcBot):
         params['api'] = item['facility_id']
         params['title_tmpl'] = spill_title_template
         params['summ_tmpl'] = spill_summ_template
+        params['notestring'] = ""
+        params['notes'] = []
+        if item['groundwater'].upper() == 'Y':
+            params['notes'].append('groundwater affected')
+        if item['surfacewater'].upper() == 'Y':
+            params['notes'].append('surfacewater affected')
         return self.create_feed_entry(item, task, params)
 
     def create_feed_entry (self, item, task, params):
@@ -200,6 +212,9 @@ class CogisLocator (NrcBot):
                                "FacilityDetail.asp?facid={0}&type=WELL"
                                .format(facility_id))
         params['content_tmpl'] = content_template
+        if params['notes']:
+            params['notestring'] = ("Notes: %s<br/>"
+                                    % (', '.join(params['notes']),))
 
         # create a new feed item
         l=ItemLoader (FeedEntry())
@@ -250,7 +265,7 @@ class CogisSpillLocator (CogisLocator):
     local_task_params = {
             'task_id':'1002',
             'source_task_id':'125',
-            'feedsource_id':'1001',         
+            'feedsource_id':'1001',
             'Item':'CogisSpill',
             'loc_key_field':'facility_id',
             'target_fields':'spill_lat, spill_lng, company_name',

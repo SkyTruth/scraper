@@ -17,7 +17,7 @@
 
 --
 -- Table structure for table `cogisinspection`
---
+-
 
 DROP TABLE IF EXISTS `cogisinspection`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -39,6 +39,7 @@ CREATE TABLE `cogisinspection` (
   `violation` varchar(10) DEFAULT NULL,
   `site_lat` varchar(20) DEFAULT NULL,
   `site_lng` varchar(20) DEFAULT NULL,
+  `time_stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `doc_num_index` (`doc_num`),
   KEY `lat` (`site_lat`),
@@ -70,6 +71,7 @@ CREATE TABLE `cogisspill` (
   `spill_area` varchar(15) DEFAULT NULL,
   `spill_lat` varchar(20) DEFAULT NULL,
   `spill_lng` varchar(20) DEFAULT NULL,
+  `time_stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idcogisspill_UNIQUE` (`id`),
   KEY `doc_num_index` (`doc_num`),
