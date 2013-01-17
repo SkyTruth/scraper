@@ -4,6 +4,8 @@ import re
 from datetime import datetime, timedelta
 import json
 
+from w3lib.http import basic_auth_header
+
 from scrapy.spider import BaseSpider
 from scrapy.contrib.loader import ItemLoader
 from scrapy.http import FormRequest, Response, TextResponse
@@ -44,13 +46,24 @@ class UshahidiPublisher (FeedPublisher):
             'person_first' : 'SkyTruth Alerts',
             'person_last' : '',
             'person_email' : 'alerts@skytruth.org',
-            'auth_token' : 'JDxEF83bd',
-            'incident_active' : '1', 
-            'incident_alert_status' : '1', 
-            
-            }
+            }            
         params = {}
-        params['task'] = 'report'
+        
+        api_version = feed_params.get('api_version', 'default')
+        if api_version in ('default', 'oilspill'):
+            params['auth_token'] = 'JDxEF83bd'
+            params['task'] = 'report'
+            params['incident_active'] = '1' 
+            params['incident_alert_status'] = '1' 
+        elif api_version in ('LABB'):
+            params['task'] = 'reports'
+#            params['task'] = 'report'
+            params['action'] = 'edit'
+            params['incident_active'] = '1' 
+        else:
+            self.log('Unknown API version specified: %s' % (api_version), log.ERROR)
+            
+    
         params = dict(params.items() + report.items())
         
         # retrieve task
@@ -66,6 +79,10 @@ class UshahidiPublisher (FeedPublisher):
         request.meta['item'] = item
         request.meta['feed_params'] = feed_params
         request.meta['dont_retry'] = True
+        
+        if feed_params.get ('http_user'):
+            self.log('Authenticating with user: %s' % (feed_params.get ('http_user')), log.INFO)
+            request.headers['Authorization'] = basic_auth_header(feed_params.get ('http_user'), feed_params.get ('http_password'))
         
         yield request
                 

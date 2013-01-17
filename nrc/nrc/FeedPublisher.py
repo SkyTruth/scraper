@@ -22,10 +22,6 @@ class FeedPublisher (NrcBot):
     
     
     def process_item(self, feed):
-        self.http_user = feed.get('http_user')
-        self.http_pass = feed.get('http_password')
-
-    
         url = "%s&after=%s&sort=asc" % (feed['feed_url'], feed['last_item_updated'])
         request = Request (url, callback=self.parse_feed)
         self.log('Requesting feed from url %s' % (url), log.INFO)
