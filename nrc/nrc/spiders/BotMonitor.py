@@ -41,8 +41,8 @@ class BotMonitor(NrcBot):
         text_lines = [header]
         html_lines = ["<tr><th>%s</th></tr>" % header.replace('\t', '</th><th>')]
         
-        for bot,bot_stats in report.report.items():
-            for status, status_stats in bot_stats.items():
+        for bot in sorted(report.report.keys()):
+            for status, status_stats in report.report[bot].items():
                 day = status_stats.get(1,0)
                 week = status_stats.get(7,0)
                 month = status_stats.get(30,0)
