@@ -16,13 +16,13 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `cogisinspection`
+-- Table structure for table `CogisInspection`
 --
 
-DROP TABLE IF EXISTS `cogisinspection`;
+DROP TABLE IF EXISTS `CogisInspection`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisinspection` (
+CREATE TABLE `CogisInspection` (
   `st_id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,
@@ -49,13 +49,13 @@ CREATE TABLE `cogisinspection` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `cogisspill`
+-- Table structure for table `CogisSpill`
 --
 
-DROP TABLE IF EXISTS `cogisspill`;
+DROP TABLE IF EXISTS `CogisSpill`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cogisspill` (
+CREATE TABLE `CogisSpill` (
   `st_id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,
