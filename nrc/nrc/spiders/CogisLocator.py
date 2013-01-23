@@ -126,7 +126,10 @@ class CogisLocator (JobBot):
             if item[target_fields[2]]:
                 operator = item[target_fields[2]]
             update_fields = dict(zip(target_fields, (lat, lng, operator)))
-            self.db.updateItem (job['Item'], item['id'], update_fields)
+            self.db.updateItem (task['Item'],
+                                item['st_id'],
+                                update_fields,
+                                id_field='st_id')
             for key, val in update_fields.items():
                 item[key] = val
         if lat is not None:

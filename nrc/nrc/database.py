@@ -114,12 +114,12 @@ class NrcDatabase(object):
         return c.lastrowid
 
 
-    def updateItem (self, table_name, id, update_fields):
+    def updateItem (self, table_name, id, update_fields, id_field='id'):
         if update_fields:
             field_str = '=%s,'.join(update_fields.keys())
             field_str += '=%s'
 
-            sql = "UPDATE %s SET %s WHERE id='%s'" % (table_name, field_str, id)
+            sql = "UPDATE %s SET %s WHERE %s='%s'" % (table_name, field_str, id_field, id)
             self.db.cursor().execute (sql, update_fields.values())
 
     def loadScrapedReport (self, reportnum):

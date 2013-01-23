@@ -1,13 +1,13 @@
 
 --
--- Table structure for table `cogisinspection`
+-- Table structure for table `CogisInspection`
 --
 
 DROP TABLE IF EXISTS `CogisInspection`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `CogisInspection` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `st_id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,
   `county_name` varchar(30) DEFAULT NULL,
@@ -24,23 +24,23 @@ CREATE TABLE `CogisInspection` (
   `site_lat` varchar(20) DEFAULT NULL,
   `site_lng` varchar(20) DEFAULT NULL,
   `time_stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
+  `ft_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`st_id`),
   KEY `doc_num_index` (`doc_num`),
   KEY `lat` (`site_lat`),
   KEY `lng` (`site_lng`)
-) ENGINE=InnoDB AUTO_INCREMENT=2557 DEFAULT CHARSET=utf8 COMMENT='COGIS well inspection records';
+) ENGINE=InnoDB AUTO_INCREMENT=2789 DEFAULT CHARSET=utf8 COMMENT='COGIS well inspection records';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
 --
--- Table structure for table `cogisspill`
+-- Table structure for table `CogisSpill`
 --
 
 DROP TABLE IF EXISTS `CogisSpill`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `CogisSpill` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `st_id` int(11) NOT NULL AUTO_INCREMENT,
   `doc_num` varchar(15) NOT NULL,
   `county_code` varchar(10) DEFAULT NULL,
   `county_name` varchar(30) DEFAULT NULL,
@@ -56,12 +56,13 @@ CREATE TABLE `CogisSpill` (
   `spill_lat` varchar(20) DEFAULT NULL,
   `spill_lng` varchar(20) DEFAULT NULL,
   `time_stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idcogisspill_UNIQUE` (`id`),
+  `ft_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`st_id`),
+  UNIQUE KEY `idcogisspill_UNIQUE` (`st_id`),
   KEY `doc_num_index` (`doc_num`),
   KEY `lat` (`spill_lat`),
   KEY `lng` (`spill_lng`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=283 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
