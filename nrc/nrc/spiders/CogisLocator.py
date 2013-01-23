@@ -22,7 +22,7 @@ from scrapy import log
 from scrapy.selector import HtmlXPathSelector
 
 # local modules
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 from nrc.items import NrcItem, FeedEntry, FeedEntryTag
 from nrc.spiders.CogisScraper import CogisInspection, CogisSpill
 
@@ -52,48 +52,50 @@ $notestring
 """)
 
 # COGIS Records Geolocator
-class CogisLocator (NrcBot):
+class CogisLocator (JobBot):
     name = 'CogisLocator'
-    task_conditions = {'CogisScraper':'NEW'}
-    local_task_params = {
-            'task_id':'1001',
-            'source_task_id':'124',
-            'feedsource_id':'1001',
-            'Item':'CogisInspection',
-            'loc_key_field':'insp_api_num',
-            'target_fields':'site_lat, site_lng, operator',
-            'url_template':
-    'http://cogcc.state.co.us/cogis/FacilityDetail.asp?facid={0}&type=WELL',
-            }
     allowed_domains = None
+#    task_conditions = {'CogisScraper':'NEW'}
+#    local_task_params = {
+#            'task_id':'1001',
+#            'source_task_id':'124',
+#            'feedsource_id':'1001',
+#            'Item':'CogisInspection',
+#            'loc_key_field':'insp_api_num',
+#            'target_fields':'site_lat, site_lng, operator',
+#            'url_template':
+#    'http://cogcc.state.co.us/cogis/FacilityDetail.asp?facid={0}&type=WELL',
+#            }
 
-    def process_item(self, task):
-        if not isinstance(task, dict):
-            keyval = task
-            task = dict(self.local_task_params.items())
+    def process_job(self):
+        job = self.job_params
+        try:
+            task_ids = job['task_ids']
+        except KeyError:
+            task_ids = ""
+        job_conditions = job['job_conditions']
+        for item in self.process_job_items(job_conditions, task_ids):
+            yield item
 
-            item = self.get_cogis_item(task, keyval)
-            if item is None: return
-            api_key = item[task["loc_key_field"]].replace("-","")
-            url = task["url_template"].format(api_key)
-            req = Request(url,
-                          callback=self.parse_well,
-                          dont_filter=True,
-                          errback=self.error_callback)
-            req.meta['task'] = task
-            req.meta['task_keyval'] = keyval
-            yield req
+    def process_job_item(self, task_key):
+        job = self.job_params
+        item = self.get_cogis_item(job, task_key)
+        if item is None: return
+        api_key = item[job["loc_key_field"]].replace("-","")
+        url = job["url_template"].format(api_key)
+        req = Request(url,
+                      callback=self.parse_well,
+                      dont_filter=True,
+                      errback=self.error_callback)
+        req.meta['job'] = job
+        req.meta['task_key'] = task_key
+        yield req
 
-        else:
-            # this is for the new task structure only
-            self.item_dropped(keyval)
-            self.log('CogisLocator.process_item got task parameter dictionary',
-                     log.ERROR)
         return
 
     def parse_well(self, response):
-        task = response.meta['task']
-        keyval = response.meta['task_keyval']
+        job = response.meta['job']
+        task_key = response.meta['task_key']
         hxs = HtmlXPathSelector(response)
         fields = hxs.select('//td//text()')
         lat, lng = None, None
@@ -117,32 +119,36 @@ class CogisLocator (NrcBot):
                 if not operator: continue
                 break
         if operator or lat is not None:
-            item = self.get_cogis_item(task, keyval)
+            item = self.get_cogis_item(job, task_key)
             if item is None: return
             target_fields = [f.strip()
-                             for f in task['target_fields'].split(',')]
+                             for f in job['target_fields'].split(',')]
             if item[target_fields[2]]:
                 operator = item[target_fields[2]]
             update_fields = dict(zip(target_fields, (lat, lng, operator)))
-            self.db.updateItem (task['Item'], item['id'], update_fields)
+            self.db.updateItem (job['Item'], item['id'], update_fields)
             for key, val in update_fields.items():
                 item[key] = val
         if lat is not None:
-            self.log('set lat/lng for cogis %s to %s/%s' % (keyval, lat, lng),
+            self.log('set lat/lng for cogis %s to %s/%s' %(task_key, lat, lng),
                      log.INFO)
-            self.item_completed(keyval)
-            return self.screen_feed_entry(item, task)
+            self.item_completed(task_key)
+            return self.screen_feed_entry(item, job)
         else:
-            self.log('lat/lng values not found for cogis %s' % (keyval,),
+            self.log('lat/lng values not found for cogis %s' % (task_key,),
                      log.INFO)
-            self.item_dropped(keyval)
+            self.item_dropped(task_key)
 
-    def get_cogis_item(self, task, keyval):
-        item = globals()[task['Item']]()
+    def item_stored(self, item, id):
+        if isinstance(item, (CogisInspection, CogisSpill)):
+            self.item_completed(item['doc_num'])
+
+    def get_cogis_item(self, job, keyval):
+        item = globals()[job['Item']]()
         cogis_rec = self.db.loadItem (item, match_fields={'doc_num':keyval})
         if cogis_rec is None:
             self.log("No {0} record for doc_num {1}."
-                     .format(task['Item'], keyval),
+                     .format(job['Item'], keyval),
                      log.ERROR)
             assert False
             return None
@@ -164,16 +170,16 @@ class CogisLocator (NrcBot):
                     pass
         return None, None
 
-    def screen_feed_entry(self, item, task):
+    def screen_feed_entry(self, item, job):
         if (isinstance(item, CogisInspection)):
             if item["violation"] == 'Y':
-                return self.create_insp_feed_entry(item, task)
+                return self.create_insp_feed_entry(item, job)
 
         if (isinstance(item, CogisSpill)
            ):
-            return self.create_spill_feed_entry(item, task)
+            return self.create_spill_feed_entry(item, job)
 
-    def create_insp_feed_entry (self, item, task):
+    def create_insp_feed_entry (self, item, job):
         params = {}
         params['lat'] = item['site_lat']
         params['lng'] = item['site_lng']
@@ -183,9 +189,9 @@ class CogisLocator (NrcBot):
         params['summ_tmpl'] = insp_summ_template
         params['notestring'] = ""
         params['notes'] = []
-        return self.create_feed_entry(item, task, params)
+        return self.create_feed_entry(item, job, params)
 
-    def create_spill_feed_entry (self, item, task):
+    def create_spill_feed_entry (self, item, job):
         params = {}
         params['lat'] = item['spill_lat']
         params['lng'] = item['spill_lng']
@@ -199,9 +205,9 @@ class CogisLocator (NrcBot):
             params['notes'].append('groundwater affected')
         if item['surfacewater'].upper() == 'Y':
             params['notes'].append('surfacewater affected')
-        return self.create_feed_entry(item, task, params)
+        return self.create_feed_entry(item, job, params)
 
-    def create_feed_entry (self, item, task, params):
+    def create_feed_entry (self, item, job, params):
         params['county'] = item['county_name']
         params['doc_num'] = item['doc_num']
         params['doc_href'] = item['doc_href']
@@ -233,12 +239,13 @@ class CogisLocator (NrcBot):
         l.add_value ('lat', params['lat'])
         l.add_value ('lng', params['lng'])
 
-        l.add_value ('source_id', task['feedsource_id'])
+        l.add_value ('source_id', job['feed_source_id'])
 
         feed_item = l.load_item()
 
         if (feed_item.get('lat') and feed_item.get('lng')
-            and feed_item.get('incident_datetime') and (datetime.now().date() - feed_item.get('incident_datetime'))
+            and feed_item.get('incident_datetime')
+            and (datetime.now().date() - feed_item.get('incident_datetime'))
                  <= timedelta(days=60)):
             yield feed_item
             for tag in self.get_tags(item):
@@ -259,17 +266,16 @@ class CogisLocator (NrcBot):
 
         return tags
 
-class CogisSpillLocator (CogisLocator):
-    name = 'CogisSpillLocator'
-    task_conditions = {'CogisSpillScraper':'NEW'}
-    local_task_params = {
-            'task_id':'1002',
-            'source_task_id':'125',
-            'feedsource_id':'1001',
-            'Item':'CogisSpill',
-            'loc_key_field':'facility_id',
-            'target_fields':'spill_lat, spill_lng, company_name',
-            'url_template':
-    'http://cogcc.state.co.us/cogis/FacilityDetail.asp?facid={0}&type=WELL',
-            }
+#class CogisSpillLocator (CogisLocator):
+#    name = 'CogisSpillLocator'
+#    task_conditions = {'CogisSpillScraper':'NEW'}
+#    local_task_params = {
+#            'task_id':'1002',
+#            'source_task_id':'125',
+#            'feedsource_id':'1001',
+#            'loc_key_field':'facility_id',
+#            'target_fields':'spill_lat, spill_lng, company_name',
+#            'url_template':
+#    'http://cogcc.state.co.us/cogis/FacilityDetail.asp?facid={0}&type=WELL',
+#            }
 

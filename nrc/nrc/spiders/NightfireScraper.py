@@ -8,15 +8,9 @@ Created on Sun Dec 16 16:08:24 2012
 # standard modules
 import re
 from datetime import datetime, timedelta
-import xlrd
-import uuid
 from string import Template
-from xml.sax.saxutils import escape
-from urlparse import urlsplit, urljoin
-from random import shuffle
 
 # site modules
-from scrapy.spider import BaseSpider
 from scrapy.contrib.loader import ItemLoader, XPathItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.contrib.loader.processor import Identity, Compose
@@ -29,9 +23,7 @@ from scrapy.item import Field
 # local modules
 from nrc.items import FeedEntry, FeedEntryTag
 from nrc.items import convert_fuzzy_date
-from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
-from nrc.ExcelScraper import ExcelScraper
+from nrc.JobBot import JobBot
 from nrc.items import convert_fuzzy_date
 from nrc.items import NrcItem, FeedEntry, FeedEntryTag
 
@@ -42,22 +34,27 @@ from nrc.items import NrcItem, FeedEntry, FeedEntryTag
 # www.ngdc.noaa.gov/dmsp/data/viirs_fire/viirs_html/download_viirs_fire.html
 
 
-class NightfireScraper (NrcBot):
+class NightfireScraper (JobBot):
     name = 'NightfireScraper'
     allowed_domains = None
 
-    def process_item(self, task):
-        Nightfire_file.task = task
+    def process_job(self):
+        job = self.job_params
+        for item in self.process_item(job):
+            yield item
+
+    def process_item(self, job):
+#        Nightfire_file.task = task
         Nightfire_file.last = None
-        Nightfire_record.task = task
+#        Nightfire_record.task = task
         Nightfire_record.last = None
-        url = task['target_url']
+        url = job['target_url']
         request = Request (url,
                            callback=self.parse_nightfire_dir,
                            dont_filter=True,
                            errback=self.error_callback)
         self.log('retrieving nightfire dir listing %s' % (url), log.INFO)
-        request.meta['task'] = task
+        request.meta['job'] = job
         yield request
 
     def error_callback (self, err):
@@ -65,13 +62,13 @@ class NightfireScraper (NrcBot):
                   % (err.getErrorMessage()), log.WARNING)
 
     def parse_nightfire_dir(self, response):
-        task = response.meta['task']
+        job = response.meta['job']
         stats = self.crawler.stats
         hxs = HtmlXPathSelector(response)
 
         filenms = [href.extract().strip()
                    for href in hxs.select('//td//@href')]
-        file_count = int(task['file_count'])
+        file_count = int(job['file_count'])
         count = 0
         for filenm in filenms:
             if len(filenm) < 5 or filenm[-4:] != ".csv": continue
@@ -88,12 +85,12 @@ class NightfireScraper (NrcBot):
                 if count == file_count or filenm is filenms[-1]:
                     Nightfire_file.last = item
                 yield item
-                url = "/".join([task['target_url'], filenm])
+                url = "/".join([job['target_url'], filenm])
                 request = Request (url,
                                    callback=self.parse_nightfire_file,
                                    dont_filter=True,
                                    errback=self.error_callback)
-                request.meta['task'] = task
+                request.meta['job'] = job
                 request.meta['filenm'] = filenm
                 request.meta['lastfile'] = item is Nightfire_file.last
                 yield request
@@ -104,14 +101,12 @@ class NightfireScraper (NrcBot):
     def item_stored(self, item, id):
         if isinstance(item, Nightfire_file):
             pass
-        else:
-            #Nightfire_record
+        else:  #Nightfire_record
             if item is Nightfire_record.last:
-                self.item_completed_new (item.task['task_id'], '')
-
+                self.item_completed (self.job_params['job_id'], '')
 
     def parse_nightfire_file(self, response):
-        task = response.meta['task']
+        job = response.meta['job']
         filenm = response.meta['filenm']
         file_num = self.lookup_filenum(filenm)
         if file_num is None:
@@ -123,8 +118,8 @@ class NightfireScraper (NrcBot):
         data=hxs.select('//body//text()').extract()[0]
         header = None
         records = data.split('\n')
-        if task['record_count']:
-            records = records[:int(task['record_count'])]
+        if job['record_count']:
+            records = records[:int(job['record_count'])]
         for record in records:
             record = record.strip()
             if header is None:

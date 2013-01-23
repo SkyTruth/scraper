@@ -20,11 +20,12 @@ from scrapy.selector import HtmlXPathSelector
 
 from nrc.items import WV_DrillingPermit, FeedEntry, FeedEntryTag
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
+#from nrc.NrcBot import NrcBot
 from nrc.ExcelScraper import ExcelScraper
 
 
-class WVPermitScraper (NrcBot):
+class WVPermitScraper (JobBot):
     name = 'WVPermitScraper'
     allowed_domains = None
     field_names = [
@@ -101,7 +102,7 @@ class WVPermitScraper (NrcBot):
         '109' : 'Wyoming'
     }
 
-    def get_next_county_id (self, task):
+    def get_next_county_id (self, job):
         if self.county_ids == None:
             self.county_ids = self.counties.keys()
             shuffle(self.county_ids)
@@ -110,23 +111,24 @@ class WVPermitScraper (NrcBot):
             return self.county_ids.pop(0)
         return None
 
-    def process_item(self, task):
-        if task.get('county_id'):
-            self.county_ids = [task.get('county_id')]
-            
-        yield self.form_request(task)
+    def process_job(self):
+        job = self.job_params
+        if job.get('county_id'):
+            self.county_ids = [job.get('county_id')]
 
-    def form_request(self, task):
-        url = task['target_url']
+        yield self.form_request(job)
+
+    def form_request(self, job):
+        url = job['target_url']
         request = Request (url, callback=self.parse_form, dont_filter=True, errback=self.error_callback)
         self.log('retrieving request form url %s' % (url), log.INFO)
-        request.meta['task'] = task
+        request.meta['job'] = job
         return request
 
     def parse_form(self, response):
-        task = response.meta['task']
-        
-        county_id = self.get_next_county_id(task)
+        job = response.meta['job']
+
+        county_id = self.get_next_county_id(job)
         if county_id:
             self.log('Requesting permit data for county %s: %s' % (county_id, self.counties[county_id]), log.INFO)
             request = FormRequest.from_response(response,
@@ -139,12 +141,12 @@ class WVPermitScraper (NrcBot):
             callback=self.parse_page,
             errback=self.error_callback,
             dont_filter=True)
-            request.meta['task'] = task
+            request.meta['job'] = job
             request.meta['county_id'] = county_id
             yield request
 
     def parse_page (self, response):
-        task = response.meta['task']
+        job = response.meta['job']
         county_id = response.meta['county_id']
         hxs = HtmlXPathSelector(response)
 
@@ -155,11 +157,11 @@ class WVPermitScraper (NrcBot):
 #        if 0:
         if len(next) > 0:
             request = Request (urljoin(response.url, next[0].extract()), callback=self.parse_page, errback=self.error_callback, dont_filter=True)
-            request.meta['task'] = task
+            request.meta['job'] = job
             request.meta['county_id'] = county_id
             yield request
         else:
-            yield self.form_request(task)
+            yield self.form_request(job)
 
         rows = hxs.select ('/html/body/table[4]/tr')
         if (len(rows) == 0):
@@ -174,11 +176,11 @@ class WVPermitScraper (NrcBot):
             for row in rows:
                 r = dict(zip(self.field_names, [f.strip() for f in row.select ('td/text()').extract_unquoted()]))
                 r['county'] = self.counties[county_id]
-                for item in self.process_row(r, task):
+                for item in self.process_row(r, job):
                     yield item
 
 
-    def process_row (self, row, task):
+    def process_row (self, row, job):
         stats = self.crawler.stats
 
         l=ItemLoader (WV_DrillingPermit())
@@ -200,11 +202,11 @@ class WVPermitScraper (NrcBot):
                 dt = datetime.strptime(item ['permit_activity_date'], '%Y-%m-%d %H:%M:%S')
 #                if item['permit_activity_type'] in ('Permit Issued', 'Permit Commenced', 'Permit Completed'):
                 if item['permit_activity_type'] in ('Permit Issued', 'Permits Issued') and datetime.now() - dt  < timedelta(days=365):
-                    for item in self.create_feed_entry(item, task):
+                    for item in self.create_feed_entry(item, job):
                         yield item
 
 
-    def create_feed_entry (self, item, task):
+    def create_feed_entry (self, item, job):
 
         params = dict(item)
         for f in item.fields:
@@ -217,13 +219,13 @@ class WVPermitScraper (NrcBot):
         # create a new feed item
         l=ItemLoader (FeedEntry())
 
-        url = "%s/%s/%s/%s" % (task['target_url'], item['API'], item ['permit_activity_type'], item ['permit_activity_date'])
+        url = "%s/%s/%s/%s" % (job['target_url'], item['API'], item ['permit_activity_type'], item ['permit_activity_date'])
         feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
 
         l.add_value ('title', self.title_template(item).substitute(params))
         l.add_value ('incident_datetime', item.get('permit_activity_date'))
-        l.add_value ('link', task['about_url'])
+        l.add_value ('link', job['about_url'])
 
         l.add_value ('summary', self.summary_template(item).substitute(params))
         l.add_value ('content', self.content_template().substitute(params))

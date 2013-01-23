@@ -217,8 +217,8 @@ class NrcScrapedReport(Item):
 
     def __repr__(self):
         return "NrcScrapedReport(reportnum=%s, incident_datetime=%s)" % (self['reportnum'], self['incident_datetime'])
-        
-        
+
+
 class NrcScrapedFullReport(Item):
     reportnum = SingleField()
     full_report_body = SingleField()
@@ -686,40 +686,8 @@ class FracFocusReportChemical (NrcItem):
     cas_number = ContentField ()
     additive_concentration = SingleField ()
     hf_fluid_concentration = SingleField ()
-    ingredient_weight = SingleField ()     
+    ingredient_weight = SingleField ()
     comments = ContentField ()
     weight = ContentField ()
     cas_type = ContentField()
-
-class CogisInspection (NrcItem):
-    insert_mode = 'replace'
-
-    doc_num = KeyField()
-    county_code = ContentField()
-    county_name = ContentField()
-    date = ContentField()
-    doc_href = ContentField()
-    loc_id = ContentField()
-    insp_api_num = ContentField()
-    insp_status = ContentField()
-    insp_overall = ContentField()
-    ir_pass_fail = ContentField()
-    fr_pass_fail = ContentField()
-    violation = ContentField()
-
-class CogisSpill (NrcItem):
-    insert_mode = 'replace'
-
-    doc_num = KeyField()
-    county_code = ContentField()
-    county_name = ContentField()
-    date = ContentField()
-    doc_href = ContentField()
-    facility_id = ContentField()
-    operator_num = ContentField()
-    company_name = ContentField()
-    groundwater = ContentField()
-    surfacewater = ContentField()
-    berm_contained = ContentField()
-    spill_area = ContentField()
 

@@ -21,13 +21,13 @@ from scrapy.selector import HtmlXPathSelector
 # local modules
 from nrc.items import NrcItem, FeedEntry, FeedEntryTag
 from nrc.items import convert_fuzzy_date
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
 COGCC_SERVER = "cogcc.state.co.us"
 COGCC_PAGE = "http://{0}/cogis".format(COGCC_SERVER)
 
-class CogisScraper (NrcBot):
+class CogisScraper (JobBot):
     name = 'CogisScraper'
     allowed_domains = None
     # NOTE:  field names are in html display order, non-displayed data at end.
@@ -92,31 +92,28 @@ class CogisScraper (NrcBot):
             self.county_ids = self.counties.keys()
             shuffle(self.county_ids)
 
-    def process_item(self, task):
-        yield self.form_request(task)
+    def process_job(self):
+        yield self.form_request()
 
-    def form_request(self, task):
-        url = task['target_url']
+    def form_request(self):
+        job = self.job_params
+        url = job['target_url']
         request = Request (url,
                            callback=self.parse_form,
                            dont_filter=True,
                            errback=self.error_callback)
         self.log('retrieving request form url %s' % (url), log.INFO)
-        request.meta['task'] = task
+        request.meta['job'] = job
         return request
 
     def parse_form(self, response):
-        task = response.meta['task']
-        table = task['table']
-        count = task['count']
+        job = response.meta['job']
+        table = job['table']
+        count = job['count']
         if table not in ('insp', 'spill'):
             self.send_alert ("Invalid COGIS table parameter: '%s'"%table)
             self.log("Invalid COGIS table parameter: '%s'"%table, log.ERROR)
             return
-        if table == 'insp':
-            CogisInspection.task = task
-        else:
-            CogisSpill.task = task
         self.setup_county_ids()
         for county_id in self.county_ids:
             county_nm = self.counties[county_id]
@@ -133,13 +130,13 @@ class CogisScraper (NrcBot):
                             },
                     callback=self.parse_cogis_records)
             req.meta['county'] = (county_id, county_nm)
-            req.meta['task'] = task
+            req.meta['job'] = job
             yield(req)
         return
 
     def parse_cogis_records(self, response):
-        task = response.meta['task']
-        table = task['table']
+        job = response.meta['job']
+        table = job['table']
         hxs = HtmlXPathSelector(response)
 
         rows = hxs.select('//table[2]//tr')
@@ -174,8 +171,8 @@ class CogisScraper (NrcBot):
                 ldr.load_item()
                 if process_table_item(ldr.item):
                     yield(ldr.item)
-        if response.meta['county'][0] == self.county_ids[-1]:
-            self.item_completed (task['task_id'])
+#        if response.meta['county'][0] == self.county_ids[-1]:
+#            self.item_completed (job['job_id'])
 
     def process_spill_item(self, item):
         stats = self.crawler.stats
@@ -208,8 +205,8 @@ class CogisScraper (NrcBot):
     def item_stored(self, item, id):
         self.item_new(item['doc_num'])
 
-class CogisSpillScraper (CogisScraper):
-    name = 'CogisSpillScraper'
+#class CogisSpillScraper (CogisScraper):
+#    name = 'CogisSpillScraper'
 
 class CogisInspection (NrcItem):
     insert_mode = 'replace'

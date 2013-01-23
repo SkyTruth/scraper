@@ -192,8 +192,11 @@ class NrcDatabase(object):
 
     def getBotJob (self, job_param):
         c = self.db.cursor(DictCursor)
-        sql = ("SELECT * FROM BotJob WHERE job_id='%s' or job_name='%s'"
-               % (job_param, job_param))
+        try:
+            int(job_param)
+            sql = ("SELECT * FROM BotJob WHERE job_id='%s'" % (job_param,))
+        except ValueError:
+            sql = ("SELECT * FROM BotJob WHERE job_name='%s'" % (job_param,))
         c.execute (sql)
         job_rec = c.fetchone ()
         if job_rec is None:
@@ -224,7 +227,8 @@ class NrcDatabase(object):
         c.execute (sql, (bot, set_status))
 
         if len(match_conditions) < 1:
-            raise exceptions.NotSupported ('getBotTaskBatch must have at least one match condition')
+            raise exceptions.NotSupported (
+                    'getBotTaskBatch must have at least one match condition')
 
         join_sql = []
         timestamp_sql = []
@@ -233,19 +237,27 @@ class NrcDatabase(object):
             if cstatus == '*':
                 join_sql.append ("c%s.bot='%s' " % (idx, cbot))
             else:
-                join_sql.append ("c%s.bot='%s' AND c%s.status='%s'" % (idx, cbot, idx, cstatus))
+                join_sql.append ("c%s.bot='%s' AND c%s.status='%s'"
+                                 % (idx, cbot, idx, cstatus))
 
             timestamp_sql.append ("t1.time_stamp < c%s.time_stamp" % idx)
 
-        sql = "REPLACE INTO BotTaskStatus SELECT c0.task_id, '%s' as bot, '%s' as status, CURRENT_TIMESTAMP as time_stamp FROM BotTaskStatus c0" % (bot, set_status)
+        sql = ("REPLACE INTO BotTaskStatus "
+               "SELECT c0.task_id, "
+                       "'%s' as bot, "
+                       "'%s' as status, "
+                       "CURRENT_TIMESTAMP as time_stamp "
+               "FROM BotTaskStatus c0" % (bot, set_status))
         join_sql_0 = join_sql.pop(0)
         idx = 1
         for join_sql_n in join_sql:
-            sql += " JOIN BotTaskStatus c%s ON c0.task_id = c%s.task_id AND %s AND %s" % \
-                (idx, idx, join_sql_0, join_sql_n)
+            sql += (" JOIN BotTaskStatus c%s "
+                    "ON c0.task_id = c%s.task_id AND %s AND %s"
+                    % (idx, idx, join_sql_0, join_sql_n))
             idx += 1
-        sql += " LEFT JOIN BotTaskStatus t1 ON c0.task_id = t1.task_id AND t1.bot='%s' AND %s " % \
-            (bot, join_sql_0)
+        sql += (" LEFT JOIN BotTaskStatus t1 "
+                 "ON c0.task_id = t1.task_id AND t1.bot='%s' AND %s "
+                 % (bot, join_sql_0))
         sql += " WHERE (t1.task_id IS NULL OR %s)" % " OR ".join(timestamp_sql)
         sql += " AND %s LIMIT %s" % (join_sql_0, batch_size)
 
