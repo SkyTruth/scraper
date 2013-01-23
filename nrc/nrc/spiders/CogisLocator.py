@@ -47,6 +47,8 @@ Well API Record: <a href="$well_href">$api</a><br/>
 Operator: $operator<br/>
 Report Date: $date<br/>
 County: $county<br/>
+$notestring
+<a href="$doc_href">View original report</a><br/>
 """)
 
 # COGIS Records Geolocator
@@ -56,6 +58,7 @@ class CogisLocator (NrcBot):
     local_task_params = {
             'task_id':'1001',
             'source_task_id':'124',
+            'feedsource_id':'1001',
             'Item':'CogisInspection',
             'loc_key_field':'insp_api_num',
             'target_fields':'site_lat, site_lng, operator',
@@ -65,7 +68,7 @@ class CogisLocator (NrcBot):
     allowed_domains = None
 
     def process_item(self, task):
-        if isinstance(task, types.LongType):
+        if not isinstance(task, dict):
             keyval = task
             task = dict(self.local_task_params.items())
 
@@ -144,6 +147,8 @@ class CogisLocator (NrcBot):
             assert False
             return None
         for field_name, value in cogis_rec.items():
+            if field_name == 'timestamp':
+                continue
             item[field_name] = value
         return item
 
@@ -176,6 +181,8 @@ class CogisLocator (NrcBot):
         params['api'] = item['insp_api_num']
         params['title_tmpl'] = insp_title_template
         params['summ_tmpl'] = insp_summ_template
+        params['notestring'] = ""
+        params['notes'] = []
         return self.create_feed_entry(item, task, params)
 
     def create_spill_feed_entry (self, item, task):
@@ -186,6 +193,12 @@ class CogisLocator (NrcBot):
         params['api'] = item['facility_id']
         params['title_tmpl'] = spill_title_template
         params['summ_tmpl'] = spill_summ_template
+        params['notestring'] = ""
+        params['notes'] = []
+        if item['groundwater'].upper() == 'Y':
+            params['notes'].append('groundwater affected')
+        if item['surfacewater'].upper() == 'Y':
+            params['notes'].append('surfacewater affected')
         return self.create_feed_entry(item, task, params)
 
     def create_feed_entry (self, item, task, params):
@@ -199,6 +212,9 @@ class CogisLocator (NrcBot):
                                "FacilityDetail.asp?facid={0}&type=WELL"
                                .format(facility_id))
         params['content_tmpl'] = content_template
+        if params['notes']:
+            params['notestring'] = ("Notes: %s<br/>"
+                                    % (', '.join(params['notes']),))
 
         # create a new feed item
         l=ItemLoader (FeedEntry())
@@ -217,15 +233,31 @@ class CogisLocator (NrcBot):
         l.add_value ('lat', params['lat'])
         l.add_value ('lng', params['lng'])
 
-        # Don't know what this is, but it can't be null.
-        l.add_value ('source_id', task['task_id'])
+        l.add_value ('source_id', task['feedsource_id'])
 
         feed_item = l.load_item()
 
-        if feed_item.get('lat') and feed_item.get('lng'):
+        if (feed_item.get('lat') and feed_item.get('lng')
+            and feed_item.get('incident_datetime') and (datetime.now().date() - feed_item.get('incident_datetime'))
+                 <= timedelta(days=60)):
             yield feed_item
-#            for tag in self.get_tags(item):
-#                yield self.create_tag (feed_entry_id, tag)
+            for tag in self.get_tags(item):
+                yield self.create_tag (feed_entry_id, tag)
+
+
+    def get_tags (self, item):
+        tags = []
+        if (isinstance(item, CogisInspection)):
+            tags.append ('violation')
+
+        if (isinstance(item, CogisSpill)):
+            tags.append ('spill')
+            tags.append ('release')
+
+        tags.append ('drilling')
+        tags.append ('COGIS')
+
+        return tags
 
 class CogisSpillLocator (CogisLocator):
     name = 'CogisSpillLocator'
@@ -233,6 +265,7 @@ class CogisSpillLocator (CogisLocator):
     local_task_params = {
             'task_id':'1002',
             'source_task_id':'125',
+            'feedsource_id':'1001',
             'Item':'CogisSpill',
             'loc_key_field':'facility_id',
             'target_fields':'spill_lat, spill_lng, company_name',
