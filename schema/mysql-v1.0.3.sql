@@ -152,3 +152,37 @@ CREATE TABLE `Nightfire_record` (
   KEY `lng` (`Lon_GMTCO`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+
+--
+-- Table structure for table `BotJob`
+--
+
+DROP TABLE IF EXISTS `BotJob`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `BotJob` (
+  `job_id` int(11) NOT NULL,
+  `job_name` varchar(60) NOT NULL,
+  `job_bot` varchar(45) NOT NULL,
+  PRIMARY KEY (`job_id`),
+  UNIQUE KEY `job_name_UNIQUE` (`job_name`),
+  UNIQUE KEY `job_id_UNIQUE` (`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `BotJobParams`
+--
+
+DROP TABLE IF EXISTS `BotJobParams`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `BotJobParams` (
+  `job_id` int(11) NOT NULL,
+  `key` varchar(45) NOT NULL,
+  `value` varchar(256) NOT NULL,
+  PRIMARY KEY (`job_id`,`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
