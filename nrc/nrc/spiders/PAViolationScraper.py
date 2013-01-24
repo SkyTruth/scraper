@@ -25,21 +25,23 @@ class PAViolationScraper (AtomPubScraper):
     allowed_domains = None
     current_inspection = []
 
-    def process_item(self, task):
+    #def process_item(self, job):
+    def process_job(self):
+        job = self.job_params
 
         date_fmt = "%m/%d/%Y 23:59:59"
         to_date = datetime.today()
-        from_date = to_date - timedelta(days=int(task['date_offset']))
+        from_date = to_date - timedelta(days=int(job['date_offset']))
 
-        target_url = "%s&P_DATE_INSPECTED_FROM=%s&P_DATE_INSPECTED_TO=%s" % (task['target_url'], from_date.strftime(date_fmt), to_date.strftime(date_fmt))
+        target_url = "%s&P_DATE_INSPECTED_FROM=%s&P_DATE_INSPECTED_TO=%s" % (job['target_url'], from_date.strftime(date_fmt), to_date.strftime(date_fmt))
 
         request = Request (target_url, callback=self.parse_xml)
         self.log('Downloading xml from url %s' % (target_url), log.INFO)
-        request.meta['task'] = task
+        request.meta['job'] = job
         yield request
 
 
-    def process_row (self, row, task):
+    def process_row (self, row, job):
 
         l=ItemLoader (PA_Violation())
 
@@ -100,19 +102,19 @@ class PAViolationScraper (AtomPubScraper):
                     params[f] = escape ("%s" % params.get(f,''))
 
                 if self.current_inspection and params['InspectionID'] != self.current_inspection[0]['InspectionID']:
-                    for entry in self.create_feed_entry (self.current_inspection, task):
+                    for entry in self.create_feed_entry (self.current_inspection, job):
                         yield entry
                     self.current_inspection = [params]
                 else:
                     self.current_inspection.append (params)
 
-    def finalize_rows (self, task):
+    def finalize_rows (self, job):
         if self.current_inspection:
-            for entry in self.create_feed_entry (self.current_inspection, task):
+            for entry in self.create_feed_entry (self.current_inspection, job):
                 yield entry
 
 
-    def create_feed_entry (self, inspection, task):
+    def create_feed_entry (self, inspection, job):
 
         # create a new feed item
         l=ItemLoader (FeedEntry())
@@ -120,12 +122,12 @@ class PAViolationScraper (AtomPubScraper):
         params = inspection[0]
         params['Operator'] = params['Operator'].title()
 
-        url = "%s/%s" % (task['target_url'], params['InspectionID'])
+        url = "%s/%s" % (job['target_url'], params['InspectionID'])
         feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', "PA Permit Violation Issued to %(Operator)s in %(Municipality)s, %(County)s County" % params)
         l.add_value ('incident_datetime', params['InspectionDate'])
-        l.add_value ('link', task['about_url'])
+        l.add_value ('link', job['about_url'])
 
         params['InspectionDate'] = params['InspectionDate'][0:10]
         params['ViolationDate'] = params['ViolationDate'][0:10]

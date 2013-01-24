@@ -25,7 +25,7 @@ class PAPermitScraper (AtomPubScraper):
     name = 'PAPermitScraper'
     allowed_domains = None
 
-    def process_row (self, row, task):
+    def process_row (self, row, job):
 
         l=ItemLoader (PA_DrillingPermit())
 
@@ -85,13 +85,13 @@ class PAPermitScraper (AtomPubScraper):
                 # create a new feed item
                 l=ItemLoader (FeedEntry())
 
-                url = "%s/%s/%s" % (task['target_url'], item['Complete_API_'], item ['Date_Disposed'])
+                url = "%s/%s/%s" % (job['target_url'], item['Complete_API_'], item ['Date_Disposed'])
                 feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
                 l.add_value ('id', feed_entry_id)
                 l.add_value ('title', "PA %s Drilling Permit Issued in %s Township" % (params.get('Well_Type'), item.get('Municipality_Name') ))
 #                l.add_value ('updated', item.get('Date_Disposed'))
                 l.add_value ('incident_datetime', item.get('Date_Disposed'))
-                l.add_value ('link', task['about_url'])
+                l.add_value ('link', job['about_url'])
 
 
                 l.add_value ('summary', self.summary_template().substitute(params))

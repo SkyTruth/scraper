@@ -10,23 +10,26 @@ from scrapy.shell import inspect_response
 from scrapy import log
 
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+#from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
 
-class AtomPubScraper (NrcBot):
+class AtomPubScraper (JobBot):
     name = 'AtomPubScraper'
 
-    def process_item(self, task):
+#    def process_item(self, task):
+    def process_job(self):
+        job = self.job_params
 
-        request = Request (task['target_url'], callback=self.parse_xml)
-        self.log('Downloading xml from url %s' % (task['target_url']), log.INFO)
-        request.meta['task'] = task
+        request = Request (job['target_url'], callback=self.parse_xml)
+        self.log('Downloading xml from url %s' % (job['target_url']), log.INFO)
+        request.meta['job'] = job
         yield request
 
 
     def parse_xml (self, response):
-        task = response.meta['task']
+        job = response.meta['job']
         stats = self.crawler.stats
 
         self.log ('Parsing xml...', log.INFO)
@@ -43,15 +46,15 @@ class AtomPubScraper (NrcBot):
             for field in entry:
                 row.update (self.parse_atom_field (field))
 
-            for r in self.process_row(row, task):
+            for r in self.process_row(row, job):
                 stats.inc_value('_items_stored', spider=self)
                 yield r
-        for r in self.finalize_rows (task):
+        for r in self.finalize_rows (job):
             stats.inc_value('_items_stored', spider=self)
             yield r
 
 
-    def finalize_rows (self, task):
+    def finalize_rows (self, job):
         yield
 
     def parse_atom_field (self, field):
@@ -107,7 +110,7 @@ class AtomPubScraper (NrcBot):
 
 
     # Override in subclass
-    def process_row (self, row, task):
+    def process_row (self, row, job):
         self.log('%s' % (row), log.DEBUG)
         yield
 

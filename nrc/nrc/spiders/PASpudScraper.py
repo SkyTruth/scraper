@@ -27,7 +27,7 @@ class PASpudScraper (AtomPubScraper):
     allowed_domains = None
 
 
-    def process_row (self, row, task):
+    def process_row (self, row, job):
 
         l=ItemLoader (PA_Spud())
 
@@ -69,18 +69,18 @@ class PASpudScraper (AtomPubScraper):
                 for f in item.fields:
                     params[f] = escape ("%s" % params.get(f,''))
 
-                if task.get('no_alert'):
+                if job.get('no_alert'):
                     pass
                 else:
                     # create a new feed item
                     l=ItemLoader (FeedEntry())
 
-                    url = "%s/%s/%s" % (task['target_url'], item['Well_API__'], item ['SPUD_Date'])
+                    url = "%s/%s/%s" % (job['target_url'], item['Well_API__'], item ['SPUD_Date'])
                     feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
                     l.add_value ('id', feed_entry_id)
                     l.add_value ('title', "%s Reports Drilling Started (SPUD) in %s Township" % (item.get('Operator_s_Name'), item.get('Municipality') ))
                     l.add_value ('incident_datetime', item.get('SPUD_Date'))
-                    l.add_value ('link', task['about_url'])
+                    l.add_value ('link', job['about_url'])
 
 
                     l.add_value ('summary', self.summary_template().substitute(params))
