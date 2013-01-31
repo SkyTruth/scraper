@@ -93,7 +93,8 @@ class CogisScraper (JobBot):
             shuffle(self.county_ids)
 
     def process_job(self):
-        yield self.form_request()
+        for item in self.form_request():
+            yield item
 
     def form_request(self):
         job = self.job_params

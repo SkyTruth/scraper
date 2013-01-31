@@ -78,6 +78,12 @@ def convert_lat(l):
         result = -result
     return result
 
+def extract_largest_float(s):
+    fl = re.findall(r'([-+]?[0-9]*\.?[0-9]+)', s)
+    if fl:
+        return str(max([float(f) for f in fl]))
+    return ""
+
 def normalize_url(url, loader_context):
     base_url = loader_context.get('base_url','')
     return urljoin (base_url, url)
@@ -638,7 +644,9 @@ class FracFocusParseChemical (NrcItem):
     purpose = ContentField ()
     ingredients = ContentField ()
     cas_number = ContentField ()
-    additive_concentration = SingleField ()
+    additive_concentration = SingleField (
+            input_processor = MapCompose(extract_largest_float)
+            )
     hf_fluid_concentration = SingleField ()
     ingredient_weight = SingleField (
             input_processor = MapCompose(strip_non_digits)

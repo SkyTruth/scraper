@@ -1,4 +1,4 @@
-#NRC Full Report Spider 
+#NRC Full Report Spider
 
 import re
 from urlparse import urlsplit, urljoin
@@ -13,27 +13,29 @@ from scrapy.shell import inspect_response
 from scrapy import log
 
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 from nrc.items import NrcScrapedReport, NrcScrapedFullReport, NrcScrapedMaterial
 
 
-class NrcFullReportScraper(NrcBot):
+class NrcFullReportScraper(JobBot):
     name = 'NrcFullReportScraper'
     allowed_domains = ["nrc.uscg.mil"]
-    task_conditions = {'NrcScraper':'DONE'}
-        
-    def process_item(self, task_id):
-        
-        scraped_report = self.db.loadScrapedReport(task_id)    
+#    task_conditions = {'NrcScraper':'DONE'}
+
+#    def process_item(self, task_id):
+    def process_job_item(self, task_id):
+
+        scraped_report = self.db.loadScrapedReport(task_id)
         if scraped_report is None:
-            return 
+            return
 
         request = Request(scraped_report['full_report_url'], callback=self.parse_full_report)
         request.meta['reportnum'] = task_id
+        request.meta['job_name'] = self.job_params['job_name']
 
         yield request
-                
-                
+
+
     def parse_full_report(self, response):
         reportnum = response.request.meta['reportnum']
 
@@ -43,9 +45,9 @@ class NrcFullReportScraper(NrcBot):
         text = unicode (response.body, response.encoding)
         if len(text) < 1000:    # check for an empty response- if so then bail out - we'll try again next time around
             return
-            
+
         t = TextResponse (url=response.url, body=text.encode('utf-8'), encoding='utf-8')
-        
+
         l= XPathItemLoader(NrcScrapedFullReport(), response=t)
         url_parts = urlsplit(response.url)
         l.add_value('reportnum', reportnum)
@@ -53,6 +55,5 @@ class NrcFullReportScraper(NrcBot):
         l.add_value('full_report_url', response.url)
         item = l.load_item()
         yield item
-        self.db.setBotTaskStatus(reportnum, self.name, 'DONE')
-     
-    
+        self.db.setBotTaskStatus(reportnum, response.meta['job_name'], 'DONE') # name -> job_name
+

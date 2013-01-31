@@ -1,4 +1,4 @@
-#NRC Feed Generator  
+#NRC Feed Generator
 
 import re
 import uuid
@@ -15,34 +15,35 @@ from scrapy import log
 
 from nrc.items import FeedEntry, FeedEntryTag
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
 def untitle_entity(matchobj):
     return unicode.lower(matchobj.group(0))
 
 
-class NrcFeedGenerator (NrcBot):
+class NrcFeedGenerator (JobBot):
     name = 'NrcFeedGenerator'
     allowed_domains = ['skytruth.org']
-    task_conditions = {'NrcGeocoder':'DONE','NrcAnalyzer':'DONE', 'NrcTagger':'DONE'}
-    job_item_limit = 10000  # maximum total items to process in one job execution
-        
+#    task_conditions = {'NrcGeocoder':'DONE','NrcAnalyzer':'DONE', 'NrcTagger':'DONE'}
+#    job_item_limit = 10000  # maximum total items to process in one job execution
+
     def __init__(self, **kwargs):
-        NrcBot.__init__(self, **kwargs)
-        locale.setlocale (locale.LC_ALL, 'en_US.UTF-8')  
-        
-    def process_item(self, task_id):
+        JobBot.__init__(self, **kwargs)
+        locale.setlocale (locale.LC_ALL, 'en_US.UTF-8')
+
+#    def process_item(self, task_id):
+    def process_job_item(self, task_id):
         parsed_report = self.db.loadParsedReport(task_id)
         if parsed_report is None:
-            return 
-        scraped_report = self.db.loadScrapedReport(task_id)    
+            return
+        scraped_report = self.db.loadScrapedReport(task_id)
         if scraped_report is None:
-            return 
-        report_analysis = self.db.loadAnalysis(task_id)    
+            return
+        report_analysis = self.db.loadAnalysis(task_id)
         if report_analysis is None:
-            return 
-        
+            return
+
 #        geocodes = self.db.loadGeocodes (task_id)
 #        best_score = 0
 #        geocode = None
@@ -50,9 +51,9 @@ class NrcFeedGenerator (NrcBot):
 #            if g['source'] == 'Explicit':
 #                score = 100
 #            elif g['source'] == 'BlockCentroid':
-#                score = 60	
+#                score = 60
 #            elif g['source'] == 'Zip':
-#                score = 50	
+#                score = 50
 #            else:
 #                score  = 10
 #            if (score > best_score):
@@ -60,7 +61,7 @@ class NrcFeedGenerator (NrcBot):
 #                geocode = g
 
         geocode = self.db.loadBestGeocode (task_id)
-        
+
         if geocode and report_analysis['calltype'] == 'INCIDENT' and report_analysis['severity'] != 'non-release':
             item = self.create_item (task_id, scraped_report, parsed_report, geocode)
             if item:
@@ -68,15 +69,15 @@ class NrcFeedGenerator (NrcBot):
                 yield item
                 tags = self.create_tag_items (task_id, item_id)
                 for t in tags: yield t
-                    
+
             self.item_completed(task_id)
-        else:     
+        else:
             self.item_dropped(task_id)
-            
-        
-    def create_item(self, task_id, scraped_report, parsed_report, geocode):            
+
+
+    def create_item(self, task_id, scraped_report, parsed_report, geocode):
         l=ItemLoader (FeedEntry())
-        
+
         # construct article title
         what = unicode.title(unicode(scraped_report['material_name'] or ''))
         city = unicode.title(unicode(scraped_report['nearestcity'] or ''))
@@ -87,11 +88,11 @@ class NrcFeedGenerator (NrcBot):
         title = 'NRC Report: %s' % (what or 'Unknown',)
         if (affected_area): title = title + ' in %s' % affected_area
         if (city): title = title + ' near %s' % where
-        
-        # Fix up any html entities that got munged by title case conversion 
+
+        # Fix up any html entities that got munged by title case conversion
         # e.g. unicode.title('foo &amp; bar') == 'Foo &Amp; Bar'
         title = re.sub('&[a-zA-Z]+;', untitle_entity, title)
-        
+
         feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, scraped_report['full_report_url'].encode('ASCII'))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', title)
@@ -114,7 +115,7 @@ class NrcFeedGenerator (NrcBot):
         l.add_value ('content', u'Medium Affected: %s' % (scraped_report['medium_affected'] or u'',))
         l.add_value ('content', u'Suspected Responsible Party: %s' % (scraped_report['suspected_responsible_company'] or u'',))
 
-    
+
         l.add_value ('content', u'<b>SkyTruth Analysis</b>')
 
         if geocode['source'] == 'Explicit':
@@ -123,38 +124,38 @@ class NrcFeedGenerator (NrcBot):
             geocode_note = 'Approximated from %s' % geocode['source']
         l.add_value ('content', u'Lat/Long: %f, %f (%s)' % (geocode['lat'], geocode['lng'], geocode_note))
 
-        report_analysis = self.db.loadAnalysis(task_id)    
+        report_analysis = self.db.loadAnalysis(task_id)
         if report_analysis:
             if report_analysis['sheen_length'] and report_analysis['sheen_width']:
-                l.add_value ('content', u'Reported Sheen Size: %s by %s (area %s)' % 
-                    (self.format_value_extent(report_analysis['sheen_width']), 
-                    self.format_value_extent(report_analysis['sheen_length']), 
+                l.add_value ('content', u'Reported Sheen Size: %s by %s (area %s)' %
+                    (self.format_value_extent(report_analysis['sheen_width']),
+                    self.format_value_extent(report_analysis['sheen_length']),
                     self.format_value_area(report_analysis['sheen_width'] * report_analysis['sheen_length'])))
             if report_analysis['reported_spill_volume']:
-                l.add_value ('content', u'Reported Spill Volume: %s' % 
+                l.add_value ('content', u'Reported Spill Volume: %s' %
                     (self.format_value_volume(report_analysis['reported_spill_volume'])))
             if report_analysis['min_spill_volume']:
-                l.add_value ('content', u'SkyTruth Minimum Estimate: %s'% 
+                l.add_value ('content', u'SkyTruth Minimum Estimate: %s'%
                     (self.format_value_volume(report_analysis['min_spill_volume'])))
         l.add_value ('content', u'<b>Report Description</b>')
 
         l.add_value ('content', scraped_report['description'])
-        
+
         l.add_value ('lat', geocode['lat'])
         l.add_value ('lng', geocode['lng'])
         l.add_value ('source_id', 1)
         l.add_value ('source_item_id', task_id)
-        
+
         return l.load_item()
-        
-    def create_tag_items (self, task_id, item_id):            
+
+    def create_tag_items (self, task_id, item_id):
         tag_items = []
 
         l = ItemLoader (FeedEntryTag())
         l.add_value ('feed_entry_id', item_id)
         l.add_value ('tag', 'NRC')
         tag_items.append(l.load_item())
-        
+
         nrc_tags = self.db.loadNrcTags(task_id)
         for t in nrc_tags:
             l = ItemLoader (FeedEntryTag())
@@ -163,8 +164,8 @@ class NrcFeedGenerator (NrcBot):
             l.add_value ('comment', t['comment'])
             tag_items.append(l.load_item())
         return tag_items
-                
-            
+
+
     # assumes value is in feet
     def format_value_extent (self, value):
         if not value: return ''
@@ -185,10 +186,9 @@ class NrcFeedGenerator (NrcBot):
                 value = value / 640
                 units = 'sq. miles'
         return '%s %s' % (locale.format("%.12g", round(value,2), False), units)
-    
+
     # assumes value in gallons
     def format_value_volume (self, value):
         if not value: return ''
         units = 'gallons'
         return '%s %s' % (locale.format("%.12g", round(value,2), False), units)
-    

@@ -1,4 +1,4 @@
-#NRC Tagger Spider 
+#NRC Tagger Spider
 
 import re
 
@@ -6,39 +6,40 @@ from scrapy.spider import BaseSpider
 from scrapy import log
 
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
-class NrcTagger(NrcBot):
+class NrcTagger(JobBot):
     name = 'NrcTagger'
-    task_conditions = {'NrcAnalyzer':'DONE'}
-    job_item_limit = 10000  # maximum total items to process in one job execution
-        
-    def process_item(self, task_id):
-        
+#    task_conditions = {'NrcAnalyzer':'DONE'}
+#    job_item_limit = 10000  # maximum total items to process in one job execution
+
+#    def process_item(self, task_id):
+    def process_job_item(self, task_id):
+
         report = {}
-        
+
         parsed_report = self.db.loadParsedReport(task_id)
         if parsed_report is None:
-            return 
+            return
         report.update (parsed_report)
-        
-        scraped_report = self.db.loadScrapedReport(task_id)    
+
+        scraped_report = self.db.loadScrapedReport(task_id)
         if scraped_report is None:
-            return 
+            return
         report.update (scraped_report)
 
-        report_analysis = self.db.loadAnalysis(task_id)    
+        report_analysis = self.db.loadAnalysis(task_id)
         if report_analysis is None:
-            return 
+            return
         report.update (report_analysis)
 
         geocode = self.db.loadBestGeocode (task_id)
         if geocode:
             report.update (geocode)
-        
+
         tag = self.make_LABB_tag (task_id, report)
-        if tag: 
+        if tag:
             yield tag
 
         release_type = report_analysis['release_type']
@@ -48,9 +49,9 @@ class NrcTagger(NrcBot):
         release_severity = report_analysis['severity']
         if release_severity and release_severity != 'non-release':
             yield self.make_tag(task_id, 'release')
-        
+
         self.item_completed(task_id)
-        
+
     def make_LABB_tag (self, task_id, report):
         if report['state'] == 'LA' \
             and report['severity'] != 'minor' \
@@ -58,4 +59,4 @@ class NrcTagger(NrcBot):
             return self.make_tag(task_id, 'LABB')
         else:
             return None
-        
+

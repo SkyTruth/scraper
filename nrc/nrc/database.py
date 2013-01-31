@@ -200,7 +200,8 @@ class NrcDatabase(object):
         c.execute (sql)
         job_rec = c.fetchone ()
         if job_rec is None:
-            log.msg ("Job '%s' not found." % (job_param, ), level=log.ERROR)
+            log.msg ("Job '%s' not found." % (job_param, ), level=log.WARNING)
+            return None, None, None
         return job_rec['job_id'], job_rec['job_name'], job_rec['job_bot']
 
     def getBotJobParams (self, job_id):
@@ -208,10 +209,15 @@ class NrcDatabase(object):
         c.execute( "SELECT * from BotJobParams WHERE job_id=%s", (job_id,))
         return c.fetchall()
 
-    def updateBotTaskLastProcessed (self, task_id):
-        sql = "UPDATE BotTask SET last_processed=NOW() WHERE id=%s"
-        c = self.db.cursor(DictCursor)
-        c.execute (sql, task_id)
+    def updateBotJobParam (self, job_id, key, value):
+        sql = "REPLACE INTO BotJobParams (job_id, `key`, `value`) VALUES (%s, %s, %s)"
+        c = self.db.cursor()
+        c.execute (sql, (job_id, key, value))
+
+#    def updateBotTaskLastProcessed (self, task_id):
+#        sql = "UPDATE BotTask SET last_processed=NOW() WHERE id=%s"
+#        c = self.db.cursor(DictCursor)
+#        c.execute (sql, task_id)
 
     def getBotTaskCount (self, bot, status):
         c = self.db.cursor(DictCursor)
@@ -372,12 +378,15 @@ class NrcDatabase(object):
         c.execute (sql)
         return c.fetchall()
 
+
+    # With the switch to BotJob management, task_id is a anachronism.
+    # The proper name is 'job_id' but the database table
+    # uses the old field name 'task_id'.
     def isFeedItemPublished (self, task_id, item_id):
         sql = "SELECT task_id FROM PublishedFeedItems WHERE task_id = %s AND feed_item_id = %s"
         c = self.db.cursor()
         n = c.execute (sql, (task_id, item_id))
         return n > 0
-
 
     def setFeedItemPublished (self, task_id, item_id):
         sql = "REPLACE INTO PublishedFeedItems (task_id, feed_item_id) VALUES (%s, %s)"

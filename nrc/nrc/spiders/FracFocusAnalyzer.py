@@ -1,4 +1,4 @@
-#NRC Analyzer Spider 
+#NRC Analyzer Spider
 
 import re
 import pprint
@@ -21,18 +21,17 @@ from scrapy import log
 
 from nrc.items import FracFocusParse, FracFocusParseChemical, FracFocusReport, FracFocusReportChemical
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
-         
-class FracFocusAnalyzer(NrcBot):
+
+class FracFocusAnalyzer(JobBot):
     name = 'FracFocusAnalyzer'
     allowed_domains = ['skytruth.org']
-    task_conditions = {'FracFocusPDFParser':'DONE'}
-    job_item_limit = 1000  # maximum total items to process in one job execution
+#    task_conditions = {'FracFocusPDFParser':'DONE'}
+#    job_item_limit = 1000  # maximum total items to process in one job execution
 
-        
-    def process_item(self, task_id):
-        
+    def process_job_item(self, task_id):
+
         # Load the Report
         scrape = self.db.loadFracFocusScrape (task_id)
         parse = self.db.loadFracFocusParse (task_id)
@@ -54,24 +53,24 @@ class FracFocusAnalyzer(NrcBot):
         analysis['latitude'] = scrape['latitude']
         analysis['longitude'] = scrape['longitude']
         analysis['datum'] = scrape['datum']
-        
+
         # add derived values
         if analysis['total_water_volume']:
             analysis['total_water_weight'] = round(analysis['total_water_volume'] * 8.35,0)
             analysis['total_pct_in_fluid'] = 0
             analysis['water_pct_in_fluid'] = 0
-            
+
             for c in chemicals:
                 if c['hf_fluid_concentration']:
                     analysis['total_pct_in_fluid'] += c['hf_fluid_concentration']
                     if self.is_water ( c ):
                         analysis['water_pct_in_fluid'] += c['hf_fluid_concentration']
-     
+
             if analysis['water_pct_in_fluid']:
                 analysis['total_hf_weight'] = round(analysis['total_water_weight'] / analysis['water_pct_in_fluid'] * 100,0)
             else:
                 analysis['total_hf_weight'] = 0
-                
+
             for c in chemicals:
                 if c['hf_fluid_concentration']:
                     c['weight'] = round(analysis['total_hf_weight'] * c['hf_fluid_concentration'] / 100,0)
@@ -81,28 +80,28 @@ class FracFocusAnalyzer(NrcBot):
             del c['report_seqid']
             self.normalize_cas(c)
             c['pdf_seqid'] = task_id
-            
+
         # Check for range errors
-        for t in self.test_range (analysis, 
+        for t in self.test_range (analysis,
                 {
                 'longitude': (-180, 180),
                 'latitude': (-90, 90),
                 'water_pct_in_fluid': (80,100),
                 'total_pct_in_fluid': (97,103),
                 }):
-            yield t    
-        
+            yield t
+
         l=ItemLoader (FracFocusReport())
         l.add_value (None, analysis)
         yield l.load_item()
-    
+
         for c in chemicals:
             l=ItemLoader (FracFocusReportChemical())
             l.add_value (None, c)
             yield l.load_item()
-        
-        self.item_completed(task_id)    
-    
+
+        self.item_completed(task_id)
+
     def test_range (self, analysis, tests):
         for k, r in tests.items():
             if analysis.get(k) is not None and (analysis[k] < r[0] or analysis[k] > r[1]):
@@ -110,28 +109,28 @@ class FracFocusAnalyzer(NrcBot):
                 analysis['err_field'] = k
                 analysis['err_comment'] = '%s value %s is not in the range of [%s , %s]. Derived values are not reliable.' % (k, analysis[k], r[0], r[1])
                 yield self.make_bot_task_error(analysis['pdf_seqid'], analysis['err_code'], analysis['err_comment'])
-                
-                
-                
-          
+
+
+
+
     def is_water (self, chemical):
         return re.search('water', chemical['trade_name'] or '', re.IGNORECASE) or \
             re.search('water', chemical['ingredients'] or '', re.IGNORECASE)
-    
 
-     
+
+
     def normalize_cas (self, chemical):
         # need to deal with embedded spaces, misplaced dashes and extra 0s
         # eg. misplaced dash: '1009-7-0', '100-97-0',
         # e.g. '014808-60-7', '14808-60-7','14808 - 60- 7
-        
+
         cas = chemical['cas_number']
         chemical ['cas_type'] = 'other'
-        
+
         if not cas:
             return
-            
-            
+
+
         # see if it matches a defined pattern
         cas_patterns = {
             'proprietary': 'proprietary',
@@ -145,28 +144,27 @@ class FracFocusAnalyzer(NrcBot):
             if re.match(p, cas, re.IGNORECASE):
                 chemical['cas_type'] = t
                 return
-        
+
         # strip out everything but the digits
         digits = list(re.sub('[^\d]','',cas))
-                        
+
         # strip off leading zeros
         while (digits and digits[0] == '0'):
             digits.pop (0)
 
         if len(digits) < 4:
-            return 
-                            
+            return
+
         #compute checksum
         l = len(digits)
         checksum = sum([int(d)*(l-i-1) for i,d in enumerate(digits)]) % 10
 
         if checksum == int(digits[-1]):
             digits = ''.join(digits)
-            chemical['cas_number'] = '%s-%s-%s'% (digits[:-3],digits[-3:-1],digits[-1])    
+            chemical['cas_number'] = '%s-%s-%s'% (digits[:-3],digits[-3:-1],digits[-1])
             chemical['cas_type'] = 'valid'
-        
-        
 
 
-                                
-        
+
+
+

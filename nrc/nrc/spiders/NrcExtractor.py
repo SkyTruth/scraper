@@ -1,4 +1,4 @@
-#NRC Extractor Spider 
+#NRC Extractor Spider
 
 import re
 
@@ -12,13 +12,13 @@ from scrapy import log
 
 from nrc.items import NrcParsedReport
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
-class NrcExtractor(NrcBot):
+class NrcExtractor(JobBot):
     name = 'NrcExtractor'
     allowed_domains = ['skytruth.org']
-    task_conditions = {'NrcFullReportScraper':'DONE'}
+#    task_conditions = {'NrcFullReportScraper':'DONE'}
     patterns = [
         ('areaid','>Location[\s]+Area[\s]+ID:([^<]+)'),
         ('blockid', '>Location[\s]+Block[\s]+ID:([^<]+)'),
@@ -51,32 +51,33 @@ class NrcExtractor(NrcBot):
         ]
     compiled_patterns = []
     area_code_map = None
-        
-    def process_item(self, task_id):
+
+#    def process_item(self, task_id):
+    def process_job_item(self, task_id):
         report = self.db.loadScrapedFullReport(task_id)
         if report is None:
             return
-            
+
         text = report['full_report_body']
         t = TextResponse (url=report['full_report_url'], body=text.encode('utf-8')) #must have utf-8 here
         l = XPathItemLoader(NrcParsedReport(), response=t)
         l.add_value('reportnum', task_id)
-        
+
         patterns = self.compile_patterns ()
-        
+
         for p in patterns:
             l.add_value(p[0], text, TakeFirst(), unicode.strip, re=p[1])
-                
+
         county = l.get_output_value('county')
         pattern = self.get_area_code_pattern(county)
         if pattern:
             l.add_value ('areaid', county)
             l.add_value('blockid', text, TakeFirst(), unicode.strip, re="%s[\s]+(?:BLOCK[\s]+)?([\d]+)" % pattern)
             l.add_value('blockid', text, TakeFirst(), unicode.strip, re="BLOCK[\s]+([\d]+)")
-            
-                        
+
+
         item = l.load_item()
-        
+
         yield item
         self.item_completed(task_id)
 
@@ -88,18 +89,18 @@ class NrcExtractor(NrcBot):
 
     def get_area_code_pattern (self, value):
         if not value: return None
-        
+
         # load area id patterns if necessary
-        if not self.area_code_map: 
+        if not self.area_code_map:
             self.area_code_map = self.db.getAreaCodeMap()
             for m in self.area_code_map:
                 m['compiled_pattern'] = re.compile(m['pattern'], re.IGNORECASE)
-        
+
         # see if there is an area id match
         for m in self.area_code_map:
             p = m['compiled_pattern']
             if p.match(value):
                 return m['pattern']
-                
+
         return None
 

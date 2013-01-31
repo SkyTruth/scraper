@@ -22,7 +22,7 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from BeautifulSoup import BeautifulSoup
 #from scrapy.stats import stats
 
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 from nrc.items import FracFocusScrape, FracFocusPDF
 from nrc.database import NrcDatabase
 from nrc.spiders.FracFocusScraper import FracFocusScraper
@@ -30,20 +30,30 @@ from nrc.spiders.FracFocusScraper import FracFocusScraper
 
 class FracFocusPDFDownloader(FracFocusScraper):
     name = "FracFocusPDFDownloader"
-    task_conditions = {'FracFocusReport':'NEW'}
-#    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
-    download_url = 'http://www.fracfocusdata.org/fracfocusfind/Download.aspx'
-    job_item_limit = 1000
-    max_download_attempts = 3
 
-    def process_item (self, task_id):
+# These bot parameters are moved to table BotJobParams
+#    task_conditions = {'FracFocusReport':'NEW'}
+##    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
+#    download_url = 'http://www.fracfocusdata.org/fracfocusfind/Download.aspx'
+#    job_item_limit = 1000
+#    max_download_attempts = 3
+
+    def process_job(self):
+        # We use the default version of process_job, but call it explicitly
+        # because super class FracFocusScraper implements a custom version.
+        for item in JobBot.process_job(self):
+            yield item
+
+    def process_job_item (self, task_id):
+        max_download_attempts = self.job_params['max_download_attempts']
+        base_url = self.job_params['base_url']
         scrape = self.db.loadFracFocusScrape(task_id)
 
-        if scrape['pdf_download_attempts'] >= self.max_download_attempts:
-            self.log('Task_id %s max download attempts (%s) exceeded for %s %s' % (task_id, self.max_download_attempts, scrape['api'], scrape['job_date']), log.WARNING)
+        if scrape['pdf_download_attempts'] >= max_download_attempts:
+            self.log('Task_id %s max download attempts (%s) exceeded for %s %s' % (task_id, max_download_attempts, scrape['api'], scrape['job_date']), log.WARNING)
             self.item_dropped(task_id)
         else:
-            request = Request(self.base_url, callback=self.search_by_api, dont_filter=True, errback=self.error_callback)
+            request = Request(base_url, callback=self.search_by_api, dont_filter=True, errback=self.error_callback)
             request.meta['scrape'] = scrape
             request.meta['cookiejar'] = "%s:%s" % (scrape['api'], scrape['job_date'])
             request.meta['task_id'] = task_id
@@ -82,6 +92,7 @@ class FracFocusPDFDownloader(FracFocusScraper):
 #        print response.body
         meta = response.meta
         response_parts = self.response2dict (response)
+        stats = self.crawler.stats
 
 #        self._print_response_parts(response_parts)
 
@@ -90,7 +101,6 @@ class FracFocusPDFDownloader(FracFocusScraper):
         pdf_index = self.find_pdf_index (response)
 
         if pdf_index is not None:
-            stats = self.crawler.stats
             formdata = {
                 'ctl00$MainContent$ScriptManager1':'ctl00$MainContent$UpdatePanel2|ctl00$MainContent$DocumentList1$GridView1',
                 '__EVENTTARGET':'ctl00$MainContent$DocumentList1$GridView1',
@@ -116,7 +126,7 @@ class FracFocusPDFDownloader(FracFocusScraper):
         params = response.meta['scrape']
         params['task_id'] = response.meta['task_id']
 
-        request = Request(self.download_url, callback=self.store_pdf, dont_filter=True, errback=self.error_callback)
+        request = Request(self.job_params['download_url'], callback=self.store_pdf, dont_filter=True, errback=self.error_callback)
         request.meta['cookiejar'] = response.meta['cookiejar']
         request.meta['scrape'] = response.meta['scrape']
         request.meta['task_id'] = response.meta['task_id']

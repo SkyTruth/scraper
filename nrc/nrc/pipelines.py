@@ -24,10 +24,15 @@ class NrcDatabasePipeline(object):
         else:
             if isinstance (item, FeedEntry) or isinstance(item, FeedEntryTag):
                 spider.geodb.storeItem (item)
-            id = spider.db.storeItem (item)
+            try:
+                id = spider.db.storeItem (item)
+            except Exception as e:
+                spider.log ("Exception in Pipeline: '%s'; Storing item: %s: %s"
+                            %(e, item, dict(item)), log.ERROR)
+                raise
             if id:
                 spider.item_stored (item, id)
-        
-        spider.log ('Stored Item: %s' % item, log.INFO) 
-               
+
+        spider.log ('Stored Item: %s' % item, log.INFO)
+
         return item

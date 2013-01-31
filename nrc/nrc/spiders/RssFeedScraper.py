@@ -14,11 +14,21 @@ from scrapy import log
 
 from nrc.items import FeedEntry, FeedEntryTag, RssFeedItem, format_datetime
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
-class RssFeedScaper (NrcBot):
+class RssFeedScaper (JobBot):
     name = 'RssFeedScraper'
+
+    def process_job(self):
+        job = self.job_params
+        rss_feed_id = job.get('rss_feed_id')
+        if rss_feed_id:
+            job_items = self.process_item(rss_feed_id)
+        else:
+            job_items = self.process_items()
+        for item in job_items:
+            yield item
 
     def process_items (self):
         # Get list of feeds
@@ -31,18 +41,18 @@ class RssFeedScaper (NrcBot):
             if items:
                 for item in items:
                     yield item
-            
-            
-    def process_item(self, task_id):
-        feed = self.db.getRssFeeds(task_id)
+
+
+    def process_item(self, feed_id):
+        feed = self.db.getRssFeeds(feed_id)
         self.log('processsing rss feed %s (%s)' % (feed['id'], feed['url']), log.INFO)
         # parse feed
         feed_data = feedparser.parse( feed['url'] )
 
         self.log('reading %s feed items' % (len(feed_data['items'])), log.INFO)
-        
+
         # update last read time
-        self.db.updateRssFeedLastRead (task_id)
+        self.db.updateRssFeedLastRead (feed_id)
 
         # For each item in feed
         for item in  feed_data['items']:
@@ -55,7 +65,7 @@ class RssFeedScaper (NrcBot):
             l=ItemLoader (RssFeedItem())
             l.add_value ('item_id', item['id'])
             l.add_value ('content', pickle.dumps(item))
-            l.add_value ('feed_id', task_id)
+            l.add_value ('feed_id', feed_id)
             yield l.load_item()
 
             feed_entry_id = uuid.uuid5(uuid.NAMESPACE_URL, str(item ['id']))
@@ -70,7 +80,7 @@ class RssFeedScaper (NrcBot):
                     l.add_value ('content', c['value'])
             elif 'summary' in item:
                 l.add_value ('content', item['summary'])
-            
+
             embedded_fields = self.extractContentFields (l.get_output_value('content'))
 
             pt = embedded_fields.get('location') or item.get('georss_point')
@@ -78,19 +88,19 @@ class RssFeedScaper (NrcBot):
             if not pt:
                 self.log('%s - No georeference found' % (item['id']), log.WARNING)
                 continue
-                
+
             pt = re.split ("[, ]+", pt)
             l.add_value ('lat', pt[0])
             l.add_value ('lng', pt[1])
-            
+
             l.add_value ('kml_url', embedded_fields.get('kml') or '')
-            
+
             for link in item['links']:
                 if link['rel'] == 'alternate':
                     l.add_value ('link', link['href'])
             l.add_value ('source_id', feed['source_id'])
             yield l.load_item()
-            
+
             if 'tags' in item:
                 for t in item['tags']:
                     l=ItemLoader (FeedEntryTag())
@@ -103,14 +113,14 @@ class RssFeedScaper (NrcBot):
             l.add_value ('feed_entry_id', feed_entry_id)
             l.add_value ('tag', feed['tag'])
             yield l.load_item()
-            
-        # update task status    
-        self.item_completed (task_id)
-                
+
+        # update task status
+        self.item_completed (feed_id)
+
     # extract fields from the given content that are in the form
     #  [[KEY: VALUE]]
     # KEY must be alphanumeric only with no whitespace between the "[[" and the ":"
-    # VAlUE may be anything except it may not contain a "]"        
+    # VAlUE may be anything except it may not contain a "]"
     def extractContentFields (self, content):
         result = {}
         for m in re.finditer("\[\[([\w]+):([^\]]*)\]\]",content):

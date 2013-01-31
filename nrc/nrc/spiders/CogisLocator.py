@@ -67,19 +67,19 @@ class CogisLocator (JobBot):
 #    'http://cogcc.state.co.us/cogis/FacilityDetail.asp?facid={0}&type=WELL',
 #            }
 
-    def process_job(self):
-        job = self.job_params
-        try:
-            task_ids = job['task_ids']
-        except KeyError:
-            task_ids = ""
-        job_conditions = job['job_conditions']
-        for item in self.process_job_items(job_conditions, task_ids):
-            yield item
+#    def process_job(self):
+#        job = self.job_params
+#        try:
+#            task_ids = job['task_ids']
+#        except KeyError:
+#            task_ids = ""
+#        job_conditions = job['job_conditions']
+#        for item in self.process_job_items(job_conditions, task_ids):
+#            yield item
 
-    def process_job_item(self, task_key):
+    def process_job_item(self, task_id):
         job = self.job_params
-        item = self.get_cogis_item(job, task_key)
+        item = self.get_cogis_item(job, task_id)
         if item is None: return
         api_key = item[job["loc_key_field"]].replace("-","")
         url = job["url_template"].format(api_key)
@@ -88,14 +88,14 @@ class CogisLocator (JobBot):
                       dont_filter=True,
                       errback=self.error_callback)
         req.meta['job'] = job
-        req.meta['task_key'] = task_key
+        req.meta['task_id'] = task_id
         yield req
 
         return
 
     def parse_well(self, response):
         job = response.meta['job']
-        task_key = response.meta['task_key']
+        task_id = response.meta['task_id']
         hxs = HtmlXPathSelector(response)
         fields = hxs.select('//td//text()')
         lat, lng = None, None
@@ -119,28 +119,28 @@ class CogisLocator (JobBot):
                 if not operator: continue
                 break
         if operator or lat is not None:
-            item = self.get_cogis_item(job, task_key)
+            item = self.get_cogis_item(job, task_id)
             if item is None: return
             target_fields = [f.strip()
                              for f in job['target_fields'].split(',')]
             if item[target_fields[2]]:
                 operator = item[target_fields[2]]
             update_fields = dict(zip(target_fields, (lat, lng, operator)))
-            self.db.updateItem (task['Item'],
+            self.db.updateItem (job['Item'],
                                 item['st_id'],
                                 update_fields,
                                 id_field='st_id')
             for key, val in update_fields.items():
                 item[key] = val
         if lat is not None:
-            self.log('set lat/lng for cogis %s to %s/%s' %(task_key, lat, lng),
+            self.log('set lat/lng for cogis %s to %s/%s' %(task_id, lat, lng),
                      log.INFO)
-            self.item_completed(task_key)
+            self.item_completed(task_id)
             return self.screen_feed_entry(item, job)
         else:
-            self.log('lat/lng values not found for cogis %s' % (task_key,),
+            self.log('lat/lng values not found for cogis %s' % (task_id,),
                      log.INFO)
-            self.item_dropped(task_key)
+            self.item_dropped(task_id)
 
     def item_stored(self, item, id):
         if isinstance(item, (CogisInspection, CogisSpill)):

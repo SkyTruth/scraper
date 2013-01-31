@@ -1,4 +1,4 @@
-#NRC Full Report Spider 
+#NRC Full Report Spider
 
 import re
 from urlparse import urlsplit, urljoin
@@ -14,26 +14,28 @@ from scrapy import log
 
 from nrc.items import NrcScrapedReport, NrcScrapedFullReport, NrcScrapedMaterial
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
-class NrcMaterialsScraper(NrcBot):
+class NrcMaterialsScraper(JobBot):
     name = 'NrcMaterialsScraper'
     allowed_domains = ["nrc.uscg.mil"]
-    task_conditions = {'NrcScraper':'DONE'}
-        
-    def process_item(self, task_id):
-        
-        scraped_report = self.db.loadScrapedReport(task_id)    
+#    task_conditions = {'NrcScraper':'DONE'}
+
+#    def process_item(self, task_id):
+    def process_job_item(self, task_id):
+
+        scraped_report = self.db.loadScrapedReport(task_id)
         if scraped_report is None:
-            return 
+            return
 
         request = Request(scraped_report['materials_url'], callback=self.parse_materials)
         request.meta['reportnum'] = task_id
+        request.meta['job_name'] = self.job_params['job_name']
 
         yield request
-                
-                
+
+
     def parse_materials(self, response):
         reportnum = response.request.meta['reportnum']
         text = unicode (response.body, response.encoding)
@@ -47,15 +49,15 @@ class NrcMaterialsScraper(NrcBot):
             # Skip the first report record because this is the header row
             materials.pop (0)
             self.log('Retrieved {0} materials records'.format(len(materials)), log.INFO)
-        
+
         for material in materials:
             l = XPathItemLoader(NrcScrapedMaterial(), material)
+            l.name_in = lambda slist: [s[:32] for s in slist]
             l.add_value('reportnum', reportnum)
             for name, params in NrcScrapedMaterial.fields.items():
                 if 'xpath' in params:
                     l.add_xpath(name, params['xpath'])
             item = l.load_item()
             yield item
-     
-        self.db.setBotTaskStatus(reportnum, self.name, 'DONE')
-    
+
+        self.db.setBotTaskStatus(reportnum, response.meta['job_name'], 'DONE') # name -> job_name

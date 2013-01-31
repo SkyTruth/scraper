@@ -15,17 +15,17 @@ from scrapy import log
 #from scrapy.stats import stats
 
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 from nrc.items import FeedEntry, FeedEntryTag
 
 
 
-class FracFocusFeedGenerator (NrcBot):
+class FracFocusFeedGenerator (JobBot):
     name = 'FracFocusFeedGenerator'
-    batch_size = 10
-    base_url = 'http://www.fracfocusdata.org/fracfocusfind'
-    source_id = 10
-    task_conditions = {'FracFocusAnalyzer':'DONE'}
+#    batch_size = 10
+#    base_url = 'http://www.fracfocusdata.org/fracfocusfind'
+#    source_id = 10
+#    task_conditions = {'FracFocusAnalyzer':'DONE'}
 
 
 #    def process_items (self):
@@ -48,8 +48,9 @@ class FracFocusFeedGenerator (NrcBot):
 #
 #        self.update_task_param(0, 'last_seqid', last_seqid)
 
-
-    def process_item (self, task_id):
+    def process_job_item (self, task_id):
+        job = self.job_params
+        base_url = job['base_url']
 #        scrape = self.db.loadFracFocusScrape (task_id)
 #        report = self.db.loadFracFocusReport (scrape['api'], scrape['job_date'])
         report = self.db.loadFracFocusReport (task_id)
@@ -74,19 +75,19 @@ class FracFocusFeedGenerator (NrcBot):
 
         l=ItemLoader (FeedEntry())
 
-        url = "%s/%s/%s" % (self.base_url, params['api'], params['fracture_date'])
+        url = "%s/%s/%s" % (base_url, params['api'], params['fracture_date'])
         feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', "%(operator)s Reports %(production_type)s Well Frack at %(well_name)s Site in %(county)s County, %(state)s" % params)
         l.add_value ('incident_datetime', params['fracture_date'])
-        l.add_value ('link', self.base_url)
+        l.add_value ('link', base_url)
 
         l.add_value ('summary', self.summary_template().substitute(html_params))
         l.add_value ('content', self.content_template().substitute(html_params))
 
         l.add_value ('lat', params['latitude'])
         l.add_value ('lng', params['longitude'])
-        l.add_value ('source_id', self.source_id)
+        l.add_value ('source_id', job['source_id'])
 
         feed_item = l.load_item()
 

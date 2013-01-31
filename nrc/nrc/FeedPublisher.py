@@ -12,31 +12,35 @@ from scrapy.shell import inspect_response
 from scrapy import log
 
 from nrc.database import NrcDatabase
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 
 
-class FeedPublisher (NrcBot):
+class FeedPublisher (JobBot):
     name = 'FeedPublisher'
-    
+
     # get feeds that need to be published
-    
-    
+
+    def process_job(self):
+        feed_job = self.job_params
+        for item in self.process_item(feed_job):
+            yield item
+
     def process_item(self, feed):
         self.http_user = feed.get('http_user')
         self.http_pass = feed.get('http_password')
 
-    
+
         url = "%s&after=%s&sort=asc" % (feed['feed_url'], feed['last_item_updated'])
         request = Request (url, callback=self.parse_feed)
         self.log('Requesting feed from url %s' % (url), log.INFO)
         request.meta['feed'] = feed
         yield request
-        
+
 
     def parse_feed (self, response):
         # Get recent feed items not yet published and send them to process_item_feed
 
-        
+
         feed_params = response.meta['feed']
         feed_items = json.loads(response.body)['feed']
 
@@ -45,23 +49,23 @@ class FeedPublisher (NrcBot):
         last_item_updated = feed_params['last_item_updated'] or datetime.now() - timedelta(days=3) # 3 days ago
 
         for item in feed_items:
-            if self.db.isFeedItemPublished (feed_params['task_id'], item['id']):
+            if self.db.isFeedItemPublished (feed_params['job_id'], item['id']):
                 self.log('Skipping feed item %s - already published' % (item['id']), log.INFO)
             else:
                 for request in self.process_feed_item(item, feed_params):
                     yield request
 
                 self.log('Marking feed item %s as published' % (item['id']), log.INFO)
-                self.db.setFeedItemPublished (feed_params['task_id'], item['id'])
+                self.db.setFeedItemPublished (feed_params['job_id'], item['id'])
                 item_updated = item['published']
                 last_item_updated = max (last_item_updated, item_updated)
-              
-        self.db.updateBotTaskParam (self.name, feed_params['task_id'], 'last_item_updated', last_item_updated)
-        self.item_completed (feed_params['task_id'])
+
+        self.db.updateBotJobParam (feed_params['job_id'], 'last_item_updated', last_item_updated)
+        self.item_completed (feed_params['job_id'])
 
     # Does nothing.  Override in subclass
     def process_feed_item (self, item, feed_params):
-        yield 
-            
-            
- 
+        yield
+
+
+

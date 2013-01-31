@@ -19,7 +19,7 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 
 from BeautifulSoup import BeautifulSoup
 
-from nrc.NrcBot import NrcBot
+from nrc.JobBot import JobBot
 from nrc.items import FracFocusScrape
 from nrc.database import NrcDatabase
 
@@ -33,13 +33,15 @@ from nrc.database import NrcDatabase
     #__EVENTARGUMENT:Sort$JobDate
 
 
-class FracFocusScraper(NrcBot):
+class FracFocusScraper(JobBot):
     name = "FracFocusScraper"
     allowed_domains = None
 #    allowed_domains = ["hydraulicfracturingdisclosure.org"]
+
+# These job parameters are moved to table BotJobParams
 #    base_url = "http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Default.aspx"
-    base_url = "http://www.fracfocusdata.org/fracfocusfind/Default.aspx"
-    job_item_limit = 7  # maximum total items to process in one job execution
+#    base_url = "http://www.fracfocusdata.org/fracfocusfind/Default.aspx"
+#    job_item_limit = 7  # maximum total items to process in one job execution
 
     get_counties_form_data = {
                 'ctl00$MainContent$ScriptManager1': 'ctl00$MainContent$DocumentFilter1$UpdatePanel1|ctl00$MainContent$DocumentFilter1$cboStateList',
@@ -51,29 +53,77 @@ class FracFocusScraper(NrcBot):
                 'ctl00$MainContent$DocumentFilter1$cboCountyList': 'Choose a State First'
             }
 
-    def __init__ (self, **kwargs):
-        self.api = kwargs.get('api',None)
-        NrcBot.__init__(self, **kwargs)
+#    def __init__ (self, **kwargs):
+#        self.api = kwargs.get('api',None)
+#        NrcBot.__init__(self, **kwargs)
 
-    def process_items (self):
-        if self.api:
-            request = Request(self.base_url, callback=self.search_by_api, dont_filter=True, errback=self.error_callback)
-            request.meta['api'] = self.api
-            request.meta['cookiejar'] = 'FracFocusScraper:%s' % self.api
-            self.log('** Scraping API %s' % self.api, log.INFO)
-            yield request
-        else:
-            for item in NrcBot.process_items (self):
+    def process_job(self):
+        job = self.job_params
+        api = job.get('api')
+        if api:
+            for item in self.process_api(job, api):
                 yield item
+        else:
+            states = job.get('states')
+            if states:
+                for item in self.process_states(job, states):
+                    yield item
+            else:
+                state = job['state']
+                for item in self.process_item(job, state):
+                    yield item
 
-    def process_item (self, task):
-        request = Request(self.base_url, callback=self.search_by_state, dont_filter=True, errback=self.error_callback)
-        request.meta['state'] = task['state']
-        request.meta['cookiejar'] = 'FracFocusScraper:%s' % task['state']
-        request.meta['task_id'] = task['task_id']
-        self.log('** Scraping State %s' % task['state'], log.INFO)
+#    def process_items (self):
+#        if self.api:
+#            request = Request(self.base_url, callback=self.search_by_api, dont_filter=True, errback=self.error_callback)
+#            request.meta['api'] = self.api
+#            request.meta['cookiejar'] = 'FracFocusScraper:%s' % self.api
+#            self.log('** Scraping API %s' % self.api, log.INFO)
+#            yield request
+#        else:
+#            for item in NrcBot.process_items (self):
+#                yield item
+
+    def process_api (self, job, api):
+        request = Request(job['base_url'], callback=self.search_by_api, dont_filter=True, errback=self.error_callback)
+        request.meta['api'] = api
+        request.meta['cookiejar'] = 'FracFocusScraper:%s' % api
+        self.log('** Scraping API %s' % api, log.INFO)
         yield request
-        self.item_completed (task['task_id'])
+
+    def process_states(self, job, states):
+        # 'states' is a comma separated list of state ranges
+        # state_range is a state number or two state numbers in ascending
+        # order separated by a '-'.
+        state_series = states.split(',')
+        for series in state_series:
+            state_bounds = series.split('-')
+            num_bounds = len(state_bounds)
+            if not 1 <= num_bounds <= 2:
+                self.log  ("Job %s envoked with ill-formed 'states' parameter"
+                           "'%s'" % (job['job_name'], states), log.ERROR)
+                continue
+            if num_bounds == 1:
+                state_bounds.append(state_bounds[0])
+            try:
+                for state in range(int(state_bounds[0]),
+                                   int(state_bounds[1])+1):
+                    for item in self.process_item(job, state=str(state)):
+                        yield item
+            except ValueError as e:
+                self.log  ("Job %s envoked with non-numeric 'states' parameter"
+                           "'%s' (%s)" % (job['job_name'], states, str(e)),
+                           log.ERROR)
+                continue
+
+    def process_item (self, job, state):
+        request = Request(job['base_url'], callback=self.search_by_state, dont_filter=True, errback=self.error_callback)
+        request.meta['state'] = state
+        request.meta['cookiejar'] = 'FracFocusScraper:%s' % state
+        request.meta['job_id'] = job['job_id']
+        self.log('** Scraping State %s' % state, log.INFO)
+        yield request
+        self.item_completed (state)
 
     def search_by_state (self, response):
         search_params = {
@@ -150,7 +200,7 @@ class FracFocusScraper(NrcBot):
         response_parts = self.response2dict (response)
         num_pages = response.meta['num_pages']
         response = self.update_response(response.meta['full_response'], response_parts)
-        
+
         # scrape page and goto next
         for item in self.scrape_content_items(response):
             yield item
@@ -198,7 +248,7 @@ class FracFocusScraper(NrcBot):
         for update in update_divs:
             update[0].clear ()
             update[0].append(BeautifulSoup(update[1]))
-            
+
         return response.replace (body=str(soup))
 
     # create a new form request
@@ -233,9 +283,10 @@ class FracFocusScraper(NrcBot):
 
         stats.inc_value ('_pages', spider=self)
         reports = hxs.select ('//table[@id="MainContent_DocumentList1_GridView1"]//tr')
-        
+
         for report in reports:
             l = XPathItemLoader(FracFocusScrape(), report)
+            l.county_in = lambda slist: [s[:20] for s in slist]
             for name, params in FracFocusScrape.fields.items():
                 l.add_xpath(name, params['xpath'])
             item = l.load_item()
@@ -248,9 +299,9 @@ class FracFocusScraper(NrcBot):
                     yield item
         if not stats.get_value('_existing_count') and not stats.get_value('_new_count'):
             self.log('%s No records found' % (response.meta['cookiejar']), log.WARNING)
-        
-        
-        
+
+
+
     def extract_NoBot_ClientState (self, response):
         match = re.search(u'<div id="MainContent_NoBot1_NoBotSamplePanel" style="height:(\d+)px;width:(\d+)px;visibility:hidden;position:absolute;">', response.body)
         if match:
