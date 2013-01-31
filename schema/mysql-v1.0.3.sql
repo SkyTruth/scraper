@@ -181,7 +181,7 @@ DROP TABLE IF EXISTS `BotJobParams`;
 CREATE TABLE `BotJobParams` (
   `job_id` int(11) NOT NULL,
   `key` varchar(45) NOT NULL,
-  `value` varchar(256) NOT NULL,
+  `value` varchar(1024) NOT NULL DEFAULT '',
   PRIMARY KEY (`job_id`,`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
