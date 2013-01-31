@@ -213,7 +213,7 @@ class CogisSpillScraper (CogisScraper):
 
 class CogisInspection (NrcItem):
     insert_mode = 'replace'
-    id = Field()
+    st_id = Field()
     doc_num = Field()
     county_code = Field()
     county_name = Field()
@@ -229,10 +229,12 @@ class CogisInspection (NrcItem):
     violation = Field()
     site_lat = Field()
     site_lng = Field()
+    time_stamp = Field()
+    ft_id = Field()
 
 class CogisSpill (NrcItem):
     insert_mode = 'replace'
-    id = Field()
+    st_id = Field()
     doc_num = Field()
     county_code = Field()
     county_name = Field()
@@ -247,6 +249,8 @@ class CogisSpill (NrcItem):
     spill_area = Field()
     spill_lat = Field()
     spill_lng = Field()
+    time_stamp = Field()
+    ft_id = Field()
 
 def extract_text(td):
     if td is None:

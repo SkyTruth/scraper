@@ -23,7 +23,7 @@ from nrc.items import FeedEntry, FeedEntryTag
 class FracFocusFeedGenerator (NrcBot):
     name = 'FracFocusFeedGenerator'
     batch_size = 10
-    base_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind'
+    base_url = 'http://www.fracfocusdata.org/fracfocusfind'
     source_id = 10
     task_conditions = {'FracFocusAnalyzer':'DONE'}
 
@@ -142,12 +142,14 @@ SkyTruth published this alert because a new public disclosure was detected at <a
 <tr><th>API:</th><td> $api</td></tr>
 <tr><th>Well Type:</th><td> $production_type</td></tr>
 <tr><th>Well Name:</th><td> $well_name</td></tr>
+<tr><th>True Vertical Depth:</th><td> $true_vertical_depth</td></tr>
+<tr><th>Total Water Volume (gal):</th><td> $total_water_volume</td></tr>
 <tr><th>County:</th><td>$county</td></tr>
 <tr><th>State:</th><td>$state</td></tr>
 </table>
 <p><b>Chemicals Injected</b><br/>
 The full public disclosure includes certain chemicals that were used in the frack job.<br/>
-Unfortunately, the FracFocus website does not permit direct links to frack disclosure documents.  To view the complete disclosure report, go to <a href="http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Default.aspx">www.fracfocus.org</a> and search for this report using the API Number: <b>$api</b>
+Unfortunately, the FracFocus website does not permit direct links to frack disclosure documents.  To view the complete disclosure report, go to <a href="http://www.fracfocusdata.org/fracfocusfind/Default.aspx">www.fracfocus.org</a> and search for this report using the API Number: <b>$api</b>
 <p>
 
 """)
