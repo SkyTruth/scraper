@@ -1,27 +1,12 @@
--- MySQL dump 10.13  Distrib 5.5.28, for Win32 (x86)
---
--- Host: localhost    Database: nrc_data3
--- ------------------------------------------------------
--- Server version	5.5.28-log
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Dumping data for table `botjob`
+-- Dumping data for table `BotJob`
 --
 
-LOCK TABLES `botjob` WRITE;
-/*!40000 ALTER TABLE `botjob` DISABLE KEYS */;
-INSERT INTO `botjob` VALUES (1,'FracFocus_AL','FracFocusScraper'),
+LOCK TABLES `BotJob` WRITE;
+/*!40000 ALTER TABLE `BotJob` DISABLE KEYS */;
+INSERT INTO `BotJob` VALUES 
+    (1,'FracFocus_AL','FracFocusScraper'),
     (2,'FracFocus_AZ','FracFocusScraper'),
     (3,'FracFocus_AR','FracFocusScraper'),
     (4,'FracFocus_CA','FracFocusScraper'),
@@ -109,17 +94,19 @@ INSERT INTO `botjob` VALUES (1,'FracFocus_AL','FracFocusScraper'),
     (607,'Nrc_Tag','NrcTagger'),
     (608,'Nrc_FeedGenerate','NrcFeedGenerator'),
     (1001,'report_bots','BotMonitor');
-/*!40000 ALTER TABLE `botjob` ENABLE KEYS */;
+/*!40000 ALTER TABLE `BotJob` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Dumping data for table `botjobparams`
+-- Dumping data for table `BotJobParams`
 --
 
-LOCK TABLES `botjobparams` WRITE;
-/*!40000 ALTER TABLE `botjobparams` DISABLE KEYS */;
-INSERT INTO `botjobparams` VALUES (0,'botmaster_url_template','http://ewn2.skytruth.org/nrc/botmaster.php?bot={0}'),
+LOCK TABLES `BotJobParams` WRITE;
+/*!40000 ALTER TABLE `BotJobParams` DISABLE KEYS */;
+INSERT INTO `BotJobParams` VALUES 
+    (0,'botmaster_url_template','http://ewn2.skytruth.org/nrc/botmaster.php?bot={0}'),
     (0,'job_item_limit','1000'),
+    (0,'test_mode','1'),
     (1,'state','1'),
     (2,'state','2'),
     (3,'state','3'),
@@ -227,12 +214,12 @@ INSERT INTO `botjobparams` VALUES (0,'botmaster_url_template','http://ewn2.skytr
     (402,'rss_feed_id','2'),
     (501,'api_url','http://oilspill.skytruth.org/api'),
     (501,'feed_url','http://alerts.skytruth.org/json?tag=BigSpill,SkyTruth&region=GOM&channel=gost'),
-    (501,'last_item_updated','2013-01-01 07:41:18.006'),
-    (501,'ushahidi_catagory','19'),
+    (501,'last_item_updated','2013-02-03 07:41:17.007'),
+    (501,'ushahidi_category','19'),
     (502,'api_url','http://www.oilspill.labucketbrigade.org/api'),
     (502,'feed_url','http://alerts.skytruth.org/json?tag=LABB&channel=LABB'),
-    (502,'last_item_updated','2013-01-02 07:41:12.005'),
-    (502,'ushahidi_catagory','LABB'),
+    (502,'last_item_updated','2013-01-01 07:41:18.006'),
+    (502,'ushahidi_category','LABB'),
     (601,'target_url','http://www.nrc.uscg.mil/pls/apex/f?p=109:1:0:::::'),
     (602,'job_conditions','NrcScraper:DONE'),
     (603,'job_conditions','NrcScraper:DONE'),
@@ -244,6 +231,6 @@ INSERT INTO `botjobparams` VALUES (0,'botmaster_url_template','http://ewn2.skytr
     (607,'job_item_limit','10000'),
     (608,'job_conditions','Nrc_Geocode:DONE,Nrc_Analyze:DONE,Nrc_Tag:DONE'),
     (608,'job_item_limit','10000');
-/*!40000 ALTER TABLE `botjobparams` ENABLE KEYS */;
+/*!40000 ALTER TABLE `BotJobParams` ENABLE KEYS */;
 UNLOCK TABLES;
 
