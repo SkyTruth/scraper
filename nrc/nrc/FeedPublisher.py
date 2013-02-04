@@ -21,19 +21,19 @@ class FeedPublisher (JobBot):
     # get feeds that need to be published
 
     def process_job(self):
-        feed_job = self.job_params
-        for item in self.process_item(feed_job):
+        feed_params = self.job_params
+        for item in self.process_item(feed_params):
             yield item
 
-    def process_item(self, feed):
-        self.http_user = feed.get('http_user')
-        self.http_pass = feed.get('http_password')
+    def process_item(self, feed_params):
+        self.http_user = feed_params.get('http_user')
+        self.http_pass = feed_params.get('http_password')
 
 
-        url = "%s&after=%s&sort=asc" % (feed['feed_url'], feed['last_item_updated'])
+        url = "%s&after=%s&sort=asc" % (feed_params['feed_url'], feed_params['last_item_updated'])
         request = Request (url, callback=self.parse_feed)
         self.log('Requesting feed from url %s' % (url), log.INFO)
-        request.meta['feed'] = feed
+        request.meta['feed'] = feed_params
         yield request
 
 
