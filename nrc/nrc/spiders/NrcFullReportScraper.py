@@ -31,12 +31,12 @@ class NrcFullReportScraper(JobBot):
 
         request = Request(scraped_report['full_report_url'], callback=self.parse_full_report)
         request.meta['reportnum'] = task_id
-        request.meta['job_name'] = self.job_params['job_name']
 
         yield request
 
 
     def parse_full_report(self, response):
+        job = self.job_params
         reportnum = response.request.meta['reportnum']
 
         # need to work around weird bug where lxml can't handle encode=WINDOWS-1252
@@ -55,5 +55,5 @@ class NrcFullReportScraper(JobBot):
         l.add_value('full_report_url', response.url)
         item = l.load_item()
         yield item
-        self.db.setBotTaskStatus(reportnum, response.meta['job_name'], 'DONE') # name -> job_name
+        self.db.setBotTaskStatus(reportnum, job['job_name'], 'DONE') # name -> job_name
 

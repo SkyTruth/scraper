@@ -31,12 +31,12 @@ class NrcMaterialsScraper(JobBot):
 
         request = Request(scraped_report['materials_url'], callback=self.parse_materials)
         request.meta['reportnum'] = task_id
-        request.meta['job_name'] = self.job_params['job_name']
 
         yield request
 
 
     def parse_materials(self, response):
+        job = self.job_params
         reportnum = response.request.meta['reportnum']
         text = unicode (response.body, response.encoding)
         hxs = HtmlXPathSelector(text=text)
@@ -60,4 +60,4 @@ class NrcMaterialsScraper(JobBot):
             item = l.load_item()
             yield item
 
-        self.db.setBotTaskStatus(reportnum, response.meta['job_name'], 'DONE') # name -> job_name
+        self.db.setBotTaskStatus(reportnum, job['job_name'], 'DONE') # name -> job_name
