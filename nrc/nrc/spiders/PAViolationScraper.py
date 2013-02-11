@@ -31,7 +31,10 @@ class PAViolationScraper (AtomPubScraper):
         to_date = datetime.today()
         from_date = to_date - timedelta(days=int(task['date_offset']))
 
-        target_url = "%s&P_DATE_INSPECTED_FROM=%s&P_DATE_INSPECTED_TO=%s" % (task['target_url'], from_date.strftime(date_fmt), to_date.strftime(date_fmt))
+        target_url = ("%s&P_DATE_INSPECTED_FROM=%s&P_DATE_INSPECTED_TO=%s"
+                      % (task['target_url'],
+                         from_date.strftime(date_fmt),
+                         to_date.strftime(date_fmt)))
 
         request = Request (target_url, callback=self.parse_xml)
         self.log('Downloading xml from url %s' % (target_url), log.INFO)
@@ -49,7 +52,7 @@ class PAViolationScraper (AtomPubScraper):
         l.add_value ('Operator', row['OPERATOR'])
         l.add_value ('Region', row['REGION'])
         l.add_value ('InspectionDate',  self.parse_date(row['INSPECTION_DATE']))
-        l.add_value ('InspectionType', row['INSP_TYPE1'])
+        l.add_value ('InspectionType', row['INSPECTION_TYPE'])
         l.add_value ('Permit_API', row['PERMIT_NUM'])
 #        l.add_value ('IsMarcellus', row['MARCELLUS_IND1'])
         l.add_value ('InspectionCategory', row['INSPECTION_CATEGORY'])
