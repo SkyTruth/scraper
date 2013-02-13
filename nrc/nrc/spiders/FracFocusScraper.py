@@ -82,24 +82,6 @@ class FracFocusScraper(NrcBot):
 
         yield self.create_search_request(response, search_params=search_params, callback=self.sort_by_job_date)
 
-#        state = response.meta['state']
-#        request = FormRequest.from_response(response,
-#            formdata={
-#                'ctl00$MainContent$DocumentFilter1$cboStateList': state,
-#                'ctl00$MainContent$ScriptManager1': 'ctl00$MainContent$DocumentFilter1$UpdatePanel1|ctl00$MainContent$DocumentFilter1$btnSearch',
-#                'ctl00$MainContent$DocumentFilter1$btnSearch' : 'SEARCH',
-#                '__ASYNCPOST': 'true',
-#            },
-#            dont_click=True,
-#            callback=self.sort_by_job_date,
-#            errback=self.error_callback)
-#        request.meta['full_response'] = response
-#        request.meta['num_pages'] = 2
-#        request.meta['cookiejar'] = response.meta['cookiejar']
-#        self.log('%s Getting intial page' % response.meta['cookiejar'], log.INFO)
-##        self._print_form_request(request)
-#        yield request
-
     def search_by_api (self, response):
         search_params = {
                 'ctl00$MainContent$DocumentFilter1$tbAPINo':response.meta['api'],
