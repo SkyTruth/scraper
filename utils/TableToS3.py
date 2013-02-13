@@ -42,8 +42,8 @@ class Database(object):
                                        charset = 'utf8')
             self.db.autocommit(True)
 
-            logging.info ("Connected to database %s as %s using database %s" %
-                (host, user, dbname))
+            logging.info ("Connected to database %s.%s as user %s."
+                    % (host, dbname, user))
         except MySQLdb.Error, e:
             self.db = None
             logging.error ("Unable to connect to database: Error %d: %s"
@@ -60,21 +60,47 @@ class Database(object):
         fp.write('\t'.join([desc[0] for desc in c.description]) + '\n')
         for rec in table_recs:
             fp.write('\t'.join([str(x) for x in rec]) + '\n')
-
+        logging.info("Table %s extracted for S3 storage."%(tablename,))
 
 class S3access(object):
     def __init__(self, aws_access, aws_secret):
         self.conn = S3Connection(aws_access, aws_secret)
+        if self.conn is None:
+            raise RuntimeError("AWS connection failed")
 
-    def ship_file(self, fpath, bucketnm, s3name=None):
+        logging.info ("Connected to AWS through %s."%(aws_access,))
+
+    def ship_file(self, fpath, bucketnm, s3name=None, public=None):
         if s3name is None:
             s3name = os.path.basename(fpath)
-        bucket = self.conn.lookup(bucketnm)
-        k = S3Key(bucket)
-        k.key = s3name
-        k.set_contents_from_filename(fpath, reduced_redundancy=True)
 
-    def zip_and_ship_file(self, fpath, bucketnm, s3name=None):
+        # set access control
+        if public is None or public == '':
+            acl = 'private'
+        elif public.upper() == 'R':
+            acl = 'public-read'
+        elif public.upper() == 'W':
+            acl = 'public-read-write'
+        else:
+            logging.warn(
+                    "Unrecognized access code '%s'; setting private access."
+                    %(public,))
+            acl = 'private'
+
+        try:
+            bucket = self.conn.lookup(bucketnm)
+            k = S3Key(bucket)
+            k.key = s3name
+            k.set_contents_from_filename(fpath, reduced_redundancy=True)
+            k.set_acl(acl)
+        except Exception:
+            logging.error (
+                    "S3 connection failed; check AWS access code and password")
+            raise
+
+        logging.info ("S3 file '%s' stored as %s."%(s3name, acl))
+
+    def zip_and_ship_file(self, fpath, bucketnm, s3name=None, public=None):
         zfpath = fpath + '.zip'
         zfile = ZipFile(zfpath, 'w', zipfile.ZIP_DEFLATED)
         try:
@@ -82,7 +108,7 @@ class S3access(object):
         finally:
             zfile.close()
 
-        self.ship_file(zfpath, bucketnm, s3name)
+        self.ship_file(zfpath, bucketnm, s3name, public)
 
 def _parse_args():
     parser = argparse.ArgumentParser(
@@ -92,32 +118,59 @@ TableToS3 transfers the contents of a database table to a file in an S3 bucket.
 Data columns are separated by tabs.  The file may be zipped (default).
 Database and authentication are configured in the script file.
 """)
-    parser.add_argument('-c', dest='compress',
+    parser.add_argument('--compress', '-c',
+                        dest='compress',
                         action='store_true',
                         default=True,
                         help='Store the data as a zip-compressed text file')
-    parser.add_argument('-u', dest='compress',
+    parser.add_argument('--uncompress', '-u',
+                        dest='compress',
                         action='store_false',
                         default=True,
                         help='Store the data as an uncompressed text file')
-    parser.add_argument('-b', metavar='BUCKET', dest='bucketname',
+    parser.add_argument('--bucket', '-b',
+                        dest='bucketname',
+                        metavar='BUCKET',
                         help='The name of the S3 bucket to store the data')
-    parser.add_argument('-f', metavar='FILENAME', dest='filename',
+    parser.add_argument('--filename', '-f',
+                        dest='filename',
+                        metavar='FILENAME',
                         help='Name the output file FILENAME. '
                              'defaults to TABLENAME.txt[.zip]')
-    parser.add_argument('tablename', metavar='TABLENAME',
+    parser.add_argument('--public-read','-r',
+                        dest='public_read',
+                        action='store_true',
+                        default=False,
+                        help='set the S3 data to be publically readable')
+    parser.add_argument('--public-write','-w',
+                        dest='public_write',
+                        action='store_true',
+                        default=False,
+                        help='set the S3 data to be publically writable '
+                             '(implies public-read). '
+                             'If neither public-read nor public-write are set '
+                             'the S3 data is private.')
+    parser.add_argument('tablename',
+                        metavar='TABLENAME',
                         help='The name of the database table to store')
     args = parser.parse_args()
     return args
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     args = _parse_args()
-    print "args:", args
+    logging.debug("args: %s"%(args,))
     if args.compress is None:
         args.compress = True
     if args.bucketname is None:
         args.bucketname = S3_BUCKET
+    if args.public_write:
+        public = 'W'
+    elif args.public_read:
+        public = 'R'
+    else:
+        public = ''
 
     db = Database(DB_HOST, DB_USER, DB_PASSWD, DB_DATABASE)
 
@@ -136,9 +189,9 @@ def main():
         s3 = S3access(S3_ACCESS_KEY, S3_SECRET_KEY)
 
         if args.compress:
-            s3.zip_and_ship_file(fpath, bucketname, s3name)
+            s3.zip_and_ship_file(fpath, bucketname, s3name, public)
         else:
-            s3.ship_file(fpath, bucketname, s3name)
+            s3.ship_file(fpath, bucketname, s3name, public)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
