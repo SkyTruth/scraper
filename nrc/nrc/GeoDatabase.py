@@ -29,7 +29,7 @@ class GeoDatabase(object):
             self.db.autocommit = True
             log.msg ("Connected to database %s as %s using database %s" %
                 (self.host, self.user, self.dbname), level=log.INFO)
-        except psycopg2.Error, e:
+        except psycopgError, e:
             self.db = None
             log.msg ("Unable to connect to database: Error %d: %s" %
                 (e.args[0], e.args[1]), level=log.ERROR)
@@ -72,8 +72,8 @@ class GeoDatabase(object):
             values = item.values()
 
         c = self.db.cursor()
-#        print c.mogrify(sql, values)
-        c.execute (sql, values)
+#        log.msg ("Geodb: %s\n >> values:%s" % (sql,values), level=log.INFO)#DEBUG
+#        log.msg ("Geodb: DONE", level=log.INFO)#DEBUG
 #        print c.statusmessage
         return c.lastrowid
 

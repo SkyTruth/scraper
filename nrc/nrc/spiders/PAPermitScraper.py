@@ -3,7 +3,7 @@
 import re
 from datetime import datetime, timedelta
 import xlrd
-import uuid
+#import uuid
 from string import Template
 from xml.sax.saxutils import escape
 
@@ -86,7 +86,8 @@ class PAPermitScraper (AtomPubScraper):
                 l=ItemLoader (FeedEntry())
 
                 url = "%s/%s/%s" % (task['target_url'], item['Complete_API_'], item ['Date_Disposed'])
-                feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+                #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+                feed_entry_id = self.db.uuid3_str(name=url.encode('ASCII'))
                 l.add_value ('id', feed_entry_id)
                 l.add_value ('title', "PA %s Drilling Permit Issued in %s Township" % (params.get('Well_Type'), item.get('Municipality_Name') ))
 #                l.add_value ('updated', item.get('Date_Disposed'))

@@ -58,6 +58,7 @@ class NrcExtractor(NrcBot):
             return
             
         text = report['full_report_body']
+        text = "".join(chr(min(ord(c),127)) for c in text)
         t = TextResponse (url=report['full_report_url'], body=text.encode('utf-8')) #must have utf-8 here
         l = XPathItemLoader(NrcParsedReport(), response=t)
         l.add_value('reportnum', task_id)

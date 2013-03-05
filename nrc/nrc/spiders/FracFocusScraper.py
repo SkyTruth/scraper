@@ -53,6 +53,8 @@ class FracFocusScraper(NrcBot):
 
     def __init__ (self, **kwargs):
         self.api = kwargs.get('api',None)
+        if kwargs.has_key('state'):
+            FracFocusScraper.job_item_limit = 1
         NrcBot.__init__(self, **kwargs)
 
     def process_items (self):

@@ -124,7 +124,8 @@ class PAViolationScraper (AtomPubScraper):
         params['Operator'] = params['Operator'].title()
 
         url = "%s/%s" % (task['target_url'], params['InspectionID'])
-        feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        feed_entry_id = self.db.uuid3_str(name=url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', "PA Permit Violation Issued to %(Operator)s in %(Municipality)s, %(County)s County" % params)
         l.add_value ('incident_datetime', params['InspectionDate'])
