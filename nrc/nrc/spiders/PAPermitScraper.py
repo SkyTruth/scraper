@@ -36,6 +36,7 @@ class PAPermitScraper (AtomPubScraper):
         l.add_value ('Appl_Type_Code', row['APPLICATION_TYPE'])
         l.add_value ('Auth_Type_Description', row['AUTH_TYPE_DESCRIPTION'])
         l.add_value ('Complete_API_', row['WELL_API'])
+        l.add_value ('Other_Id', self.base_api(row['WELL_API']))
 #        l.add_value ('Marcellus_Shale_Well', row['MARCELLUS_SHALE_IND'])
         l.add_value ('Horizontal_Well', row['HORIZONTAL_WELL_IND'])
         l.add_value ('Well_Type', row['WELL_TYPE'])
@@ -118,6 +119,13 @@ class PAPermitScraper (AtomPubScraper):
                         yield self.create_tag (feed_entry_id, well_type)
 
 
+    def base_api(self, complete_api):
+        rex = r'[0-9]{3}-[0-9]{5}'
+        mo = re.match(rex, complete_api)
+        if mo:
+            return mo.group()
+        return ''
+
     def create_tag (self, feed_entry_id, tag, comment = ''):
         l = ItemLoader (FeedEntryTag())
         l.add_value ('feed_entry_id', feed_entry_id)
@@ -163,4 +171,3 @@ class PAPermitScraper (AtomPubScraper):
 <tr><th>Facility ID:</th><td>$Facility_Id</td></tr>
 </table>
 """)
-
