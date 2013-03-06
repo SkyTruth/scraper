@@ -221,7 +221,8 @@ class COPermitScraper (NrcBot):
         l=ItemLoader (FeedEntry())
 
         url = "%s/%s/%s/%s" % (task['target_url'], item['API'], item ['permit_activity_type'], item ['permit_activity_date'])
-        feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        feed_entry_id = self.db.uuid3_str(name=url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
 
         l.add_value ('title', self.title_template(item).substitute(params))

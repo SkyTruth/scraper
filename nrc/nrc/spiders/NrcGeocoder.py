@@ -238,8 +238,11 @@ class NrcGeocoder(NrcBot):
             pass
         else:
             msg = 'Google Geocode operation failed for task id %s : %s \n%s' % (reportnum, response.request, response.body)
-            self.send_alert (msg, reportnum)
-
+            try:
+                self.send_alert (msg, reportnum)
+            except Exception:
+                self.log(msg, log.ERROR)
+                raise
 
     # find the lat/lng for the given area id and block id
     # if no match is found, return None, else return a dict (lat,lng)

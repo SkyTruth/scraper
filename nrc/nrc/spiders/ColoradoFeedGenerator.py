@@ -75,7 +75,8 @@ class ColoradoFeedGenerator (NrcBot):
         # TODO: Translate code in type_of_permit
 
         url = "%s/%s/%s" % (self.base_url, params['api'], params['approved_date'])
-        feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        feed_entry_id = self.db.uuid3_str(name=url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', "%(operator_name)s Issued Permit%(permit_action)s in %(county_name)s County, CO" % params)
         l.add_value ('incident_datetime', params['approved_date'])

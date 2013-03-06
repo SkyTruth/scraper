@@ -58,7 +58,8 @@ class RssFeedScaper (NrcBot):
             l.add_value ('feed_id', task_id)
             yield l.load_item()
 
-            feed_entry_id = uuid.uuid5(uuid.NAMESPACE_URL, str(item ['id']))
+            #feed_entry_id = uuid.uuid5(uuid.NAMESPACE_URL, str(item ['id']))
+            feed_entry_id = self.db.uuid5_str(name=str(item ['id']))
 
             l=ItemLoader (FeedEntry())
             l.add_value ('id', feed_entry_id)

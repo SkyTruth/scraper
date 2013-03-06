@@ -143,14 +143,10 @@ class NrcDatabase(object):
         sql = ('%s INTO "%s" ("%s") VALUES (%s);'
                % (insert_mode, table_name, key_str, value_str))
         c = self.db.cursor()
-        try:
-            log.msg ("insertItem: %s\n >> %s" % (sql, item.values()),
-                     level=log.INFO)#DEBUG
-            c.execute (sql, item.values())
-        except psycopg2.IntegrityError as e:
-            log.msg( "insetItem error: %s" % (e,), level=log.INFO)#DEBUG
-            raise
-        return c.lastrowid
+        #log.msg ("insertItem: %s\n >> %s" % (sql, item.values()),
+        #         level=log.INFO)#DEBUG
+        c.execute (sql, item.values())
+        return c.lastrowid if c.lastrowid else 1
 
 
     def updateItem (self, table_name, id, update_fields, id_field='id'):
@@ -283,17 +279,24 @@ class NrcDatabase(object):
         sql += " WHERE (t1.task_id IS NULL OR %s)" % " OR ".join(timestamp_sql)
         sql += " AND %s LIMIT %s" % (join_sql_0, batch_size)
 
+        log.msg ("getBotTaskBatch query1: %s" % (sql,), level=log.INFO)#DEBUG
         c.execute (sql)
-        for rec in c.fetchall():
+        _all = c.fetchall()
+        log.msg ("getBotTaskBatch query1 records: %s" % (len(_all),), level=log.INFO)#DEBUG
+        #for rec in c.fetchall():
+        for rec in _all:
             self.do_replace("BotTaskStatus",
                             ("task_id", "bot", "status", "time_stamp"),
                             (rec["task_id"], rec["bot"], rec["status"],
                              rec["time_stamp"]))
-#        print sql
 
         sql = """SELECT task_id FROM "BotTaskStatus" WHERE bot='%s' AND status='%s'""" % (bot, set_status)
+        log.msg ("getBotTaskBatch query2: %s" % (sql,), level=log.INFO)#DEBUG
         c.execute (sql)
-        return c.fetchall ()
+        _all = c.fetchall()
+        log.msg ("getBotTaskBatch query2 records: %s" % (len(_all),), level=log.INFO)#DEBUG
+        #return c.fetchall ()
+        return _all
 
     def setBotTaskStatus (self, task_id, bot, status):
         #sql = "REPLACE INTO BotTaskStatus (task_id, bot, status) VALUES (%s, %s, %s)"
@@ -520,9 +523,10 @@ class NrcDatabase(object):
                % (table, field_str, value_str))
         c = self.db.cursor()
         try:
-            log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
+            if table == "BotTaskStatus":
+            	log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
             c.execute (sql)
-            return
+            return c.lastrowid if c.lastrowid else 1
         except psycopg2.IntegrityError as e:
             if str(e).find("duplicate key value") < 0:
                 raise
@@ -546,7 +550,7 @@ class NrcDatabase(object):
                 val_list.append(substr)
         sql = ('UPDATE "%s" SET %s WHERE %s;'
                % (table, ', '.join(val_list), 'AND '.join(key_list)))
-        log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
+        #log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
         c.execute(sql)
-        return c.lastrowid
+        return c.lastrowid if c.lastrowid else 1
 

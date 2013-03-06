@@ -223,7 +223,8 @@ class CogisLocator (NrcBot):
         l=ItemLoader (FeedEntry())
 
         url = params['doc_href']
-        feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, url.encode('ASCII'))
+        feed_entry_id = self.db.uuid3_str(name=url.encode('ASCII'))
         l.add_value ('id', feed_entry_id)
 
         l.add_value ('title', params['title_tmpl'].substitute(params))

@@ -206,6 +206,7 @@ class CogisScraper (NrcBot):
                 return item
 
     def item_stored(self, item, id):
+        self.log('Stored item %s to NEW' % (item['doc_num'],), log.INFO)
         self.item_new(item['doc_num'])
 
 class CogisSpillScraper (CogisScraper):
