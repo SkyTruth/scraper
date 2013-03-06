@@ -142,7 +142,8 @@ class CogisLocator (NrcBot):
 
     def get_cogis_item(self, task, keyval):
         item = globals()[task['Item']]()
-        cogis_rec = self.db.loadItem (item, match_fields={'doc_num':keyval})
+        cogis_rec = self.db.loadItem (item,
+                                      match_fields={'doc_num':str(keyval)})
         if cogis_rec is None:
             self.log("No {0} record for doc_num {1}."
                      .format(task['Item'], keyval),
@@ -241,8 +242,10 @@ class CogisLocator (NrcBot):
 
         feed_item = l.load_item()
 
-        if (feed_item.get('lat') and feed_item.get('lng')
-            and feed_item.get('incident_datetime') and (datetime.now().date() - feed_item.get('incident_datetime'))
+        if (feed_item.get('lat')
+            and feed_item.get('lng')
+            and feed_item.get('incident_datetime')
+            and (datetime.now().date() - feed_item.get('incident_datetime'))
                  <= timedelta(days=60)):
             yield feed_item
             for tag in self.get_tags(item):

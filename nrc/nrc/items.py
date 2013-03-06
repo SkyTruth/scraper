@@ -349,6 +349,7 @@ class FusionTableItem (Item):
 
 class PA_DrillingPermit (NrcItem):
     insert_mode = 'insert'
+    returning = 'sid'
 
     sid = KeyField ()
     ftid = SingleField ()
@@ -391,6 +392,7 @@ class PA_DrillingPermit (NrcItem):
 
 class PA_Spud (NrcItem):
     insert_mode = 'insert'
+    returning = 'sid'
 
     sid = KeyField ()
     ftid = SingleField ()
@@ -417,6 +419,7 @@ class PA_Spud (NrcItem):
 
 class PA_Violation (NrcItem):
     insert_mode = 'insert'
+    returning = 'sid'
 
     sid = KeyField ()
     ftid = SingleField ()
@@ -449,6 +452,7 @@ class PA_Violation (NrcItem):
 
 class WV_DrillingPermit (NrcItem):
     insert_mode = 'insert'
+    returning = 'st_id'
 
     st_id = SingleField ()
     ft_id = SingleField ()
@@ -471,6 +475,7 @@ class WV_DrillingPermit (NrcItem):
 
 class FracFocusScrape (NrcItem):
     insert_mode = 'insert'
+    returning = 'seqid'
 
     api = KeyField (
             xpath = 'td[2]/text()',

@@ -11,7 +11,7 @@ import uuid
 import psycopg2
 from psycopg2.extras import RealDictCursor as DictCursor
 from psycopg2.extras import register_uuid
-#Note: 
+#Note:
 # change in all: db.cursor(DictCursor) to db.cursor(cursor_factory=DictCrusor)
 
 from scrapy import log, exceptions
@@ -134,19 +134,28 @@ class NrcDatabase(object):
 
     # insert_mode can be one of ( insert | replace )
     def insertItem (self, item, insert_mode = 'replace'):
+        if item.returning is not None:
+            rtn_clause = "RETURNING %s as 'return_id'" % item['returning']
+        else:
+            rtn_clause = "RETURNING 1 as 'return_id'"
         table_name = item.__class__.__name__
         if insert_mode.lower() == 'replace':
-            return self.do_replace(table_name, item.keys(), item.values())
+            c = self._do_replace(table_name,
+                                    item.keys(),
+                                    item.values(),
+                                    rtn_clause)
+            return c[0]['return_id']
         key_str = '","'.join(item.keys())
         value_str = ('%s,' * len(item.values()))[:-1]
 
-        sql = ('%s INTO "%s" ("%s") VALUES (%s);'
-               % (insert_mode, table_name, key_str, value_str))
-        c = self.db.cursor()
+        sql = ('%s INTO "%s" ("%s") VALUES (%s) %s;'
+               % (insert_mode, table_name, key_str, value_str, rtn_clause))
+        c = self.db.cursor(cursor_factory=DictCursor)
         #log.msg ("insertItem: %s\n >> %s" % (sql, item.values()),
         #         level=log.INFO)#DEBUG
         c.execute (sql, item.values())
-        return c.lastrowid if c.lastrowid else 1
+        return c.fetchone()[0]['return_id']
+        #return c.lastrowid if c.lastrowid else 1
 
 
     def updateItem (self, table_name, id, update_fields, id_field='id'):
@@ -201,12 +210,12 @@ class NrcDatabase(object):
         c = self.db.cursor(cursor_factory=DictCursor)
         if not task_id:
 #            sql = """SELECT t.id as task_id FROM "BotTask" t LEFT JOIN "BotTaskStatus" s ON t.id = s.task_id AND t.bot = s.bot WHERE t.bot = '%s' AND ((s.task_id is NULL) or (TIMESTAMPDIFF(SECOND, s.time_stamp, NOW()) > t.process_interval_secs)) ORDER BY t.id ASC""" % (bot,)
-            sql = """SELECT t.id as task_id FROM "BotTask" t 
-                     LEFT JOIN "BotTaskStatus" s 
-                         ON t.id = s.task_id AND t.bot = s.bot 
-                     WHERE t.bot = %s 
-                         AND ((s.task_id is NULL) 
-                           or (now() - s.time_stamp) > 
+            sql = """SELECT t.id as task_id FROM "BotTask" t
+                     LEFT JOIN "BotTaskStatus" s
+                         ON t.id = s.task_id AND t.bot = s.bot
+                     WHERE t.bot = %s
+                         AND ((s.task_id is NULL)
+                           or (now() - s.time_stamp) >
                               t.process_interval_secs * interval '1 second')"""
             c.execute (sql, (bot,))
             return c.fetchall ()
@@ -224,7 +233,7 @@ class NrcDatabase(object):
         #sql = 'REPLACE INTO "BotTaskParams" (bot, task_id, "key", "value") VALUES (%s, %s, %s, %s)'
         #c = self.db.cursor()
         #c.execute (sql, (bot, task_id, key, value))
-        self.do_replace("BotTaskParams",
+        self._do_replace("BotTaskParams",
                         ('bot', 'task_id', 'key', 'value'),
                         (bot, task_id, key, value))
 
@@ -261,12 +270,12 @@ class NrcDatabase(object):
 
             timestamp_sql.append ("t1.time_stamp < c%s.time_stamp" % idx)
 
-#        sql = """REPLACE INTO "BotTaskStatus" 
-#                 SELECT c0.task_id, '%s' as bot, '%s' as status, 
-#                        CURRENT_TIMESTAMP as time_stamp 
+#        sql = """REPLACE INTO "BotTaskStatus"
+#                 SELECT c0.task_id, '%s' as bot, '%s' as status,
+#                        CURRENT_TIMESTAMP as time_stamp
 #                 FROM "BotTaskStatus" c0""" % (bot, set_status)
-        sql = """SELECT c0.task_id, '%s' as bot, '%s' as status, 
-                        CURRENT_TIMESTAMP as time_stamp 
+        sql = """SELECT c0.task_id, '%s' as bot, '%s' as status,
+                        CURRENT_TIMESTAMP as time_stamp
                  FROM "BotTaskStatus" c0""" % (bot, set_status)
         join_sql_0 = join_sql.pop(0)
         idx = 1
@@ -285,7 +294,7 @@ class NrcDatabase(object):
         log.msg ("getBotTaskBatch query1 records: %s" % (len(_all),), level=log.INFO)#DEBUG
         #for rec in c.fetchall():
         for rec in _all:
-            self.do_replace("BotTaskStatus",
+            self._do_replace("BotTaskStatus",
                             ("task_id", "bot", "status", "time_stamp"),
                             (rec["task_id"], rec["bot"], rec["status"],
                              rec["time_stamp"]))
@@ -301,7 +310,7 @@ class NrcDatabase(object):
     def setBotTaskStatus (self, task_id, bot, status):
         #sql = "REPLACE INTO BotTaskStatus (task_id, bot, status) VALUES (%s, %s, %s)"
         #self.db.cursor().execute (sql, (task_id, bot, status))
-        self.do_replace("BotTaskStatus",
+        self._do_replace("BotTaskStatus",
                         ('task_id', 'bot', 'status'),
                         (task_id, bot, status))
 
@@ -398,7 +407,7 @@ class NrcDatabase(object):
         #sql = "REPLACE INTO GeocodeCache (_key, lat, lng) VALUES (%s, %s, %s)"
         #c = self.db.cursor(cursor_factory=DictCursor)
         #c.execute (sql, (key, lat, lng))
-        self.do_replace("GeocodeCache",
+        self._do_replace("GeocodeCache",
                         ("_key", "lat", "lng"),
                         (key, lat, lng))
 
@@ -433,7 +442,7 @@ class NrcDatabase(object):
         #sql = "REPLACE INTO PublishedFeedItems (task_id, feed_item_id) VALUES (%s, %s)"
         #c = self.db.cursor()
         #c.execute (sql, (task_id, item_id))
-        self.do_replace("PublishedFeedItems",
+        self._do_replace("PublishedFeedItems",
                         ('task_id', 'feed_item_id'),
                         (task_id, item_id))
 
@@ -496,7 +505,7 @@ class NrcDatabase(object):
         c = self.db.cursor()
         c.execute( 'UPDATE "FracFocusScrape" SET pdf_download_attempts=pdf_download_attempts+1 WHERE seqid=%s', (seqid,))
 
-    def do_replace(self, table, fields, values):
+    def _do_replace(self, table, fields, values, rtn_clause=""):
         """Combine insert and update to replace MySQL REPLACE statement."""
         # Prepare value strings according to type.
         value_strs = []
@@ -507,26 +516,22 @@ class NrcDatabase(object):
                                 types.LongType,
                                 types.FloatType)):
                 value_strs.append(unicode(v))
-#            elif isinstance(v, uuid.UUID):
-#                s = v.hex
-#                value_strs.append("'%s'" % '-'.join( [ s[0:8],
-#                                                       s[8:12],
-#                                                       s[12:16],
-#                                                       s[16:20],
-#                                                       s[24:] ] ))
             else:
                 value_strs.append("'%s'"
                                   %(unicode(v).replace("'","''")))
         field_str = '"%s"' % '","'.join(fields)
         value_str = ",".join(value_strs)
-        sql = ('INSERT INTO "%s"  (%s) VALUES (%s)'
-               % (table, field_str, value_str))
-        c = self.db.cursor()
+        sql = ('INSERT INTO "%s"  (%s) VALUES (%s) %s'
+               % (table, field_str, value_str, rtn_clause))
+        c = self.db.cursor(cursor_factory=DictCursor)
         try:
             if table == "BotTaskStatus":
-            	log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
+            	log.msg ("_do_replace: %s" % (sql,), level=log.INFO)#DEBUG
             c.execute (sql)
-            return c.lastrowid if c.lastrowid else 1
+            if rtn_clause:
+                return c.fetchone()[0]['return_id']
+            return
+            #return c.lastrowid if c.lastrowid else 1
         except psycopg2.IntegrityError as e:
             if str(e).find("duplicate key value") < 0:
                 raise
@@ -548,9 +553,15 @@ class NrcDatabase(object):
                 key_list.append(substr)
             else:
                 val_list.append(substr)
-        sql = ('UPDATE "%s" SET %s WHERE %s;'
-               % (table, ', '.join(val_list), 'AND '.join(key_list)))
-        #log.msg ("do_replace: %s" % (sql,), level=log.INFO)#DEBUG
+        sql = ('UPDATE "%s" SET %s WHERE %s %s;'
+               % (table,
+                  ','.join(val_list),
+                  'AND '.join(key_list),
+                  rtn_clause))
+        #log.msg ("_do_replace: %s" % (sql,), level=log.INFO)#DEBUG
         c.execute(sql)
-        return c.lastrowid if c.lastrowid else 1
+        if rtn_clause:
+            return c.fetchone()[0]['return_id]
+        return
+        #return c.lastrowid if c.lastrowid else 1
 
