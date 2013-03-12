@@ -30,6 +30,10 @@ class PASpudScraper (AtomPubScraper):
     def process_row (self, row, task):
 
         l=ItemLoader (PA_Spud())
+        l.County_in = lambda slist: [s[:20] for s in slist]
+        l.Municipality_in = lambda slist: [s[:20] for s in slist]
+        l.Created_By_in = lambda slist: [s[:20] for s in slist]
+        l.Modified_By_in = lambda slist: [s[:20] for s in slist]
 
         l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
         l.add_value ('SPUD_Date', self.parse_date(row['SPUD_DATE']))

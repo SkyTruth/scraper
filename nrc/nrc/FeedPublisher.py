@@ -48,11 +48,17 @@ class FeedPublisher (NrcBot):
                     yield request
 
                 self.log('Marking feed item %s as published' % (item['id']), log.INFO)
-                self.db.setFeedItemPublished (feed_params['task_id'], item['id'])
+                if self.__class__.__name__ != "UshahidiPublisherTest":
+                    self.db.setFeedItemPublished (feed_params['task_id'],
+                                                  item['id'])
                 item_updated = item['published']
                 last_item_updated = max (last_item_updated, item_updated)
               
-        self.db.updateBotTaskParam (self.name, feed_params['task_id'], 'last_item_updated', last_item_updated)
+        if self.__class__.__name__ != "UshahidiPublisherTest":
+            self.db.updateBotTaskParam (self.name, 
+                                        feed_params['task_id'],
+                                        'last_item_updated',
+                                        last_item_updated)
         self.item_completed (feed_params['task_id'])
 
     # Does nothing.  Override in subclass

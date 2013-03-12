@@ -40,7 +40,7 @@ else
         echo "         Otherwise commands will only be printed."
 	echo "    -s # : set the FracFocus state by number."
 	echo "           default is 37 (Pennsylvania)."
-	echo "    <scraper> : in 'all' 'Cogis' 'Nrc' 'PA' 'WV' 'Frac'"
+	echo "    <scraper> : in 'all' 'Cogis' 'Nrc' 'PA' 'WV' 'Frac' 'Usha'"
 	echo "    <sequence> : in 0-6, default is 0"
 	exit
 fi
@@ -82,6 +82,12 @@ $curl http://localhost:6800/schedule.json -d project=default -d spider=WVPermitS
 	then
 $curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusScraper -d state=$state
 	fi
+
+	if [ $scraper = "all" ] || [ $scraper = "Usha" ]
+	then
+$curl http://localhost:6800/schedule.json -d project=default -d spider=UshahidiPublisherTest
+	fi
+
 fi
 
 # SECONDARY SCRAPERS
@@ -142,12 +148,12 @@ $curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocus
 
 	if [ $sequence -eq 3 ]
 	then
-curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusPDFAnalyzer
+curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusAnalyzer
 	fi
 
 	if [ $sequence -eq 4 ]
 	then
-$curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusPDFFeedGenerator
+$curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusFeedGenerator
 	fi
 fi
 

@@ -84,8 +84,17 @@ class UshahidiPublisher (FeedPublisher):
             self.log('Authenticating with user: %s' % (feed_params.get ('http_user')), log.INFO)
             request.headers['Authorization'] = basic_auth_header(feed_params.get ('http_user'), feed_params.get ('http_password'))
         
-        yield request
-                
+        #yield request
+        yield self.filter_request(request)
+
+    def filter_request(self, request):
+        # This filter allows UshahidiPublisherTest class 
+        # to override this method and skip publication.
+        if self.__class__.__name__ == "UshahidiPublisherTest":
+            self.log('UshahidiPublisherTest should not be here!'), log.ERROR
+            return None
+        return request
+
     def submit_report_success(self, response):
         print response.body
         print response.meta['report']
@@ -114,5 +123,23 @@ class UshahidiPublisher (FeedPublisher):
                 self.log(' parsed IncidentType = "%s", matched cat id %s' % (incident_type, cat), log.DEBUG)
         return cat
 
-        
-    
+class UshahidiPublisherTest (UshahidiPublisher):
+    name = 'UshahidiPublisherTest'
+    #job_item_limit = 1  # limit to the first feed source
+    def __init__(self, **kwargs):
+        # After scrapy finds the spider by name, change the name
+        # so we interact with the database as 'UshahidiPublisher'.
+        UshahidiPublisherTest.name =  'UshahidiPublisher'
+        UshahidiPublisher.__init__(self, **kwargs)
+
+    def filter_request(self, request):
+        # Report what would be done, but don't do it.
+        task_id = request.meta['item']['id']
+        url = request.meta['feed_params']['api_url']
+        date = request.meta['report']['incident_date']
+        title = request.meta['report']['incident_title']
+        self.log('Would publish feed item %s to Ushahidi API %s\n\tOn %s: %s'
+                 % (task_id, url, date, title),
+                 log.INFO)
+        return None
+

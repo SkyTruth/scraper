@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #NRC Analyzer Spider 
 
 import re
@@ -42,7 +43,7 @@ class FracFocusPDFParser(NrcBot):
         pdf = self.db.loadFracFocusPDF(task_id)
         scrape = self.db.loadFracFocusScrape (task_id)
         
-        parser = Parser (pdf['pdf'], logger)
+        parser = Parser (str(pdf['pdf']), logger)
         
         report = parser.parse_pdf()
         
@@ -61,6 +62,7 @@ class FracFocusPDFParser(NrcBot):
                 
                 for chem in report.chemicals:
                     l = ItemLoader (FracFocusParseChemical())
+                    l.ingredients_in = lambda slist: [s[:200] for s in slist]
                     l.add_value (None, chem)
                     l.add_value ('report_seqid', task_id)
                     l.add_value ('api', report.report_data['api'])

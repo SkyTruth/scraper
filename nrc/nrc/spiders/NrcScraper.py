@@ -153,3 +153,7 @@ class NrcScraper(BaseSpider):
                     l.add_xpath(name, params['xpath'])
             item = l.load_item()
             yield item
+
+    def item_stored(self, item, id):
+        return
+

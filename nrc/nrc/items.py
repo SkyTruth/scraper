@@ -14,6 +14,8 @@ from scrapy.item import Item, Field
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.contrib.loader import ItemLoader
 
+import psycopg2
+
 def format_datetime (dt):
     if type(dt) is time.struct_time:
         dt = datetime(*dt[:6])
@@ -98,6 +100,13 @@ def convert_NULL(s):
 def strip_non_digits(s):
     return re.sub('[^\d\.]','',s)
 
+def float_check(s):
+    try:
+        float(s)
+    except ValueError:
+        return None
+    return s
+
 def title_case (s):
     return s.title()
 
@@ -122,6 +131,7 @@ class KeyField (ContentField):
 
 class NrcItem (Item):
     insert_mode = 'replace'  #  ( insert | replace )
+    returning = None
     def keyFields (self):
         return [name for name,meta in self.fields.items() if meta.get('iskey')]
     def contentFields (self):
@@ -349,10 +359,10 @@ class FusionTableItem (Item):
 
 class PA_DrillingPermit (NrcItem):
     insert_mode = 'insert'
-    returning = 'sid'
+    returning = 'st_id'
 
-    sid = KeyField ()
-    ftid = SingleField ()
+    st_id = KeyField ()
+    ft_id = SingleField ()
 
     County_Name = ContentField ()
     Municipality_Name = ContentField ()
@@ -392,10 +402,10 @@ class PA_DrillingPermit (NrcItem):
 
 class PA_Spud (NrcItem):
     insert_mode = 'insert'
-    returning = 'sid'
+    returning = 'st_id'
 
-    sid = KeyField ()
-    ftid = SingleField ()
+    st_id = KeyField ()
+    ft_id = SingleField ()
 
     SPUD_Date = ContentField ()
     Well_API__ = ContentField ()
@@ -419,10 +429,10 @@ class PA_Spud (NrcItem):
 
 class PA_Violation (NrcItem):
     insert_mode = 'insert'
-    returning = 'sid'
+    returning = 'st_id'
 
-    sid = KeyField ()
-    ftid = SingleField ()
+    st_id = KeyField ()
+    ft_id = SingleField ()
     InspectionID = ContentField ()
     ViolationID = ContentField ()
     EnforcementID = ContentField ()
@@ -643,8 +653,12 @@ class FracFocusParseChemical (NrcItem):
     purpose = ContentField ()
     ingredients = ContentField ()
     cas_number = ContentField ()
-    additive_concentration = SingleField ()
-    hf_fluid_concentration = SingleField ()
+    additive_concentration = SingleField (
+#            input_processor = MapCompose(float_check)
+             )
+    hf_fluid_concentration = SingleField (
+#            input_processor = MapCompose(float_check)
+             )
     ingredient_weight = SingleField (
             input_processor = MapCompose(strip_non_digits)
         )

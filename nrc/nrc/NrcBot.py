@@ -112,7 +112,12 @@ class NrcBot(BaseSpider):
         self.log('Terminating after processing %s items' % (items_processed), log.INFO)
 
     def bot_task_params (self, task_id):
-        params = self.db.getBotTaskParams (self.name, task_id)
+        try:
+                task_id = int(task_id)
+	        params = self.db.getBotTaskParams (self.name, task_id)
+        except ValueError:
+                params = None
+
         if (params):
             params = dict (zip ([p['key'] for p in params],[p['value'] for p in params]))
             params ['task_id'] = task_id

@@ -24,10 +24,12 @@ class NrcDatabasePipeline(object):
         else:
             if isinstance (item, FeedEntry) or isinstance(item, FeedEntryTag):
                 spider.geodb.storeItem (item)
-            id = spider.db.storeItem (item)
-            spider.log("pipeline id=%s for item %s" % (id, item), log.INFO) 
+                id = None
+            else:
+                id = spider.db.storeItem (item)
             if id:
                 spider.item_stored (item, id)
+            spider.log("pipeline id=%s for item %s" % (id, item), log.INFO) 
         
         spider.log ('Stored Item: %s' % item, log.INFO) 
                

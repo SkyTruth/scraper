@@ -7,6 +7,7 @@
 
 import types
 import uuid
+import datetime
 
 import psycopg2
 from psycopg2.extras import RealDictCursor as DictCursor
@@ -20,6 +21,7 @@ from nrc import settings
 from items import NrcItem
 
 class NrcDatabase(object):
+
     @staticmethod
     def uuid_str(uuid_obj):
         s = uuid_obj.hex
@@ -67,22 +69,26 @@ class NrcDatabase(object):
 
     def reportExists (self, reportnum):
         cur = self.db.cursor()
-        n = cur.execute ('SELECT reportnum FROM "NrcScrapedReport" WHERE reportnum = %s', (reportnum,))
+        cur.execute ('SELECT reportnum FROM "NrcScrapedReport" WHERE reportnum = %s', (reportnum,))
+        n = cur.rowcount
         return n > 0
 
     def fullReportExists (self, reportnum):
         cur = self.db.cursor()
-        n = cur.execute ('SELECT reportnum FROM "NrcScrapedFullReport" WHERE reportnum = %s', reportnum)
+        cur.execute ('SELECT reportnum FROM "NrcScrapedFullReport" WHERE reportnum = %s', reportnum)
+        n = cur.rowcount
         return n > 0
 
     def materialExists (self, reportnum):
         cur = self.db.cursor()
-        n = cur.execute ('SELECT reportnum FROM "NrcScrapedMaterial" WHERE reportnum = %s', reportnum)
+        cur.execute ('SELECT reportnum FROM "NrcScrapedMaterial" WHERE reportnum = %s', reportnum)
+        n = cur.rowcount
         return n > 0
 
     def latestReportDate (self):
         cur = self.db.cursor()
-        n = cur.execute ('select MAX(incident_datetime) from "NrcScrapedReport"')
+        cur.execute ('select MAX(incident_datetime) from "NrcScrapedReport"')
+        n = cur.rowcount
         dt = None
         if (n > 0):
             dt = cur.fetchone()[0]
@@ -97,7 +103,12 @@ class NrcDatabase(object):
         where_sql  = ' AND '.join(where_sql)
 
         sql = 'SELECT * FROM "%s" WHERE %s' % (table_name, where_sql)
-        n = self.db.cursor().execute (sql, where_values)
+        c = self.db.cursor()
+        c.execute (sql, where_values)
+        n = c.rowcount
+        #log.msg ("itemExists: n=%s,%s, sql=%s"
+        #         % (n, nn, c.mogrify(sql, where_values)),
+        #         level=log.INFO)#DEBUG
         return n > 0
 
     def storeItem (self, item):
@@ -134,27 +145,40 @@ class NrcDatabase(object):
 
     # insert_mode can be one of ( insert | replace )
     def insertItem (self, item, insert_mode = 'replace'):
-        if item.returning is not None:
-            rtn_clause = "RETURNING %s as 'return_id'" % item['returning']
+        if hasattr(item, 'returning') and item.returning:
+            rtn_clause = "RETURNING %s as return_id" % item.returning
         else:
-            rtn_clause = "RETURNING 1 as 'return_id'"
-        table_name = item.__class__.__name__
-        if insert_mode.lower() == 'replace':
-            c = self._do_replace(table_name,
-                                    item.keys(),
-                                    item.values(),
-                                    rtn_clause)
-            return c[0]['return_id']
-        key_str = '","'.join(item.keys())
-        value_str = ('%s,' * len(item.values()))[:-1]
+            rtn_clause = "RETURNING 1 as return_id"
 
-        sql = ('%s INTO "%s" ("%s") VALUES (%s) %s;'
-               % (insert_mode, table_name, key_str, value_str, rtn_clause))
+        table_name = item.__class__.__name__
+        fieldnms = item.keys()
+        values = item.values()
+        try:
+            keyfields = item.keyFields()
+        except AttributeError:
+            keyfields = None
+
+        # postgres does not do REPALCE so we run this method
+        if insert_mode.lower() == 'replace':
+            return self._do_replace(table_name,
+                                    fieldnms,
+                                    values,
+                                    rtn_clause,
+                                    keyfields)
+
+        field_str = '"%s"' % '", "'.join(fieldnms)
+        value_str = ('%s,' * len(values))[:-1]
+        sql = ('%s INTO "%s" (%s) VALUES (%s) %s;'
+               % (insert_mode, table_name, field_str, value_str, rtn_clause))
         c = self.db.cursor(cursor_factory=DictCursor)
-        #log.msg ("insertItem: %s\n >> %s" % (sql, item.values()),
-        #         level=log.INFO)#DEBUG
-        c.execute (sql, item.values())
-        return c.fetchone()[0]['return_id']
+        try:
+            c.execute (sql, values)
+        except:
+            log.msg ("insertItem error on %s:\n\t%s" 
+                     % (table_name, c.mogrify(sql, values)),
+                     level=log.INFO)#DEBUG
+            raise
+        return c.fetchone()['return_id']
         #return c.lastrowid if c.lastrowid else 1
 
 
@@ -361,7 +385,7 @@ class NrcDatabase(object):
     def getRssFeeds (self, feed_id=None):
         c = self.db.cursor(cursor_factory=DictCursor)
         if not feed_id:
-            sql = 'SELECT * FROM "RssFeed" WHERE NOW() - last_read > update_interval_secs'
+            sql = 'SELECT * FROM "RssFeed" WHERE NOW() - last_read > (update_interval_secs * interval \'1 second\')'
             c.execute (sql)
             return c.fetchall ()
         else:
@@ -371,7 +395,7 @@ class NrcDatabase(object):
 
 # TODO: defunct
     def updateRssFeedLastRead (self, feed_id):
-        sql = "UPDATE RssFeed SET last_read=NOW() WHERE id=%s"
+        sql = 'UPDATE "RssFeed" SET last_read=NOW() WHERE id=%s'
         c = self.db.cursor(cursor_factory=DictCursor)
         c.execute (sql, (feed_id,))
 
@@ -379,7 +403,8 @@ class NrcDatabase(object):
 
     def rssFeedItemExists (self, item_id):
         cur = self.db.cursor()
-        n = cur.execute ('SELECT item_id FROM "RssFeedItem" WHERE item_id = %s', (item_id,))
+        cur.execute ('SELECT item_id FROM "RssFeedItem" WHERE item_id = %s', (item_id,))
+        n = cur.rowcount
         return n > 0
 
     def getNextNrcScraperTarget (self, id):
@@ -414,9 +439,9 @@ class NrcDatabase(object):
     def getEmailSubscriptionsForUpdate (self):
 #        sql = 'SELECT * FROM "RSSEmailSubscription" WHERE confirmed = 1 AND active = 1 AND (last_update_sent is null or DATE_SUB(NOW(), INTERVAL interval_hours HOUR) >= last_update_sent)'
         sql = (
-	'SELECT * FROM "RSSEmailSubscription" '
-	'WHERE confirmed = 1 AND active = 1 AND (last_update_sent is null '
-    	    'or (now() - last_update_sent ) '
+        'SELECT * FROM "RSSEmailSubscription" '
+        'WHERE confirmed = 1 AND active = 1 AND (last_update_sent is null '
+                'or (now() - last_update_sent ) '
                  "> ( interval_hours * interval '1 hours'))")
         c = self.db.cursor(cursor_factory=DictCursor)
         c.execute (sql)
@@ -434,7 +459,8 @@ class NrcDatabase(object):
     def isFeedItemPublished (self, task_id, item_id):
         sql = 'SELECT task_id FROM "PublishedFeedItems" WHERE task_id = %s AND feed_item_id = %s'
         c = self.db.cursor()
-        n = c.execute (sql, (task_id, item_id))
+        c.execute (sql, (task_id, item_id))
+        n = c.rowcount
         return n > 0
 
 
@@ -505,63 +531,86 @@ class NrcDatabase(object):
         c = self.db.cursor()
         c.execute( 'UPDATE "FracFocusScrape" SET pdf_download_attempts=pdf_download_attempts+1 WHERE seqid=%s', (seqid,))
 
-    def _do_replace(self, table, fields, values, rtn_clause=""):
+    def _do_replace(self, tablenm, 
+                          fieldnms,
+                          values,
+                          rtn_clause="",
+                          keyfields=None):
         """Combine insert and update to replace MySQL REPLACE statement."""
-        # Prepare value strings according to type.
-        value_strs = []
-        for v in values:
-            if v is None:
-                value_strs.append("NULL")
-            elif isinstance(v, (types.IntType,
-                                types.LongType,
-                                types.FloatType)):
-                value_strs.append(unicode(v))
-            else:
-                value_strs.append("'%s'"
-                                  %(unicode(v).replace("'","''")))
-        field_str = '"%s"' % '","'.join(fields)
-        value_str = ",".join(value_strs)
-        sql = ('INSERT INTO "%s"  (%s) VALUES (%s) %s'
-               % (table, field_str, value_str, rtn_clause))
+        field_str = '"%s"' % '","'.join(fieldnms)
+        value_str = ('%s,' * len(values))[:-1]
+        sql = ('INSERT INTO "%s"  (%s) VALUES (%s) %s '
+               % (tablenm, field_str, value_str, rtn_clause))
         c = self.db.cursor(cursor_factory=DictCursor)
         try:
-            if table == "BotTaskStatus":
-            	log.msg ("_do_replace: %s" % (sql,), level=log.INFO)#DEBUG
-            c.execute (sql)
+            c.execute (sql, values)
             if rtn_clause:
-                return c.fetchone()[0]['return_id']
+                return c.fetchone()['return_id']
             return
-            #return c.lastrowid if c.lastrowid else 1
-        except psycopg2.IntegrityError as e:
-            if str(e).find("duplicate key value") < 0:
-                raise
-            pass
-        try:
-            keyfields = self.table_keyfields[table]
-        except KeyError:
-            sql = ("SELECT column_name "
-                   "FROM information_schema.key_column_usage "
-                   "WHERE table_name = '%s'" % table)
-            c.execute(sql)
-            keyfields = [row[0] for row in c.fetchall()]
-            self.table_keyfields[table] = keyfields
-        val_list = []
-        key_list = []
-        for field, value_str in zip(fields, value_strs):
-            substr = ' "%s"=%s ' % (field, value_str)
-            if field in keyfields:
-                key_list.append(substr)
+        #except psycopg2.IntegrityError as e:
+        except Exception as e:
+            if (isinstance(e, psycopg2.IntegrityError) 
+                and  str(e).find("duplicate key value") >= 0):
+               pass
             else:
-                val_list.append(substr)
+                log.msg ("_do_replace error: %s" % c.mogrify(sql, values),
+                         level=log.INFO)
+                raise
+        # We get a list of table key fields here
+        if not keyfields:
+            try:
+                keyfields = self.table_keyfields[tablenm]
+            except KeyError:
+                sql = ("SELECT column_name "
+                       "FROM information_schema.key_column_usage "
+                       "WHERE table_name = '%s'" % tablenm)
+                c2 = self.db.cursor()
+                c2.execute(sql)
+                keyfields = [row[0] for row in c2.fetchall()]
+                self.table_keyfields[tablenm] = keyfields
+        # now we separate table keys from attributes
+        key_list = []
+        key_strs = []
+        attr_list = []
+        attr_strs = []
+        for fieldnm, value in zip(fieldnms, values):
+            substr = ' "%s"=%%s ' % (fieldnm,)
+            if fieldnm in keyfields:
+                key_list.append(value)
+                key_strs.append(substr)
+            else:
+                attr_list.append(value)
+                attr_strs.append(substr)
+
+        if not attr_list:
+            return 1
+        if not key_list:
+            log.msg ("_do_replace UPDATE %s: no key values" % (tablenm,),
+                     level=log.ERROR)
+            return 0
+
+        # build the sql statement
         sql = ('UPDATE "%s" SET %s WHERE %s %s;'
-               % (table,
-                  ','.join(val_list),
-                  'AND '.join(key_list),
+               % (tablenm,
+                  ','.join(attr_strs),
+                  'AND '.join(key_strs),
                   rtn_clause))
         #log.msg ("_do_replace: %s" % (sql,), level=log.INFO)#DEBUG
-        c.execute(sql)
-        if rtn_clause:
-            return c.fetchone()[0]['return_id]
+        try:
+            c.execute(sql, attr_list + key_list)
+            if c.rowcount == 0:
+                log.msg ("_do_replace UPDATE %s: no key: %s\n%s"
+                         % (tablenm,
+                            ', '.join([str(s) for s in key_list]),
+                            c.mogrify(sql, attr_list + key_list) ),
+                         level=log.WARNING)
+                return 0
+            if rtn_clause:
+                return c.fetchone()['return_id']
+        except:
+            log.msg ("_do_replace error: %s"
+                     % c.mogrify(sql, attr_list + key_list),
+                     level=log.INFO)
+            raise
         return
-        #return c.lastrowid if c.lastrowid else 1
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #FracFocus PDF Downloader
 
 import pprint
@@ -22,6 +23,8 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from BeautifulSoup import BeautifulSoup
 #from scrapy.stats import stats
 
+import psycopg2
+
 from nrc.NrcBot import NrcBot
 from nrc.items import FracFocusScrape, FracFocusPDF
 from nrc.database import NrcDatabase
@@ -34,7 +37,7 @@ class FracFocusPDFDownloader(FracFocusScraper):
 #    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
     download_url = 'http://www.fracfocusdata.org/fracfocusfind/Download.aspx'
     job_item_limit = 1000
-    max_download_attempts = 3
+    max_download_attempts = 10
 
     def process_item (self, task_id):
         scrape = self.db.loadFracFocusScrape(task_id)
@@ -147,7 +150,7 @@ class FracFocusPDFDownloader(FracFocusScraper):
         else:
             l = ItemLoader(FracFocusPDF())
             l.add_value ('seqid', response.meta['scrape']['seqid'])
-            l.add_value ('pdf', response.body)
+            l.add_value ('pdf', psycopg2.Binary(response.body))
             l.add_value ('filename', params['Content-Disposition'][21:])
             item = l.load_item()
             self.log('Task_id %(task_id)s Storing PDF download for API: %(api)s JobDate: %(job_date)s '% (params), log.INFO)

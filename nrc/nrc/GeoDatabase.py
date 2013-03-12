@@ -72,10 +72,11 @@ class GeoDatabase(object):
             values = item.values()
 
         c = self.db.cursor()
+        c.execute (sql, values)
 #        log.msg ("Geodb: %s\n >> values:%s" % (sql,values), level=log.INFO)#DEBUG
 #        log.msg ("Geodb: DONE", level=log.INFO)#DEBUG
 #        print c.statusmessage
-        return c.lastrowid
+        return c.rowcount
 
     def transformCoords (self, x, y, from_srid, to_srid):
         sql = "select ST_X(ST_Transform(ST_SetSRID(ST_Point(%s,%s),%s),%s)) as x, ST_Y(ST_Transform(ST_SetSRID(ST_Point(%s,%s),%s),%s)) as y"
