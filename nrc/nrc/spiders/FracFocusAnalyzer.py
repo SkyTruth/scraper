@@ -166,8 +166,4 @@ class FracFocusAnalyzer(NrcBot):
             chemical['cas_number'] = '%s-%s-%s'% (digits[:-3],digits[-3:-1],digits[-1])    
             chemical['cas_type'] = 'valid'
         
-        
 
-
-                                
-        

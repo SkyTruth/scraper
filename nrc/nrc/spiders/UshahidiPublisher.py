@@ -91,7 +91,7 @@ class UshahidiPublisher (FeedPublisher):
         # This filter allows UshahidiPublisherTest class 
         # to override this method and skip publication.
         if self.__class__.__name__ == "UshahidiPublisherTest":
-            self.log('UshahidiPublisherTest should not be here!'), log.ERROR
+            self.log('UshahidiPublisherTest should not be here!', log.ERROR)
             return None
         return request
 

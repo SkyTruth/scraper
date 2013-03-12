@@ -73,9 +73,6 @@ class GeoDatabase(object):
 
         c = self.db.cursor()
         c.execute (sql, values)
-#        log.msg ("Geodb: %s\n >> values:%s" % (sql,values), level=log.INFO)#DEBUG
-#        log.msg ("Geodb: DONE", level=log.INFO)#DEBUG
-#        print c.statusmessage
         return c.rowcount
 
     def transformCoords (self, x, y, from_srid, to_srid):

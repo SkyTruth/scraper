@@ -37,7 +37,7 @@ class FracFocusPDFDownloader(FracFocusScraper):
 #    download_url = 'http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Download.aspx'
     download_url = 'http://www.fracfocusdata.org/fracfocusfind/Download.aspx'
     job_item_limit = 1000
-    max_download_attempts = 10
+    max_download_attempts = 3
 
     def process_item (self, task_id):
         scrape = self.db.loadFracFocusScrape(task_id)

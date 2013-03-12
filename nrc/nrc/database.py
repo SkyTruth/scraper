@@ -7,7 +7,6 @@
 
 import types
 import uuid
-import datetime
 
 import psycopg2
 from psycopg2.extras import RealDictCursor as DictCursor
@@ -106,9 +105,6 @@ class NrcDatabase(object):
         c = self.db.cursor()
         c.execute (sql, where_values)
         n = c.rowcount
-        #log.msg ("itemExists: n=%s,%s, sql=%s"
-        #         % (n, nn, c.mogrify(sql, where_values)),
-        #         level=log.INFO)#DEBUG
         return n > 0
 
     def storeItem (self, item):
@@ -179,7 +175,6 @@ class NrcDatabase(object):
                      level=log.INFO)#DEBUG
             raise
         return c.fetchone()['return_id']
-        #return c.lastrowid if c.lastrowid else 1
 
 
     def updateItem (self, table_name, id, update_fields, id_field='id'):
@@ -547,7 +542,6 @@ class NrcDatabase(object):
             if rtn_clause:
                 return c.fetchone()['return_id']
             return
-        #except psycopg2.IntegrityError as e:
         except Exception as e:
             if (isinstance(e, psycopg2.IntegrityError) 
                 and  str(e).find("duplicate key value") >= 0):
@@ -595,7 +589,6 @@ class NrcDatabase(object):
                   ','.join(attr_strs),
                   'AND '.join(key_strs),
                   rtn_clause))
-        #log.msg ("_do_replace: %s" % (sql,), level=log.INFO)#DEBUG
         try:
             c.execute(sql, attr_list + key_list)
             if c.rowcount == 0:
