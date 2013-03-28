@@ -73,12 +73,13 @@ class NrcScraper(BaseSpider):
         reports = hxs.select ('//table[@class="t16Standard"]/tr')
         if (len(reports) == 0):
             self.log('Incident report data not present in response', log.ERROR)
-        elif (len(reports) == 1):
-            self.log('No incident reports found in response', log.WARNING)
         else:
             # Skip the first report record because this is the header row
             reports.pop (0)
-            self.log('Retrieved {0} incident reports'.format(len(reports)), log.INFO)
+            if (len(reports) == 0):
+                self.log('No incident reports found in response', log.WARNING)
+            else:
+                self.log('Retrieved {0} incident reports'.format(len(reports)), log.INFO)
         
         for report in reports:
             l = XPathItemLoader(NrcScrapedReport(), report)
@@ -138,13 +139,14 @@ class NrcScraper(BaseSpider):
         materials = hxs.select ('//table[@class="t16Standard"]/tr')
         if (len(materials) == 0):
             self.log('Materials data not present in response from {0}'.format(response.url), log.INFO)
-        elif (len(materials) == 1):
-            self.log('No incident reports found in response', log.INFO)
         else:
             # Skip the first report record because this is the header row
             materials.pop (0)
-            self.log('Retrieved {0} materials records'.format(len(materials)), log.INFO)
-        
+            if (len(materials) == 0):
+                self.log('No incident reports found in response', log.INFO)
+            else:
+                self.log('Retrieved {0} materials records'.format(len(materials)), log.INFO)
+
         for material in materials:
             l = XPathItemLoader(NrcScrapedMaterial(), material)
             l.add_value('reportnum', response.url, TakeFirst(), re='P3_SEQNOS:(\d+)')

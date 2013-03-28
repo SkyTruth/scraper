@@ -38,6 +38,13 @@ class FracFocusAnalyzer(NrcBot):
         scrape = self.db.loadFracFocusScrape (task_id)
         parse = self.db.loadFracFocusParse (task_id)
 #        report = self.db.loadFracFocusReport (scrape['api'], scrape['job_date'])
+        if parse is None:
+            # This is odd because PDFParser marked this task as DONE
+            log.msg("Skipping task_id %s. It lacks a parse record." % task_id,
+                    level=log.ERROR)
+            self.item_skipped(task_id)
+            yield None
+
         chemicals = self.db.loadFracFocusParseChemicals (task_id)
 
         analysis = {}

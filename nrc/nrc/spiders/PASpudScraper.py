@@ -36,26 +36,39 @@ class PASpudScraper (AtomPubScraper):
         l.Modified_By_in = lambda slist: [s[:20] for s in slist]
 
         l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
+        l.add_value ('OGO__', row['OGO_NUM'])
         l.add_value ('SPUD_Date', self.parse_date(row['SPUD_DATE']))
         l.add_value ('County', row['COUNTY'])
         l.add_value ('Municipality', row['MUNICIPALITY'])
         l.add_value ('Operator_s_Name', row['OPERATOR'])
         l.add_value ('Farm_Name', row['FARM_NAME'])
-        l.add_value ('Well_Number', row['WELL_NUM'])
+        #l.add_value ('Well_Number', row['WELL_NUM'])
+        l.add_value ('Well_Number', '')  # Now included in FARM_NAME
         l.add_value ('Latitude', row['LATITUDE'])
         l.add_value ('Longitude', row['LONGITUDE'])
 #        l.add_value ('Marcellus_Ind_', row['MARCELLUS_IND'])
-        l.add_value ('Horizontal_Ind_', row['HORIZONTAL_WELL_IND'])
-        l.add_value ('Creation_Date', self.parse_date(row['CREATED_DATE']))
-        l.add_value ('Created_By', row['CREATED_BY'])
-        l.add_value ('Modification_Date', self.parse_date(row['MODIFIED_DATE']))
-        l.add_value ('Modified_By', row['MODIFIED_BY'])
-        l.add_value ('Well_Type', row['WELL_TYPE'])
+        #l.add_value ('Horizontal_Ind_', row['HORIZONTAL_WELL_IND'])
+        if row['CONFIGURATION'] in ("Horizontal Well", "Deviated Well"):
+            horiz = 'Y'
+        else:
+            horiz = 'N'
+            if row['CONFIGURATION'] not in ("Vertical Well",):
+                self.log("Unknown PA Configuration: {0}."
+                         .format(row['CONFIGURATION']), log.INFO)
+        l.add_value ('Horizontal_Ind_', horiz)
+        #l.add_value ('Creation_Date', self.parse_date(row['CREATED_DATE']))
+        #l.add_value ('Created_By', row['CREATED_BY'])
+        #l.add_value ('Modification_Date', self.parse_date(row['MODIFIED_DATE']))
+        #l.add_value ('Modified_By', row['MODIFIED_BY'])
+
+        #l.add_value ('Well_Type', row['WELL_TYPE'])
+        l.add_value ('Well_Type', row['WELL_CODE_DESC'])
 
         l.add_value ('Unconventional', row['UNCONVENTIONAL'])
         l.add_value ('Region', row['REGION'])
 
-        l.add_value ('Well_API__', '37-%s-00-00' % row['PERMIT_NUMBER'])
+        #l.add_value ('Well_API__', '37-%s-00-00' % row['PERMIT_NUMBER'])
+        l.add_value ('Well_API__', '37-%s-00-00' % row['API'])
 
 
         item = l.load_item()

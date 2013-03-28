@@ -4,6 +4,7 @@ import re
 import smtplib
 from smtplib import SMTPException
 from datetime import datetime
+import sys
 
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector, XmlXPathSelector
@@ -53,6 +54,7 @@ class NrcBot(BaseSpider):
         if 'task_id' in kwargs:
             self.task_id = kwargs['task_id']
         self.task_params = kwargs            
+        self.exception_count = 0
 
 
     def start_requests(self):
@@ -73,7 +75,6 @@ class NrcBot(BaseSpider):
         else:
             for item in self.process_items():
                 yield  item
-
 
     # iterate over records that have not yet been processed
     def process_items (self):

@@ -51,6 +51,11 @@ class FracFocusPDFParser(NrcBot):
             
             try:
                 l = ItemLoader (FracFocusParse ())
+                l.county_in = lambda slist: [s[:20] for s in slist]
+                l.state_in = lambda slist: [s[:20] for s in slist]
+                l.operator_in = lambda slist: [s[:50] for s in slist]
+                l.well_name_in = lambda slist: [s[:50] for s in slist]
+                l.production_type_in = lambda slist: [s[:10] for s in slist]
                 l.add_value (None, report.report_data)
                 l.add_value('seqid', task_id)
                 item = l.load_item()
@@ -83,6 +88,11 @@ class FracFocusPDFParser(NrcBot):
             if logger.has_warning():
                 yield self.make_bot_task_error(task_id, 'PARSE_WARNING', msg)
                 self.log (msg, log.WARNING)
-            self.item_completed(task_id)
+            #self.item_completed(task_id)
 
-        
+    def item_stored(self, item, id):
+        if isinstance(item, FracFocusParse):
+            task_id = item.get('seqid')
+            if task_id:
+                self.item_completed(task_id)
+

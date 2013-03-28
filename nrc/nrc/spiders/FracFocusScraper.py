@@ -40,7 +40,7 @@ class FracFocusScraper(NrcBot):
 #    allowed_domains = ["hydraulicfracturingdisclosure.org"]
 #    base_url = "http://www.hydraulicfracturingdisclosure.org/fracfocusfind/Default.aspx"
     base_url = "http://www.fracfocusdata.org/fracfocusfind/Default.aspx"
-    job_item_limit = 7  # maximum total items to process in one job execution
+#    job_item_limit = 7  # maximum total items to process in one job execution
 
     get_counties_form_data = {
                 'ctl00$MainContent$ScriptManager1': 'ctl00$MainContent$DocumentFilter1$UpdatePanel1|ctl00$MainContent$DocumentFilter1$cboStateList',
@@ -76,6 +76,7 @@ class FracFocusScraper(NrcBot):
         request.meta['task_id'] = task['task_id']
         self.log('** Scraping State %s' % task['state'], log.INFO)
         yield request
+        self.log('** Marking item %s complete' % task['task_id'], log.INFO)
         self.item_completed (task['task_id'])
 
     def search_by_state (self, response):

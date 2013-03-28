@@ -26,9 +26,14 @@ class NrcMaterialsScraper(NrcBot):
         
         scraped_report = self.db.loadScrapedReport(task_id)    
         if scraped_report is None:
+            #self.db.setBotTaskStatus(reportnum, self.name, 'DONE')
             return 
 
-        request = Request(scraped_report['materials_url'], callback=self.parse_materials)
+        request = Request(
+                scraped_report['materials_url'],
+                callback=self.parse_materials,
+                errback=self.error_callback,
+                dont_filter=True)
         request.meta['reportnum'] = task_id
 
         yield request
@@ -41,15 +46,19 @@ class NrcMaterialsScraper(NrcBot):
         materials = hxs.select ('//table[@class="t16Standard"]/tr')
         if (len(materials) == 0):
             self.log('Materials data not present in response from {0}'.format(response.url), log.INFO)
-        elif (len(materials) == 1):
-            self.log('No materials reports found in response', log.INFO)
         else:
             # Skip the first report record because this is the header row
             materials.pop (0)
-            self.log('Retrieved {0} materials records'.format(len(materials)), log.INFO)
-        
+            if (len(materials) == 0):
+                self.log('No materials reports found in response {0}'
+                         .format(reportnum), log.INFO)
+            else:
+                self.log('Retrieved {0} materials records in report {1}'
+                         .format(len(materials),reportnum), log.INFO)
+
         for material in materials:
             l = XPathItemLoader(NrcScrapedMaterial(), material)
+            l.name_in = lambda slist: [s[:32] for s in slist]
             l.add_value('reportnum', reportnum)
             for name, params in NrcScrapedMaterial.fields.items():
                 if 'xpath' in params:

@@ -27,6 +27,7 @@ class GeoDatabase(object):
                 database = self.dbname
                 )
             self.db.autocommit = True
+#	    self.db.set_client_encoding ('UTF8')
             log.msg ("Connected to database %s as %s using database %s" %
                 (self.host, self.user, self.dbname), level=log.INFO)
         except psycopgError, e:

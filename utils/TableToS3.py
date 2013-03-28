@@ -14,7 +14,8 @@ import zipfile
 import shutil
 
 # site modules
-import MySQLdb
+#import MySQLdb
+import psycopg2
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key as S3Key
 from zipfile import ZipFile
@@ -35,23 +36,22 @@ DB_DATABASE   = settings.DB_DATABASE
 class Database(object):
     def __init__(self, host, user, pwd, dbname):
         try:
-            self.db = MySQLdb.connect (host=host,
-                                       user=user,
-                                       passwd=pwd,
-                                       db=dbname,
-                                       charset = 'utf8')
-            self.db.autocommit(True)
+            self.db = psycopg2.connect (host=host,
+                                        user=user,
+                                        password=pwd,
+                                        database=dbname)
+                                        #charset = 'utf8')
+            self.db.autocommit = True
 
             logging.info ("Connected to database %s.%s as user %s."
                     % (host, dbname, user))
-        except MySQLdb.Error, e:
+        except psycopg2.Error, e:
             self.db = None
-            logging.error ("Unable to connect to database: Error %d: %s"
-                     % (e.args[0], e.args[1]))
+            logging.error ("Unable to connect to database: Error %s" % (e,))
             raise
 
     def table_to_tsv(self, tablename, fp, columns='*'):
-        sql = "SELECT %s FROM %s" % (columns, tablename)
+        sql = 'SELECT %s FROM "%s"' % (columns, tablename)
         c = self.db.cursor()
         c.execute(sql)
         table_recs = c.fetchall ()

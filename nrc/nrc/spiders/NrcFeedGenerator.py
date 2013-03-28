@@ -4,6 +4,7 @@ import re
 import uuid
 import locale
 from datetime import datetime
+import types
 
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector, XmlXPathSelector
@@ -50,9 +51,9 @@ class NrcFeedGenerator (NrcBot):
 #            if g['source'] == 'Explicit':
 #                score = 100
 #            elif g['source'] == 'BlockCentroid':
-#                score = 60	
+#                score = 60
 #            elif g['source'] == 'Zip':
-#                score = 50	
+#                score = 50
 #            else:
 #                score  = 10
 #            if (score > best_score):
@@ -75,6 +76,10 @@ class NrcFeedGenerator (NrcBot):
             
         
     def create_item(self, task_id, scraped_report, parsed_report, geocode):            
+        for key, value in scraped_report.items():
+            if isinstance(value, types.StringType):
+                scraped_report[key] = value.decode('utf-8')
+        log.msg ("scraped_report:\n%s" % "\n\t".join(["%s : %s"%(k,v) for k,v in dict(scraped_report).items()]))
         l=ItemLoader (FeedEntry())
         
         # construct article title
@@ -140,6 +145,9 @@ class NrcFeedGenerator (NrcBot):
                     (self.format_value_volume(report_analysis['min_spill_volume'])))
         l.add_value ('content', u'<b>Report Description</b>')
 
+        self.log('description:  %s ' % (type(scraped_report['description'])), log.INFO)
+
+        #l.add_value ('content', scraped_report['description'].decode('utf-8'))
         l.add_value ('content', scraped_report['description'])
         
         l.add_value ('lat', geocode['lat'])
