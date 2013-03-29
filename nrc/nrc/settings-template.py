@@ -52,3 +52,8 @@ MAIL_TO = 'paul@skytruth.org'
 
 FUSION_TABLE_USER ='data@skytruth.org'
 FUSION_TABLE_PASS = 'password'  ## CHANGE
+
+#EXTENSIONS = {
+#        'nrc.extensions.failLogger.FailLogger': 599,
+#}
+

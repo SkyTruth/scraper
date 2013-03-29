@@ -1,8 +1,11 @@
 
 import StringIO
 from datetime import datetime
+import smtplib
+import traceback
 
 from scrapy import signals
+from scrapy import log
 
 from nrc import settings
 
@@ -33,20 +36,32 @@ class FailLogger(object):
         if spider.exception_count > 1:
             message = ("Total of %s uncaught exceptions in %s execution."
                        % (spider.exception_count, spider.name))
-            self.send_alert (spider, message)
+            self.send_error_email (spider, message)
 
 
     @staticmethod
+    def report_exception(spider, e, srcmsg=""):
+        spider.exception_count += 1
+        if spider.exception_count == 1:
+            msg = ("{0}\nUncaught exception from {1}:\n\t{2}\n\n{3}"
+                   .format(srcmsg, spider.name, e, traceback.format_exc()))
+            FailLogger.send_error_email (spider, msg, e)
+
+    @staticmethod
     def send_error_email (spider, message, failure=None):
-        if failure:
-            subject = '%s Exception: %s' % spider.name, failure.getErrorMessage
+        if isinstance(failure, Exception):
+            subject = ('%s Exception: %s' % (spider.name, failure))
+        elif failure:
+            subject = ('%s Exception: %s'
+                       % (spider.name, failure.getErrorMessage()))
         else:
-            subject = '%s: %s Exceptions' % spider.name, spider.exception_count
+            subject = '%s: %s Exceptions' % (spider.name,
+                                             spider.exception_count)
         spider.log ('Sending alert:\n\t%s'  % (subject,), log.ERROR)
 
         senddate = datetime.strftime(datetime.now(), '%Y-%m-%d')
         header = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n"
-                  % (senddate, settings.MAIL_FROM, settings.MAIL_TO, subject)
+                  % (senddate, settings.MAIL_FROM, settings.MAIL_TO, subject))
 
         server = smtplib.SMTP('%s:%s'
                               % (settings.MAIL_HOST, settings.MAIL_PORT))
