@@ -62,8 +62,8 @@ class NrcDatabase(object):
 #        except MySQLdb.Error, e:
         except psycopg2.Error, e:
             self.db = None
-            log.msg ("Unable to connect to database: Error %d: %s" %
-                (e.args[0], e.args[1]), level=log.ERROR)
+            log.msg ("Unable to connect to database: Error %s" % (e,),
+                     level=log.ERROR)
             raise
 
     def reportExists (self, reportnum):

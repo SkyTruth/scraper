@@ -29,8 +29,10 @@ class PAPermitScraper (AtomPubScraper):
 
         l=ItemLoader (PA_DrillingPermit())
 
-        l.add_value ('County_Name', row['COUNTY_NAME'])
-        l.add_value ('Municipality_Name', row['MUNICIPALITY_NAME'])
+        #l.add_value ('County_Name', row['COUNTY_NAME'])
+        l.add_value ('County_Name', row['COUNTY'])
+        #l.add_value ('Municipality_Name', row['MUNICIPALITY_NAME'])
+        l.add_value ('Municipality_Name', row['MUNICIPALITY'])
         l.add_value ('Auth_Id', row['AUTHORIZATION_ID'])
         l.add_value ('Date_Disposed', self.parse_date(row['PERMIT_ISSUED_DATE']))
         l.add_value ('Appl_Type_Code', row['APPLICATION_TYPE'])
@@ -38,7 +40,15 @@ class PAPermitScraper (AtomPubScraper):
         l.add_value ('Complete_API_', row['WELL_API'])
         l.add_value ('Other_Id', self.base_api(row['WELL_API']))
 #        l.add_value ('Marcellus_Shale_Well', row['MARCELLUS_SHALE_IND'])
-        l.add_value ('Horizontal_Well', row['HORIZONTAL_WELL_IND'])
+        #l.add_value ('Horizontal_Well', row['HORIZONTAL_WELL_IND'])
+        if row['CONFIGURATION'] in ("Horizontal Well", "Deviated Well"):
+            horiz = 'Y'
+        else:
+            horiz = 'N'
+            if row['CONFIGURATION'] not in ("Vertical Well",):
+                self.log("Unknown PA Configuration: {0}."
+                         .format(row['CONFIGURATION']), log.INFO)
+        l.add_value ('Horizontal_Well', horiz)
         l.add_value ('Well_Type', row['WELL_TYPE'])
         l.add_value ('Site_Name', row['FARM_NAME'])
         l.add_value ('Latitude_Decimal', row['LATITUDE_DECIMAL'])
@@ -52,8 +62,8 @@ class PAPermitScraper (AtomPubScraper):
 
         l.add_value ('Unconventional', row['UNCONVENTIONAL'])
         l.add_value ('OGO_Num', row['OGO_NUM'])
-        l.add_value ('Facility_Id', row['PRIMARY_FACILITY_ID'])
-
+        #l.add_value ('Facility_Id', row['PRIMARY_FACILITY_ID'])
+        l.add_value ('Facility_Id', row['PRMRY_FAC_ID'])
 
         item = l.load_item()
         if item['Complete_API_'] and item ['Date_Disposed']:
