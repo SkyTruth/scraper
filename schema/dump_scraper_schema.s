@@ -1,19 +1,27 @@
 
 pg_dump --schema-only \
-    -t'areacodemap_id_seq' \
-    -t'cogisinspection_st_id_seq' \
-    -t'cogisspill_st_id_seq' \
-    -t'feedsource_id_seq' \
-    -t'leaseblockcentroid_id_seq' \
-    -t'nrcmaterials_id_seq' \
-    -t'nrcscrapedmaterial_st_id_seq' \
-    -t'nrcscrapertarget_id_seq' \
-    -t'nrcunits_id_seq' \
-    -t'pa_drillingpermit_st_id_seq' \
-    -t'pa_spud_st_id_seq' \
-    -t'pa_violation_st_id_seq' \
-    -t'publishedfeeditems_id_seq' \
-    -t'rssfeed_id_seq' \
+    -tareacodemap_id_seq \
+    -tcogisinspection_st_id_seq \
+    -tcogisspill_st_id_seq \
+    -tfeedentry_published_seq_seq \
+    -tfeedsource_id_seq \
+    -tfracfocusparse_seqid_seq \
+    -tfracfocusparsechemical_seqid_seq \
+    -tfracfocusreport_seqid_seq \
+    -tfracfocusreportchemical_seqid_seq \
+    -tfracfocusscrape_seqid_seq \
+    -tla_lease_blocks_id_seq \
+    -tleaseblockcentroid_id_seq \
+    -tnrcmaterials_id_seq \
+    -tnrcscrapedmaterial_st_id_seq \
+    -tnrcscrapertarget_id_seq \
+    -tnrcunits_id_seq \
+    -tpa_drillingpermit_st_id_seq \
+    -tpa_spud_st_id_seq \
+    -tpa_violation_st_id_seq \
+    -tpublishedfeeditems_id_seq \
+    -trssfeed_id_seq \
+    -twv_drillingpermit_st_id_seq \
     -t"\"AreaCodeMap\"" \
     -t"\"BotTask\"" \
     -t"\"BotTaskError\"" \

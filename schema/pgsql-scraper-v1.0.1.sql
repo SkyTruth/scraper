@@ -351,6 +351,20 @@ CREATE TABLE "FracFocusPDF" (
 ALTER TABLE public."FracFocusPDF" OWNER TO scraper;
 
 --
+-- Name: fracfocusparse_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusparse_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusparse_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusParse; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -376,6 +390,20 @@ CREATE TABLE "FracFocusParse" (
 ALTER TABLE public."FracFocusParse" OWNER TO scraper;
 
 --
+-- Name: fracfocusparsechemical_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusparsechemical_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusparsechemical_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusParseChemical; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -399,6 +427,20 @@ CREATE TABLE "FracFocusParseChemical" (
 
 
 ALTER TABLE public."FracFocusParseChemical" OWNER TO scraper;
+
+--
+-- Name: fracfocusreport_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusreport_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusreport_seqid_seq OWNER TO scraper;
 
 --
 -- Name: FracFocusReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -434,6 +476,20 @@ CREATE TABLE "FracFocusReport" (
 ALTER TABLE public."FracFocusReport" OWNER TO scraper;
 
 --
+-- Name: fracfocusreportchemical_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusreportchemical_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusreportchemical_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusReportChemical; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -459,6 +515,20 @@ CREATE TABLE "FracFocusReportChemical" (
 
 
 ALTER TABLE public."FracFocusReportChemical" OWNER TO scraper;
+
+--
+-- Name: fracfocusscrape_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusscrape_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusscrape_seqid_seq OWNER TO scraper;
 
 --
 -- Name: FracFocusScrape; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -1029,6 +1099,48 @@ CREATE TABLE "RssFeedItem" (
 
 
 ALTER TABLE public."RssFeedItem" OWNER TO scraper;
+
+--
+-- Name: feedentry_published_seq_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE feedentry_published_seq_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.feedentry_published_seq_seq OWNER TO scraper;
+
+--
+-- Name: la_lease_blocks_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE la_lease_blocks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
+
+--
+-- Name: wv_drillingpermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE wv_drillingpermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.wv_drillingpermit_st_id_seq OWNER TO scraper;
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: scraper
