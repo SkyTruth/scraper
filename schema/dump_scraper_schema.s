@@ -1,5 +1,19 @@
 
 pg_dump --schema-only \
+    -t'areacodemap_id_seq' \
+    -t'cogisinspection_st_id_seq' \
+    -t'cogisspill_st_id_seq' \
+    -t'feedsource_id_seq' \
+    -t'leaseblockcentroid_id_seq' \
+    -t'nrcmaterials_id_seq' \
+    -t'nrcscrapedmaterial_st_id_seq' \
+    -t'nrcscrapertarget_id_seq' \
+    -t'nrcunits_id_seq' \
+    -t'pa_drillingpermit_st_id_seq' \
+    -t'pa_spud_st_id_seq' \
+    -t'pa_violation_st_id_seq' \
+    -t'publishedfeeditems_id_seq' \
+    -t'rssfeed_id_seq' \
     -t"\"AreaCodeMap\"" \
     -t"\"BotTask\"" \
     -t"\"BotTaskError\"" \

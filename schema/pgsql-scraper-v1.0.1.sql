@@ -100,6 +100,20 @@ CREATE TABLE "NrcScrapedReport" (
 ALTER TABLE public."NrcScrapedReport" OWNER TO scraper;
 
 --
+-- Name: areacodemap_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE areacodemap_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.areacodemap_id_seq OWNER TO scraper;
+
+--
 -- Name: AreaCodeMap; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -201,6 +215,20 @@ CREATE TABLE "CO_Permits" (
 ALTER TABLE public."CO_Permits" OWNER TO scraper;
 
 --
+-- Name: cogisinspection_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE cogisinspection_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.cogisinspection_st_id_seq OWNER TO scraper;
+
+--
 -- Name: CogisInspection; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -227,6 +255,20 @@ CREATE TABLE "CogisInspection" (
 
 
 ALTER TABLE public."CogisInspection" OWNER TO scraper;
+
+--
+-- Name: cogisspill_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE cogisspill_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.cogisspill_st_id_seq OWNER TO scraper;
 
 --
 -- Name: CogisSpill; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -267,6 +309,20 @@ CREATE TABLE "FeedEntryTag" (
 
 
 ALTER TABLE public."FeedEntryTag" OWNER TO scraper;
+
+--
+-- Name: feedsource_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE feedsource_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.feedsource_id_seq OWNER TO scraper;
 
 --
 -- Name: FeedSource; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -443,6 +499,20 @@ CREATE TABLE "GeocodeCache" (
 ALTER TABLE public."GeocodeCache" OWNER TO scraper;
 
 --
+-- Name: leaseblockcentroid_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE leaseblockcentroid_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.leaseblockcentroid_id_seq OWNER TO scraper;
+
+--
 -- Name: LeaseBlockCentroid; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -560,6 +630,20 @@ CREATE TABLE "Nightfire_record" (
 ALTER TABLE public."Nightfire_record" OWNER TO scraper;
 
 --
+-- Name: nrcmaterials_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE nrcmaterials_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.nrcmaterials_id_seq OWNER TO scraper;
+
+--
 -- Name: NrcMaterials; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -590,6 +674,20 @@ CREATE TABLE "NrcScrapedFullReport" (
 ALTER TABLE public."NrcScrapedFullReport" OWNER TO scraper;
 
 --
+-- Name: nrcscrapedmaterial_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE nrcscrapedmaterial_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.nrcscrapedmaterial_st_id_seq OWNER TO scraper;
+
+--
 -- Name: NrcScrapedMaterial; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -608,6 +706,20 @@ CREATE TABLE "NrcScrapedMaterial" (
 
 
 ALTER TABLE public."NrcScrapedMaterial" OWNER TO scraper;
+
+--
+-- Name: nrcscrapertarget_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE nrcscrapertarget_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.nrcscrapertarget_id_seq OWNER TO scraper;
 
 --
 -- Name: NrcScraperTarget; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -638,6 +750,20 @@ CREATE TABLE "NrcTag" (
 ALTER TABLE public."NrcTag" OWNER TO scraper;
 
 --
+-- Name: nrcunits_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE nrcunits_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.nrcunits_id_seq OWNER TO scraper;
+
+--
 -- Name: NrcUnits; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -651,6 +777,20 @@ CREATE TABLE "NrcUnits" (
 
 
 ALTER TABLE public."NrcUnits" OWNER TO scraper;
+
+--
+-- Name: pa_drillingpermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE pa_drillingpermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.pa_drillingpermit_st_id_seq OWNER TO scraper;
 
 --
 -- Name: PA_DrillingPermit; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -698,6 +838,20 @@ CREATE TABLE "PA_DrillingPermit" (
 ALTER TABLE public."PA_DrillingPermit" OWNER TO scraper;
 
 --
+-- Name: pa_spud_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE pa_spud_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.pa_spud_st_id_seq OWNER TO scraper;
+
+--
 -- Name: PA_Spud; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -727,6 +881,20 @@ CREATE TABLE "PA_Spud" (
 
 
 ALTER TABLE public."PA_Spud" OWNER TO scraper;
+
+--
+-- Name: pa_violation_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE pa_violation_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.pa_violation_st_id_seq OWNER TO scraper;
 
 --
 -- Name: PA_Violation; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -767,6 +935,20 @@ CREATE TABLE "PA_Violation" (
 ALTER TABLE public."PA_Violation" OWNER TO scraper;
 
 --
+-- Name: publishedfeeditems_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE publishedfeeditems_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.publishedfeeditems_id_seq OWNER TO scraper;
+
+--
 -- Name: PublishedFeedItems; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -803,6 +985,20 @@ CREATE TABLE "RSSEmailSubscription" (
 
 
 ALTER TABLE public."RSSEmailSubscription" OWNER TO scraper;
+
+--
+-- Name: rssfeed_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE rssfeed_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.rssfeed_id_seq OWNER TO scraper;
 
 --
 -- Name: RssFeed; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
