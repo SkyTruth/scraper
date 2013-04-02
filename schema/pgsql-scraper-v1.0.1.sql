@@ -1,4 +1,4 @@
---
+﻿--
 -- PostgreSQL database dump
 --
 
@@ -351,6 +351,20 @@ CREATE TABLE "FracFocusPDF" (
 ALTER TABLE public."FracFocusPDF" OWNER TO scraper;
 
 --
+-- Name: fracfocusparse_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusparse_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusparse_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusParse; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -376,6 +390,20 @@ CREATE TABLE "FracFocusParse" (
 ALTER TABLE public."FracFocusParse" OWNER TO scraper;
 
 --
+-- Name: fracfocusparsechemical_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusparsechemical_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusparsechemical_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusParseChemical; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -399,6 +427,20 @@ CREATE TABLE "FracFocusParseChemical" (
 
 
 ALTER TABLE public."FracFocusParseChemical" OWNER TO scraper;
+
+--
+-- Name: fracfocusreport_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusreport_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusreport_seqid_seq OWNER TO scraper;
 
 --
 -- Name: FracFocusReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -434,6 +476,20 @@ CREATE TABLE "FracFocusReport" (
 ALTER TABLE public."FracFocusReport" OWNER TO scraper;
 
 --
+-- Name: fracfocusreportchemical_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusreportchemical_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusreportchemical_seqid_seq OWNER TO scraper;
+
+--
 -- Name: FracFocusReportChemical; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -459,6 +515,20 @@ CREATE TABLE "FracFocusReportChemical" (
 
 
 ALTER TABLE public."FracFocusReportChemical" OWNER TO scraper;
+
+--
+-- Name: fracfocusscrape_seqid_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE fracfocusscrape_seqid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fracfocusscrape_seqid_seq OWNER TO scraper;
 
 --
 -- Name: FracFocusScrape; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -1031,11 +1101,131 @@ CREATE TABLE "RssFeedItem" (
 ALTER TABLE public."RssFeedItem" OWNER TO scraper;
 
 --
+-- Name: feedentry_published_seq_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE feedentry_published_seq_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.feedentry_published_seq_seq OWNER TO scraper;
+
+--
+-- Name: la_lease_blocks_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE la_lease_blocks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
+
+--
+-- Name: wv_drillingpermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE wv_drillingpermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.wv_drillingpermit_st_id_seq OWNER TO scraper;
+
+SET search_path = scraper, pg_catalog;
+
+--
+-- Name: region; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE region (
+    id integer NOT NULL,
+    name character varying(256),
+    code character varying(20),
+    the_geom public.geometry,
+    kml text,
+    simple_geom public.geometry,
+    src character varying(128)
+);
+
+
+ALTER TABLE scraper.region OWNER TO scraper;
+
+--
+-- Name: feedentry; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE feedentry (
+    id character(36) NOT NULL,
+    title character varying(255) NOT NULL,
+    link character varying(255),
+    summary text,
+    content text,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    source_id integer NOT NULL,
+    kml_url character varying(255),
+    incident_datetime timestamp without time zone NOT NULL,
+    published timestamp without time zone,
+    regions integer[],
+    tags character varying(64)[],
+    the_geom public.geometry,
+    source_item_id integer
+);
+
+
+ALTER TABLE scraper.feedentry OWNER TO scraper;
+
+--
+-- Name: region_id_seq; Type: SEQUENCE; Schema: scraper; Owner: scraper
+--
+
+CREATE SEQUENCE region_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE scraper.region_id_seq OWNER TO scraper;
+
+--
+-- Name: region_id_seq; Type: SEQUENCE OWNED BY; Schema: scraper; Owner: scraper
+--
+
+ALTER SEQUENCE region_id_seq OWNED BY region.id;
+
+
+SET search_path = public, pg_catalog;
+
+--
 -- Name: id; Type: DEFAULT; Schema: public; Owner: scraper
 --
 
 ALTER TABLE ONLY "Nightfire_file" ALTER COLUMN id SET DEFAULT nextval('"Nightfire_file_id_seq"'::regclass);
 
+
+SET search_path = scraper, pg_catalog;
+
+--
+-- Name: id; Type: DEFAULT; Schema: scraper; Owner: scraper
+--
+
+ALTER TABLE ONLY region ALTER COLUMN id SET DEFAULT nextval('region_id_seq'::regclass);
+
+
+SET search_path = public, pg_catalog;
 
 --
 -- Name: AreaCodeMap_pkey; Type: CONSTRAINT; Schema: public; Owner: scraper; Tablespace: 
@@ -1333,6 +1523,18 @@ ALTER TABLE ONLY "RssFeed"
     ADD CONSTRAINT "RssFeed_pkey" PRIMARY KEY (id);
 
 
+SET search_path = scraper, pg_catalog;
+
+--
+-- Name: region_pkey; Type: CONSTRAINT; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+ALTER TABLE ONLY region
+    ADD CONSTRAINT region_pkey PRIMARY KEY (id);
+
+
+SET search_path = public, pg_catalog;
+
 --
 -- Name: Nightfire_record_Lat_GMTCO; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
 --
@@ -1527,6 +1729,112 @@ CREATE INDEX task_item ON "PublishedFeedItems" USING btree (task_id, feed_item_i
 --
 
 CREATE INDEX time_stamp ON "NrcScrapedReport" USING btree (time_stamp);
+
+
+SET search_path = scraper, pg_catalog;
+
+--
+-- Name: feed_entry_source; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feed_entry_source ON feedentry USING btree (source_id, published);
+
+
+--
+-- Name: feedentry_id; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE UNIQUE INDEX feedentry_id ON feedentry USING btree (id);
+
+
+--
+-- Name: feedentry_incident_datetime; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feedentry_incident_datetime ON feedentry USING btree (incident_datetime DESC);
+
+
+--
+-- Name: feedentry_latlng; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feedentry_latlng ON feedentry USING btree (lat, lng);
+
+
+--
+-- Name: feedentry_published; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feedentry_published ON feedentry USING btree (published DESC);
+
+
+--
+-- Name: feedentry_regions; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feedentry_regions ON feedentry USING gin (regions);
+
+
+--
+-- Name: feedentry_tags; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX feedentry_tags ON feedentry USING gin (tags);
+
+
+--
+-- Name: idx_regions_code; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE UNIQUE INDEX idx_regions_code ON region USING btree (code);
+
+
+--
+-- Name: idx_regions_the_geom; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX idx_regions_the_geom ON region USING gist (the_geom);
+
+
+--
+-- Name: feedentry_insert; Type: RULE; Schema: scraper; Owner: scraper
+--
+
+CREATE RULE feedentry_insert AS ON INSERT TO feedentry WHERE (NOT (EXISTS (SELECT 1 FROM feedentry WHERE (feedentry.id = new.id)))) DO UPDATE feedentry SET regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)), published = (SELECT to_timestamp((GREATEST(floor(date_part('epoch'::text, now())), date_part('epoch'::text, max(feedentry.published))) + (0.001)::double precision)) AS to_timestamp FROM feedentry) WHERE (feedentry.id = new.id);
+ALTER TABLE scraper.feedentry DISABLE RULE feedentry_insert;
+
+
+--
+-- Name: feedentry_replace; Type: RULE; Schema: scraper; Owner: scraper
+--
+
+CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 FROM feedentry WHERE (feedentry.id = new.id))) DO INSTEAD UPDATE feedentry SET title = new.title, link = new.link, summary = new.summary, content = new.content, lat = new.lat, lng = new.lng, source_id = new.source_id, kml_url = new.kml_url, incident_datetime = new.incident_datetime, tags = new.tags, regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)) WHERE (feedentry.id = new.id);
+ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
+
+
+--
+-- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
+--
+
+--CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
+
+
+--
+-- Name: region; Type: ACL; Schema: scraper; Owner: scraper
+--
+
+REVOKE ALL ON TABLE region FROM PUBLIC;
+REVOKE ALL ON TABLE region FROM scraper;
+GRANT ALL ON TABLE region TO scraper;
+
+
+--
+-- Name: feedentry; Type: ACL; Schema: scraper; Owner: scraper
+--
+
+REVOKE ALL ON TABLE feedentry FROM PUBLIC;
+REVOKE ALL ON TABLE feedentry FROM scraper;
+GRANT ALL ON TABLE feedentry TO scraper;
 
 
 --
