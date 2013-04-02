@@ -28,6 +28,7 @@ class PAPermitScraper (AtomPubScraper):
     def process_row (self, row, task):
 
         l=ItemLoader (PA_DrillingPermit())
+        l.Well_Type_in = lambda slist: [s[:20] for s in slist]
 
         #l.add_value ('County_Name', row['COUNTY_NAME'])
         l.add_value ('County_Name', row['COUNTY'])

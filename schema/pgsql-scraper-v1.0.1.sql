@@ -1,4 +1,4 @@
---
+﻿--
 -- PostgreSQL database dump
 --
 
@@ -1816,7 +1816,11 @@ ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 -- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
 --
 
+<<<<<<< HEAD
 CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
+=======
+--CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
+>>>>>>> f611d29dd1942f0f869590b74cfdffcfdfe75a7c
 
 
 --

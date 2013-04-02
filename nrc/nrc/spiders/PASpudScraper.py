@@ -35,7 +35,7 @@ class PASpudScraper (AtomPubScraper):
         l.Created_By_in = lambda slist: [s[:20] for s in slist]
         l.Modified_By_in = lambda slist: [s[:20] for s in slist]
 
-        l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
+        #l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
         l.add_value ('OGO__', row['OGO_NUM'])
         l.add_value ('SPUD_Date', self.parse_date(row['SPUD_DATE']))
         l.add_value ('County', row['COUNTY'])

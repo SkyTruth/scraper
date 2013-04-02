@@ -107,6 +107,12 @@ def float_check(s):
         return None
     return s
 
+def extract_largest_float(s):
+    fl = re.findall(r'([-+]?[0-9]*\.?[0-9]+)', s)
+    if fl:
+        return str(max([float(f) for f in fl]))
+    return ""
+
 def title_case (s):
     return s.title()
 
@@ -654,10 +660,10 @@ class FracFocusParseChemical (NrcItem):
     ingredients = ContentField ()
     cas_number = ContentField ()
     additive_concentration = SingleField (
-#            input_processor = MapCompose(float_check)
+            input_processor = MapCompose(extract_largest_float)
              )
     hf_fluid_concentration = SingleField (
-#            input_processor = MapCompose(float_check)
+            input_processor = MapCompose(extract_largest_float)
              )
     ingredient_weight = SingleField (
             input_processor = MapCompose(strip_non_digits)

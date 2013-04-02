@@ -136,7 +136,7 @@ class FracFocusScraper(NrcBot):
         response_parts = self.response2dict (response)
         num_pages = response.meta['num_pages']
         response = self.update_response(response.meta['full_response'], response_parts)
-        
+
         # scrape page and goto next
         for item in self.scrape_content_items(response):
             yield item
@@ -184,7 +184,7 @@ class FracFocusScraper(NrcBot):
         for update in update_divs:
             update[0].clear ()
             update[0].append(BeautifulSoup(update[1]))
-            
+
         return response.replace (body=str(soup))
 
     # create a new form request
@@ -219,9 +219,11 @@ class FracFocusScraper(NrcBot):
 
         stats.inc_value ('_pages', spider=self)
         reports = hxs.select ('//table[@id="MainContent_DocumentList1_GridView1"]//tr')
-        
+
         for report in reports:
             l = XPathItemLoader(FracFocusScrape(), report)
+            l.state_in = lambda slist: [s[:20] for s in slist]
+            l.county_in = lambda slist: [s[:20] for s in slist]
             for name, params in FracFocusScrape.fields.items():
                 l.add_xpath(name, params['xpath'])
             item = l.load_item()
@@ -234,9 +236,9 @@ class FracFocusScraper(NrcBot):
                     yield item
         if not stats.get_value('_existing_count') and not stats.get_value('_new_count'):
             self.log('%s No records found' % (response.meta['cookiejar']), log.WARNING)
-        
-        
-        
+
+
+
     def extract_NoBot_ClientState (self, response):
         match = re.search(u'<div id="MainContent_NoBot1_NoBotSamplePanel" style="height:(\d+)px;width:(\d+)px;visibility:hidden;position:absolute;">', response.body)
         if match:
