@@ -11,73 +11,6 @@ SET client_min_messages = warning;
 SET search_path = public, pg_catalog;
 
 --
--- Data for Name: BotTask; Type: TABLE DATA; Schema: public; Owner: scraper
---
-
-COPY "BotTask" (id, bot, name, process_interval_secs) FROM stdin;
-5	UshahidiPublisher	LABB Ushahidi Update	3600
-4	UshahidiPublisher	SkyTruth Ushahidi Update	3600
-6	PAPermitScraper	PA Permit Scraper	3600
-7	PASpudScraper	PA Spud Scraper	3600
-8	BotMonitor	Bot Monitor	3600
-9	WVPermitScraper	WV Permit Activity	3600
-104	PAViolationScraper	PA Permit Violations	3600
-34	FracFocusScraper	FracFocus Scraper OH	85000
-35	FracFocusScraper	FracFocus Scraper OK	85000
-47	FracFocusScraper	FracFocus Scraper WV	85000
-37	FracFocusScraper	FracFocus Scraper PA	85000
-49	FracFocusScraper	FracFocus Scraper WY	85000
-45	FracFocusScraper	FracFocus Scraper VA	85000
-43	FracFocusScraper	FracFocus Scraper UT	85000
-41	FracFocusScraper	FracFocus Scraper TN	85000
-48	FracFocusScraper	FracFocus Scraper WI	85000
-46	FracFocusScraper	FracFocus Scraper WA	85000
-44	FracFocusScraper	FracFocus Scraper VT	85000
-40	FracFocusScraper	FracFocus Scraper SD	85000
-39	FracFocusScraper	FracFocus Scraper SC	85000
-38	FracFocusScraper	FracFocus Scraper RI	85000
-36	FracFocusScraper	FracFocus Scraper OR	85000
-33	FracFocusScraper	FracFocus Scraper ND	85000
-32	FracFocusScraper	FracFocus Scraper NC	85000
-31	FracFocusScraper	FracFocus Scraper NY	85000
-30	FracFocusScraper	FracFocus Scraper NM	85000
-29	FracFocusScraper	FracFocus Scraper NJ	85000
-28	FracFocusScraper	FracFocus Scraper NH	85000
-27	FracFocusScraper	FracFocus Scraper NV	85000
-26	FracFocusScraper	FracFocus Scraper NE	85000
-25	FracFocusScraper	FracFocus Scraper MT	85000
-24	FracFocusScraper	FracFocus Scraper MO	85000
-23	FracFocusScraper	FracFocus Scraper MS	85000
-22	FracFocusScraper	FracFocus Scraper MN	85000
-21	FracFocusScraper	FracFocus Scraper MI	85000
-20	FracFocusScraper	FracFocus Scraper MA	85000
-19	FracFocusScraper	FracFocus Scraper MD	85000
-18	FracFocusScraper	FracFocus Scraper ME	85000
-17	FracFocusScraper	FracFocus Scraper LA	85000
-16	FracFocusScraper	FracFocus Scraper KY	85000
-15	FracFocusScraper	FracFocus Scraper KS	85000
-14	FracFocusScraper	FracFocus Scraper IA	85000
-13	FracFocusScraper	FracFocus Scraper IN	85000
-12	FracFocusScraper	FracFocus Scraper IL	85000
-11	FracFocusScraper	FracFocus Scraper ID	85000
-42	FracFocusScraper	FracFocus Scraper TX	85000
-9	FracFocusScraper	FracFocus Scraper FL	85000
-8	FracFocusScraper	FracFocus Scraper DC	85000
-7	FracFocusScraper	FracFocus Scraper DE	85000
-6	FracFocusScraper	FracFocus Scraper CT	85000
-5	FracFocusScraper	FracFocus Scraper CO	85000
-4	FracFocusScraper	FracFocus Scraper CA	85000
-3	FracFocusScraper	FracFocus Scraper AR	85000
-2	FracFocusScraper	FracFocus Scraper AZ	85000
-1	FracFocusScraper	FracFocus Scraper AL	85000
-50	FracFocusScraper	FracFocus Scraper AK	85000
-124	CogisScraper	scrape_insp	0
-125	CogisSpillScraper	scrape_spill	0
-126	NightfireScraper	scrape	0
-\.
-
-
---
 -- Data for Name: BotTaskParams; Type: TABLE DATA; Schema: public; Owner: scraper
 --
 
@@ -166,6 +99,37 @@ COPY "BotTaskParams" (task_id, bot, key, value) FROM stdin;
 5	UshahidiPublisher	api_version	LABB
 4	UshahidiPublisher	last_item_updated	2013-03-13 07:41:13.006
 5	UshahidiPublisher	last_item_updated	2013-03-13 07:41:15.017
+\.
+
+
+--
+-- Data for Name: FeedSource; Type: TABLE DATA; Schema: public; Owner: scraper
+--
+
+COPY "FeedSource" (id, name) FROM stdin;
+1	NRC
+2	SkyTruth
+3	NOAA
+4	PA DEP Permit
+5	PA DEP SPUD
+6	USGS Earthquakes
+7	WV DEP Permit
+8	WV DEP Permit Activity
+9	PA DEP Violation
+10	FracFocus
+1001	COGIS
+\.
+
+
+--
+-- Data for Name: RssFeed; Type: TABLE DATA; Schema: public; Owner: scraper
+--
+
+COPY "RssFeed" (id, url, last_read, update_interval_secs, tag, name, source_id) FROM stdin;
+1	http://skytruth-alerts.blogspot.com/feeds/posts/default	2013-03-13 15:51:12.148513	3000	SkyTruth	Skytruth Alert	2
+2	http://blog.skytruth.org/feeds/posts/default/-/Alerts	2013-03-13 15:51:13.588275	3000	SkyTruth	SkyTruth Alert	2
+3	http://www.incidentnews.gov/incidents.atom	2013-03-13 15:51:13.712115	3000	NOAA	NOAA Incident News	3
+6	http://earthquake.usgs.gov/earthquakes/catalogs/7day-M5.xml	2013-03-13 15:51:13.835466	3000	Earthquake	USGS Earthquake Alerts	6
 \.
 
 

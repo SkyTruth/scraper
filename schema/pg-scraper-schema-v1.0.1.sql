@@ -1,4 +1,4 @@
-﻿--
+--
 -- PostgreSQL database dump
 --
 
@@ -8,6 +8,165 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
+SET search_path = scraper, pg_catalog;
+
+DROP TRIGGER feedentry_insert ON scraper.feedentry;
+DROP RULE feedentry_replace ON scraper.feedentry;
+DROP RULE feedentry_insert ON scraper.feedentry;
+DROP INDEX scraper.idx_regions_the_geom;
+DROP INDEX scraper.idx_regions_code;
+DROP INDEX scraper.feedentry_tags;
+DROP INDEX scraper.feedentry_regions;
+DROP INDEX scraper.feedentry_published;
+DROP INDEX scraper.feedentry_latlng;
+DROP INDEX scraper.feedentry_incident_datetime;
+DROP INDEX scraper.feedentry_id;
+DROP INDEX scraper.feed_entry_source;
+SET search_path = public, pg_catalog;
+
+DROP INDEX public.time_stamp;
+DROP INDEX public.task_item;
+DROP INDEX public.tag;
+DROP INDEX public.suspected_responsible_company;
+DROP INDEX public.state;
+DROP INDEX public.seqid;
+DROP INDEX public.reportnum;
+DROP INDEX public.report_seqid;
+DROP INDEX public.pdf_seqid;
+DROP INDEX public.pattern;
+DROP INDEX public.name;
+DROP INDEX public.material_name;
+DROP INDEX public.lat_lng;
+DROP INDEX public.incident_datetime;
+DROP INDEX public."idcogisspill_UNIQUE";
+DROP INDEX public.id;
+DROP INDEX public.doc_num_index;
+DROP INDEX public.description;
+DROP INDEX public.cas_type;
+DROP INDEX public.cas_number;
+DROP INDEX public.bot_status;
+DROP INDEX public.areaid_blockid;
+DROP INDEX public.area_block;
+DROP INDEX public.api_job_date;
+DROP INDEX public.api_date_row;
+DROP INDEX public."ViolationID";
+DROP INDEX public."Nightfire_record_Lon_GMTCO";
+DROP INDEX public."Nightfire_record_Lat_GMTCO";
+SET search_path = scraper, pg_catalog;
+
+ALTER TABLE ONLY scraper.region DROP CONSTRAINT region_pkey;
+SET search_path = public, pg_catalog;
+
+ALTER TABLE ONLY public."RssFeed" DROP CONSTRAINT "RssFeed_pkey";
+ALTER TABLE ONLY public."RssFeedItem" DROP CONSTRAINT "RssFeedItem_pkey";
+ALTER TABLE ONLY public."RSSEmailSubscription" DROP CONSTRAINT "RSSEmailSubscription_pkey";
+ALTER TABLE ONLY public."PublishedFeedItems" DROP CONSTRAINT "PublishedFeedItems_pkey";
+ALTER TABLE ONLY public."PA_Violation" DROP CONSTRAINT "PA_Violation_pkey";
+ALTER TABLE ONLY public."PA_Spud" DROP CONSTRAINT "PA_Spud_pkey";
+ALTER TABLE ONLY public."PA_DrillingPermit" DROP CONSTRAINT "PA_DrillingPermit_pkey";
+ALTER TABLE ONLY public."NrcUnits" DROP CONSTRAINT "NrcUnits_pkey";
+ALTER TABLE ONLY public."NrcTag" DROP CONSTRAINT "NrcTag_pkey";
+ALTER TABLE ONLY public."NrcScraperTarget" DROP CONSTRAINT "NrcScraperTarget_pkey";
+ALTER TABLE ONLY public."NrcScrapedReport" DROP CONSTRAINT "NrcScrapedReport_pkey";
+ALTER TABLE ONLY public."NrcScrapedMaterial" DROP CONSTRAINT "NrcScrapedMaterial_pkey";
+ALTER TABLE ONLY public."NrcScrapedFullReport" DROP CONSTRAINT "NrcScrapedFullReport_pkey";
+ALTER TABLE ONLY public."NrcParsedReport" DROP CONSTRAINT "NrcParsedReport_pkey";
+ALTER TABLE ONLY public."NrcMaterials" DROP CONSTRAINT "NrcMaterials_pkey";
+ALTER TABLE ONLY public."NrcGeocode" DROP CONSTRAINT "NrcGeocode_pkey";
+ALTER TABLE ONLY public."NrcAnalysis" DROP CONSTRAINT "NrcAnalysis_pkey";
+ALTER TABLE ONLY public."Nightfire_record" DROP CONSTRAINT "Nightfire_record_pkey";
+ALTER TABLE ONLY public."Nightfire_file" DROP CONSTRAINT "Nightfire_file_pkey";
+ALTER TABLE ONLY public."Nightfire_file" DROP CONSTRAINT "Nightfire_file_filename_key";
+ALTER TABLE ONLY public."LeaseBlockCentroid" DROP CONSTRAINT "LeaseBlockCentroid_pkey";
+ALTER TABLE ONLY public."GeocodeCache" DROP CONSTRAINT "GeocodeCache_pkey";
+ALTER TABLE ONLY public."FracFocusScrape" DROP CONSTRAINT "FracFocusScrape_pkey";
+ALTER TABLE ONLY public."FracFocusReport" DROP CONSTRAINT "FracFocusReport_pkey";
+ALTER TABLE ONLY public."FracFocusReportChemical" DROP CONSTRAINT "FracFocusReportChemical_pkey";
+ALTER TABLE ONLY public."FracFocusParse" DROP CONSTRAINT "FracFocusParse_pkey";
+ALTER TABLE ONLY public."FracFocusParseChemical" DROP CONSTRAINT "FracFocusParseChemical_pkey";
+ALTER TABLE ONLY public."FracFocusPDF" DROP CONSTRAINT "FracFocusPDF_pkey";
+ALTER TABLE ONLY public."FeedSource" DROP CONSTRAINT "FeedSource_pkey";
+ALTER TABLE ONLY public."FeedEntryTag" DROP CONSTRAINT "FeedEntryTag_pkey";
+ALTER TABLE ONLY public."CogisSpill" DROP CONSTRAINT "CogisSpill_pkey";
+ALTER TABLE ONLY public."CogisInspection" DROP CONSTRAINT "CogisInspection_pkey";
+ALTER TABLE ONLY public."BotTask" DROP CONSTRAINT "BotTask_pkey";
+ALTER TABLE ONLY public."BotTaskStatus" DROP CONSTRAINT "BotTaskStatus_pkey";
+ALTER TABLE ONLY public."BotTaskParams" DROP CONSTRAINT "BotTaskParams_pkey";
+ALTER TABLE ONLY public."BotTaskError" DROP CONSTRAINT "BotTaskError_pkey";
+ALTER TABLE ONLY public."AreaCodeMap" DROP CONSTRAINT "AreaCodeMap_pkey";
+SET search_path = scraper, pg_catalog;
+
+ALTER TABLE scraper.region ALTER COLUMN id DROP DEFAULT;
+SET search_path = public, pg_catalog;
+
+ALTER TABLE public."Nightfire_file" ALTER COLUMN id DROP DEFAULT;
+SET search_path = scraper, pg_catalog;
+
+DROP SEQUENCE scraper.region_id_seq;
+DROP TABLE scraper.feedentry;
+DROP TABLE scraper.region;
+SET search_path = public, pg_catalog;
+
+DROP SEQUENCE public.wv_drillingpermit_st_id_seq;
+DROP SEQUENCE public.la_lease_blocks_id_seq;
+DROP SEQUENCE public.feedentry_published_seq_seq;
+DROP TABLE public."RssFeedItem";
+DROP TABLE public."RssFeed";
+DROP SEQUENCE public.rssfeed_id_seq;
+DROP TABLE public."RSSEmailSubscription";
+DROP TABLE public."PublishedFeedItems";
+DROP SEQUENCE public.publishedfeeditems_id_seq;
+DROP TABLE public."PA_Violation";
+DROP SEQUENCE public.pa_violation_st_id_seq;
+DROP TABLE public."PA_Spud";
+DROP SEQUENCE public.pa_spud_st_id_seq;
+DROP TABLE public."PA_DrillingPermit";
+DROP SEQUENCE public.pa_drillingpermit_st_id_seq;
+DROP TABLE public."NrcUnits";
+DROP SEQUENCE public.nrcunits_id_seq;
+DROP TABLE public."NrcTag";
+DROP TABLE public."NrcScraperTarget";
+DROP SEQUENCE public.nrcscrapertarget_id_seq;
+DROP TABLE public."NrcScrapedMaterial";
+DROP SEQUENCE public.nrcscrapedmaterial_st_id_seq;
+DROP TABLE public."NrcScrapedFullReport";
+DROP TABLE public."NrcMaterials";
+DROP SEQUENCE public.nrcmaterials_id_seq;
+DROP TABLE public."Nightfire_record";
+DROP SEQUENCE public."Nightfire_file_id_seq";
+DROP TABLE public."Nightfire_file";
+DROP TABLE public."LeaseBlockCentroid";
+DROP SEQUENCE public.leaseblockcentroid_id_seq;
+DROP TABLE public."GeocodeCache";
+DROP TABLE public."FracFocusScrape";
+DROP SEQUENCE public.fracfocusscrape_seqid_seq;
+DROP TABLE public."FracFocusReportChemical";
+DROP SEQUENCE public.fracfocusreportchemical_seqid_seq;
+DROP TABLE public."FracFocusReport";
+DROP SEQUENCE public.fracfocusreport_seqid_seq;
+DROP TABLE public."FracFocusParseChemical";
+DROP SEQUENCE public.fracfocusparsechemical_seqid_seq;
+DROP TABLE public."FracFocusParse";
+DROP SEQUENCE public.fracfocusparse_seqid_seq;
+DROP TABLE public."FracFocusPDF";
+DROP TABLE public."FeedSource";
+DROP SEQUENCE public.feedsource_id_seq;
+DROP TABLE public."FeedEntryTag";
+DROP TABLE public."CogisSpill";
+DROP SEQUENCE public.cogisspill_st_id_seq;
+DROP TABLE public."CogisInspection";
+DROP SEQUENCE public.cogisinspection_st_id_seq;
+DROP TABLE public."CO_Permits";
+DROP TABLE public."BotTaskStatus";
+DROP TABLE public."BotTaskParams";
+DROP TABLE public."BotTaskError";
+DROP TABLE public."BotTask";
+DROP TABLE public."AreaCodeMap";
+DROP SEQUENCE public.areacodemap_id_seq;
+DROP TABLE public."NrcScrapedReport";
+DROP TABLE public."NrcParsedReport";
+DROP TABLE public."NrcGeocode";
+DROP TABLE public."NrcAnalysis";
 SET search_path = public, pg_catalog;
 
 SET default_tablespace = '';
@@ -1816,11 +1975,7 @@ ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 -- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
 --
 
-<<<<<<< HEAD
-CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
-=======
 --CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
->>>>>>> f611d29dd1942f0f869590b74cfdffcfdfe75a7c
 
 
 --

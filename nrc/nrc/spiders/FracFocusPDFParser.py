@@ -67,6 +67,10 @@ class FracFocusPDFParser(NrcBot):
                 
                 for chem in report.chemicals:
                     l = ItemLoader (FracFocusParseChemical())
+                    l.supplier_in = lambda slist: [s[:50] for s in slist]
+                    l.cas_number_in = lambda slist: [s[:50] for s in slist]
+                    l.trade_name_in = lambda slist: [s[:200] for s in slist]
+                    l.purpose_in = lambda slist: [s[:200] for s in slist]
                     l.ingredients_in = lambda slist: [s[:200] for s in slist]
                     l.add_value (None, chem)
                     l.add_value ('report_seqid', task_id)

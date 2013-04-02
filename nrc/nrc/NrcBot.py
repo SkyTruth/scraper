@@ -203,6 +203,7 @@ class NrcBot(BaseSpider):
 
     def make_bot_task_error (self, task_id, code, message=''):
         t = ItemLoader (BotTaskError())
+        t.message_in = lambda slist: [s[:1023] for s in slist]
         t.add_value ('task_id', task_id)
         t.add_value ('bot', self.name)
         t.add_value ('code', code)
