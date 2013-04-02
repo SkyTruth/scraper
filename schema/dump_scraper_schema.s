@@ -30,6 +30,7 @@ pg_dump --schema-only \
     -t"\"CO_Permits\"" \
     -t"\"CogisInspection\"" \
     -t"\"CogisSpill\"" \
+    -t"\"feedentry\"" \
     -t"\"FeedEntryTag\"" \
     -t"\"FeedSource\"" \
     -t"\"FracFocusPDF\"" \
@@ -57,6 +58,7 @@ pg_dump --schema-only \
     -t"\"PA_Spud\"" \
     -t"\"PA_Violation\"" \
     -t"\"PublishedFeedItems\"" \
+    -t"\"region\"" \
     -t"\"RSSEmailSubscription\"" \
     -t"\"RssFeed\"" \
     -t"\"RssFeedItem\"" \
