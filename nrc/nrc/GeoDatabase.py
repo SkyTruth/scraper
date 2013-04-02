@@ -30,7 +30,7 @@ class GeoDatabase(object):
 #	    self.db.set_client_encoding ('UTF8')
             log.msg ("Connected to database %s as %s using database %s" %
                 (self.host, self.user, self.dbname), level=log.INFO)
-        except psycopgError, e:
+        except psycopg2.Error, e:
             self.db = None
             log.msg ("Unable to connect to database: Error %d: %s" %
                 (e.args[0], e.args[1]), level=log.ERROR)
@@ -73,7 +73,13 @@ class GeoDatabase(object):
             values = item.values()
 
         c = self.db.cursor()
-        c.execute (sql, values)
+        try:
+            c.execute (sql, values)
+        except:
+            log.msg ("GeoDatabase.storeItem error: %s"
+                     % c.mogrify(sql, values),
+                     level=log.INFO)
+            raise
         return c.rowcount
 
     def transformCoords (self, x, y, from_srid, to_srid):
