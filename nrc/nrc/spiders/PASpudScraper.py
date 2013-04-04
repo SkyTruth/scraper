@@ -34,6 +34,7 @@ class PASpudScraper (AtomPubScraper):
         l.Municipality_in = lambda slist: [s[:20] for s in slist]
         l.Created_By_in = lambda slist: [s[:20] for s in slist]
         l.Modified_By_in = lambda slist: [s[:20] for s in slist]
+        l.Well_Type_in = lambda slist: [s[:20] for s in slist]
 
         #l.add_value ('OGO__', row['OPERATOR_OGO_NUM'])
         l.add_value ('OGO__', row['OGO_NUM'])

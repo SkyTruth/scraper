@@ -21,7 +21,7 @@ from nrc.database import NrcDatabase
 class NrcScraper(BaseSpider):
     name = "NrcScraper"
     allowed_domains = ["nrc.uscg.mil", "maps.googleapis.com"]
-    
+
 #        old url: "http://www.nrc.uscg.mil/apex/f?p=109"
     start_urls = [
         "http://www.nrc.uscg.mil/pls/apex/f?p=109:1:0:::::"
@@ -32,14 +32,15 @@ class NrcScraper(BaseSpider):
         self.db = NrcDatabase()
         self.db.connect()
         self.enddate = date.today()
+        self.exception_count = 0
         if 'enddate' in kwargs:
             self.enddate = datetime.strptime(kwargs['enddate'],'%Y-%m-%d')
         interval = timedelta (10) # ten days
         last_report_dt = self.db.latestReportDate()
-        
+
         if last_report_dt:
             self.startdate = (last_report_dt - timedelta(days=10))
-        else:    
+        else:
             self.startdate = self.enddate - interval
         if 'startdate' in kwargs:
             self.startdate = datetime.strptime(kwargs['startdate'],'%Y-%m-%d')
@@ -49,8 +50,8 @@ class NrcScraper(BaseSpider):
             if (t):
                 self.startdate = t["startdate"]
                 self.enddate = t["enddate"]
-        
-    
+
+
     def parse(self, response):
         # get today's date.
         # TODO: make this a runtime parameter
@@ -66,7 +67,7 @@ class NrcScraper(BaseSpider):
             },
             callback=self.search_results)
         return [request]
-    
+
     def search_results(self, response):
         text = unicode (response.body, response.encoding)
         hxs = HtmlXPathSelector(text=text)
@@ -80,7 +81,7 @@ class NrcScraper(BaseSpider):
                 self.log('No incident reports found in response', log.WARNING)
             else:
                 self.log('Retrieved {0} incident reports'.format(len(reports)), log.INFO)
-        
+
         for report in reports:
             l = XPathItemLoader(NrcScrapedReport(), report)
             l.context['base_url'] = response.url
@@ -98,30 +99,30 @@ class NrcScraper(BaseSpider):
                     callback=self.parse_materials)
                 yield item
                 self.db.setBotTaskStatus(item['reportnum'], self.name, 'DONE')
-                
+
 #                if self.db.fullReportExists (item['reportnum']):
 #                    self.log('Full report Report {0} already exists.  Skipping download.'.format(item['reportnum']), log.INFO)
 #                else:
 #                    yield f_request
-#                    
+#
 #                if self.db.materialExists (item['reportnum']):
 #                    self.log('Materials record(s) already exist for report {0}.  Skipping download.'.format(item['reportnum']), log.INFO)
 #               else:
 #                    yield m_request
-                    
+
         # get next page of results
         next = hxs.select('//td[@class="pagination"][4]/a/@href')
         if len(next) > 0:
             yield Request (urljoin(response.url, next[0].extract()), callback=self.search_results)
-          
-        
+
+
     def parse_full_report(self, response):
         # need to work around weird bug where lxml can't handle encode=WINDOWS-1252
         # so pull out the body, convert to utf-8 and create a new TextResponse object to contain it
         # since XPathItemLoader requires a Response object
         text = unicode (response.body, response.encoding)
         t = TextResponse (url=response.url, body=text.encode('utf-8'), encoding='utf-8')
-        
+
         l= XPathItemLoader(NrcScrapedFullReport(), response=t)
         url_parts = urlsplit(response.url)
         l.add_value('reportnum', parse_qs(url_parts.query)['standard_web inc_seq'])
@@ -131,8 +132,8 @@ class NrcScraper(BaseSpider):
         reportnum = item['reportnum']
         yield item
         self.db.setBotTaskStatus(reportnum, self.name, 'DONE')
-        
-    
+
+
     def parse_materials(self, response):
         text = unicode (response.body, response.encoding)
         hxs = HtmlXPathSelector(text=text)
