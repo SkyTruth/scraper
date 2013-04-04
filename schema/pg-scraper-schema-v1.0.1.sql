@@ -11,6 +11,11 @@ SET client_min_messages = warning;
 SET search_path = scraper, pg_catalog;
 
 DROP TRIGGER feedentry_insert ON scraper.feedentry;
+SET search_path = public, pg_catalog;
+
+DROP TRIGGER bottaskstatus_update ON public."BotTaskStatus";
+SET search_path = scraper, pg_catalog;
+
 DROP RULE feedentry_replace ON scraper.feedentry;
 DROP RULE feedentry_insert ON scraper.feedentry;
 DROP INDEX scraper.idx_regions_the_geom;
@@ -32,6 +37,8 @@ DROP INDEX public.state;
 DROP INDEX public.seqid;
 DROP INDEX public.reportnum;
 DROP INDEX public.report_seqid;
+DROP INDEX public.permit_type;
+DROP INDEX public.permit_activity_type;
 DROP INDEX public.pdf_seqid;
 DROP INDEX public.pattern;
 DROP INDEX public.name;
@@ -40,6 +47,7 @@ DROP INDEX public.lat_lng;
 DROP INDEX public.incident_datetime;
 DROP INDEX public."idcogisspill_UNIQUE";
 DROP INDEX public.id;
+DROP INDEX public.ft_id;
 DROP INDEX public.doc_num_index;
 DROP INDEX public.description;
 DROP INDEX public.cas_type;
@@ -47,8 +55,10 @@ DROP INDEX public.cas_number;
 DROP INDEX public.bot_status;
 DROP INDEX public.areaid_blockid;
 DROP INDEX public.area_block;
+DROP INDEX public.api_type_date;
 DROP INDEX public.api_job_date;
 DROP INDEX public.api_date_row;
+DROP INDEX public.activity_date;
 DROP INDEX public."ViolationID";
 DROP INDEX public."Nightfire_record_Lon_GMTCO";
 DROP INDEX public."Nightfire_record_Lat_GMTCO";
@@ -57,6 +67,7 @@ SET search_path = scraper, pg_catalog;
 ALTER TABLE ONLY scraper.region DROP CONSTRAINT region_pkey;
 SET search_path = public, pg_catalog;
 
+ALTER TABLE ONLY public."WV_DrillingPermit" DROP CONSTRAINT "WV_DrillingPermit_pkey";
 ALTER TABLE ONLY public."RssFeed" DROP CONSTRAINT "RssFeed_pkey";
 ALTER TABLE ONLY public."RssFeedItem" DROP CONSTRAINT "RssFeedItem_pkey";
 ALTER TABLE ONLY public."RSSEmailSubscription" DROP CONSTRAINT "RSSEmailSubscription_pkey";
@@ -107,9 +118,10 @@ DROP TABLE scraper.feedentry;
 DROP TABLE scraper.region;
 SET search_path = public, pg_catalog;
 
-DROP SEQUENCE public.wv_drillingpermit_st_id_seq;
 DROP SEQUENCE public.la_lease_blocks_id_seq;
 DROP SEQUENCE public.feedentry_published_seq_seq;
+DROP TABLE public."WV_DrillingPermit";
+DROP SEQUENCE public.wv_drillingpermit_st_id_seq;
 DROP TABLE public."RssFeedItem";
 DROP TABLE public."RssFeed";
 DROP SEQUENCE public.rssfeed_id_seq;
@@ -1260,6 +1272,44 @@ CREATE TABLE "RssFeedItem" (
 ALTER TABLE public."RssFeedItem" OWNER TO scraper;
 
 --
+-- Name: wv_drillingpermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE wv_drillingpermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.wv_drillingpermit_st_id_seq OWNER TO scraper;
+
+--
+-- Name: WV_DrillingPermit; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "WV_DrillingPermit" (
+    st_id integer DEFAULT nextval('wv_drillingpermit_st_id_seq'::regclass) NOT NULL,
+    ft_id integer,
+    "API" character varying(12) NOT NULL,
+    permit_number integer,
+    permit_type character varying(20),
+    current_operator character varying(100),
+    farm_name character varying(100),
+    well_number character varying(50),
+    permit_activity_type character varying(50),
+    permit_activity_date date,
+    utm_north double precision,
+    utm_east double precision,
+    datum integer,
+    county character varying(20)
+);
+
+
+ALTER TABLE public."WV_DrillingPermit" OWNER TO scraper;
+
+--
 -- Name: feedentry_published_seq_seq; Type: SEQUENCE; Schema: public; Owner: scraper
 --
 
@@ -1286,20 +1336,6 @@ CREATE SEQUENCE la_lease_blocks_id_seq
 
 
 ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
-
---
--- Name: wv_drillingpermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
---
-
-CREATE SEQUENCE wv_drillingpermit_st_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.wv_drillingpermit_st_id_seq OWNER TO scraper;
 
 SET search_path = scraper, pg_catalog;
 
@@ -1682,6 +1718,14 @@ ALTER TABLE ONLY "RssFeed"
     ADD CONSTRAINT "RssFeed_pkey" PRIMARY KEY (id);
 
 
+--
+-- Name: WV_DrillingPermit_pkey; Type: CONSTRAINT; Schema: public; Owner: scraper; Tablespace: 
+--
+
+ALTER TABLE ONLY "WV_DrillingPermit"
+    ADD CONSTRAINT "WV_DrillingPermit_pkey" PRIMARY KEY (st_id);
+
+
 SET search_path = scraper, pg_catalog;
 
 --
@@ -1716,6 +1760,13 @@ CREATE UNIQUE INDEX "ViolationID" ON "PA_Violation" USING btree ("ViolationID");
 
 
 --
+-- Name: activity_date; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX activity_date ON "WV_DrillingPermit" USING btree (permit_activity_date);
+
+
+--
 -- Name: api_date_row; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
 --
 
@@ -1727,6 +1778,13 @@ CREATE UNIQUE INDEX api_date_row ON "FracFocusReportChemical" USING btree (api, 
 --
 
 CREATE UNIQUE INDEX api_job_date ON "FracFocusScrape" USING btree (api, job_date);
+
+
+--
+-- Name: api_type_date; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE UNIQUE INDEX api_type_date ON "WV_DrillingPermit" USING btree ("API", permit_activity_type, permit_activity_date);
 
 
 --
@@ -1776,6 +1834,13 @@ CREATE INDEX description ON "NrcScrapedReport" USING btree (description);
 --
 
 CREATE INDEX doc_num_index ON "CogisSpill" USING btree (doc_num);
+
+
+--
+-- Name: ft_id; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX ft_id ON "WV_DrillingPermit" USING btree (ft_id);
 
 
 --
@@ -1832,6 +1897,20 @@ CREATE INDEX pattern ON "AreaCodeMap" USING btree (pattern);
 --
 
 CREATE INDEX pdf_seqid ON "FracFocusReport" USING btree (pdf_seqid);
+
+
+--
+-- Name: permit_activity_type; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX permit_activity_type ON "WV_DrillingPermit" USING btree (permit_activity_type);
+
+
+--
+-- Name: permit_type; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE INDEX permit_type ON "WV_DrillingPermit" USING btree (permit_type);
 
 
 --
@@ -1971,11 +2050,22 @@ CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 
 ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 
 
+SET search_path = public, pg_catalog;
+
+--
+-- Name: bottaskstatus_update; Type: TRIGGER; Schema: public; Owner: scraper
+--
+
+CREATE TRIGGER bottaskstatus_update BEFORE UPDATE ON "BotTaskStatus" FOR EACH ROW EXECUTE PROCEDURE scraper.update_time_stamp_column();
+
+
+SET search_path = scraper, pg_catalog;
+
 --
 -- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
 --
 
---CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
+CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
 
 
 --

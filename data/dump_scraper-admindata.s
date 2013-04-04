@@ -1,6 +1,6 @@
 
 pg_dump --data-only \
-    -t"\"BotTasks\"" \
+    -t"\"BotTask\"" \
     -t"\"BotTaskParams\"" \
     -t"\"FeedSource\"" \
     -t"\"RssFeed\"" \

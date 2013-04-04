@@ -62,5 +62,5 @@ pg_dump --schema-only --clean \
     -t"\"RSSEmailSubscription\"" \
     -t"\"RssFeed\"" \
     -t"\"RssFeedItem\"" \
-    -t"\"VW_DrillingPermit\"" \
+    -t"\"WV_DrillingPermit\"" \
     skytruth
