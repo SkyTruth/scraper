@@ -63,4 +63,7 @@ pg_dump --schema-only --clean \
     -t"\"RssFeed\"" \
     -t"\"RssFeedItem\"" \
     -t"\"WV_DrillingPermit\"" \
+    -t"\"EXPORT_FracFocusReport\"" \
+    -t"\"EXPORT_FracFocusChemical\"" \
+    -t"\"EXPORT_FracFocusCombined\"" \
     skytruth

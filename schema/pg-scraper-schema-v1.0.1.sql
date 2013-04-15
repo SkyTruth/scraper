@@ -116,6 +116,9 @@ SET search_path = scraper, pg_catalog;
 DROP SEQUENCE scraper.region_id_seq;
 DROP TABLE scraper.feedentry;
 DROP TABLE scraper.region;
+DROP VIEW scraper."EXPORT_FracFocusReport";
+DROP VIEW scraper."EXPORT_FracFocusCombined";
+DROP VIEW scraper."EXPORT_FracFocusChemical";
 SET search_path = public, pg_catalog;
 
 DROP SEQUENCE public.la_lease_blocks_id_seq;
@@ -1340,6 +1343,36 @@ ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
 SET search_path = scraper, pg_catalog;
 
 --
+-- Name: EXPORT_FracFocusChemical; Type: VIEW; Schema: scraper; Owner: scraper
+--
+
+CREATE VIEW "EXPORT_FracFocusChemical" AS
+    SELECT "FracFocusReportChemical".seqid AS c_seqid, "FracFocusReportChemical".pdf_seqid, "FracFocusReportChemical".api, "FracFocusReportChemical".fracture_date, "FracFocusReportChemical"."row", COALESCE("FracFocusReportChemical".trade_name, ''::character varying) AS trade_name, COALESCE("FracFocusReportChemical".supplier, ''::character varying) AS supplier, COALESCE("FracFocusReportChemical".purpose, ''::character varying) AS purpose, COALESCE("FracFocusReportChemical".ingredients, ''::character varying) AS ingredients, COALESCE("FracFocusReportChemical".cas_number, ''::character varying) AS cas_number, COALESCE("FracFocusReportChemical".additive_concentration, NULL::double precision) AS additive_concentration, COALESCE("FracFocusReportChemical".hf_fluid_concentration, NULL::double precision) AS hf_fluid_concentration, COALESCE("FracFocusReportChemical".comments, ''::character varying) AS comments, COALESCE("FracFocusReportChemical".cas_type, ''::character varying) AS cas_type FROM (public."FracFocusReportChemical" JOIN public."FracFocusReport" ON (("FracFocusReportChemical".pdf_seqid = "FracFocusReport".pdf_seqid))) WHERE ("FracFocusReport".published < date_trunc('month'::text, now())) ORDER BY "FracFocusReportChemical".seqid;
+
+
+ALTER TABLE scraper."EXPORT_FracFocusChemical" OWNER TO scraper;
+
+--
+-- Name: EXPORT_FracFocusCombined; Type: VIEW; Schema: scraper; Owner: scraper
+--
+
+CREATE VIEW "EXPORT_FracFocusCombined" AS
+    SELECT r.seqid AS r_seqid, r.pdf_seqid, r.api, r.fracture_date, COALESCE(r.state, ''::character varying) AS state, COALESCE(r.county, ''::character varying) AS county, COALESCE(r.operator, ''::character varying) AS operator, COALESCE(r.well_name, ''::character varying) AS well_name, COALESCE(r.production_type, ''::character varying) AS production_type, COALESCE(r.latitude, NULL::double precision) AS latitude, COALESCE(r.longitude, NULL::double precision) AS longitude, COALESCE(r.datum, ''::character varying) AS datum, COALESCE(r.true_vertical_depth, NULL::double precision) AS true_vertical_depth, COALESCE(r.total_water_volume, NULL::double precision) AS total_water_volume, COALESCE(r.published, NULL::timestamp without time zone) AS published, c.seqid AS c_seqid, c."row", COALESCE(c.trade_name, ''::character varying) AS trade_name, COALESCE(c.supplier, ''::character varying) AS supplier, COALESCE(c.purpose, ''::character varying) AS purpose, COALESCE(c.ingredients, ''::character varying) AS ingredients, COALESCE(c.cas_number, ''::character varying) AS cas_number, COALESCE(c.additive_concentration, NULL::double precision) AS additive_concentration, COALESCE(c.hf_fluid_concentration, NULL::double precision) AS hf_fluid_concentration, COALESCE(c.comments, ''::character varying) AS comments, COALESCE(c.cas_type, ''::character varying) AS cas_type FROM (public."FracFocusReport" r JOIN public."FracFocusReportChemical" c ON ((r.pdf_seqid = c.pdf_seqid))) WHERE (r.published < date_trunc('month'::text, now())) ORDER BY r.pdf_seqid, c."row";
+
+
+ALTER TABLE scraper."EXPORT_FracFocusCombined" OWNER TO scraper;
+
+--
+-- Name: EXPORT_FracFocusReport; Type: VIEW; Schema: scraper; Owner: scraper
+--
+
+CREATE VIEW "EXPORT_FracFocusReport" AS
+    SELECT "FracFocusReport".seqid AS r_seqid, "FracFocusReport".pdf_seqid, "FracFocusReport".api, "FracFocusReport".fracture_date, COALESCE("FracFocusReport".state, ''::character varying) AS state, COALESCE("FracFocusReport".county, ''::character varying) AS county, COALESCE("FracFocusReport".operator, ''::character varying) AS operator, COALESCE("FracFocusReport".well_name, ''::character varying) AS well_name, COALESCE("FracFocusReport".production_type, ''::character varying) AS production_type, COALESCE("FracFocusReport".latitude, NULL::double precision) AS latitude, COALESCE("FracFocusReport".longitude, NULL::double precision) AS longitude, COALESCE("FracFocusReport".datum, ''::character varying) AS datum, COALESCE("FracFocusReport".true_vertical_depth, NULL::double precision) AS true_vertical_depth, COALESCE("FracFocusReport".total_water_volume, NULL::double precision) AS total_water_volume, COALESCE("FracFocusReport".published, NULL::timestamp without time zone) AS published FROM public."FracFocusReport" WHERE ("FracFocusReport".published < date_trunc('month'::text, now())) ORDER BY "FracFocusReport".seqid;
+
+
+ALTER TABLE scraper."EXPORT_FracFocusReport" OWNER TO scraper;
+
+--
 -- Name: region; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
 --
 
@@ -1350,7 +1383,8 @@ CREATE TABLE region (
     the_geom public.geometry,
     kml text,
     simple_geom public.geometry,
-    src character varying(128)
+    src character varying(128),
+    srcfile character varying(1024)
 );
 
 
