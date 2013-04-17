@@ -68,7 +68,7 @@ CREATE TEMP TABLE "TEMP_FracFocus_join" AS
 # VIEW "EXPORT_FracFocusReport"
 sql_FracFocusReport = """
 SELECT
-        r_seqid,
+        seqid as r_seqid,
         pdf_seqid,
         api,
         fracture_date,
@@ -83,7 +83,10 @@ SELECT
         true_vertical_depth,
         total_water_volume,
         published
-FROM "TEMP_FracFocus_join"
+--FROM "TEMP_FracFocus_join"
+FROM "FracFocusReport"
+WHERE published < date_trunc('month'::text, now())
+      and extract(year from published) = %s
 ;
 """
 
@@ -106,6 +109,7 @@ SELECT
         cas_type
 FROM "TEMP_FracFocus_join"
 ;
+--%s
 """
 
 # VIEW "EXPORT_FracFocusCombined"
@@ -139,6 +143,7 @@ SELECT
         cas_type
 FROM "TEMP_FracFocus_join"
 ;
+--%s
 """
 
 # Job list
@@ -173,7 +178,7 @@ def main():
         session.submitSQL(sql_temp_join_table%args.year)
         for (s3Name, query) in JOBLIST:
             fname = "%s_%s"%(args.year, s3Name)
-            fpath = session.query_to_file(query, fname)
+            fpath = session.query_to_file(query%args.year, fname)
             s3Name = os.path.basename(fpath)
             if args.compress:
                 s3Name += '.zip'
