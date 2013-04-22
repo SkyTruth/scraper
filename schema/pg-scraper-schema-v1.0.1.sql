@@ -11,11 +11,6 @@ SET client_min_messages = warning;
 SET search_path = scraper, pg_catalog;
 
 DROP TRIGGER feedentry_insert ON scraper.feedentry;
-SET search_path = public, pg_catalog;
-
-DROP TRIGGER bottaskstatus_update ON public."BotTaskStatus";
-SET search_path = scraper, pg_catalog;
-
 DROP RULE feedentry_replace ON scraper.feedentry;
 DROP RULE feedentry_insert ON scraper.feedentry;
 DROP INDEX scraper.idx_regions_the_geom;
@@ -2084,22 +2079,10 @@ CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 
 ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 
 
-SET search_path = public, pg_catalog;
-
---
--- Name: bottaskstatus_update; Type: TRIGGER; Schema: public; Owner: scraper
---
-
-CREATE TRIGGER bottaskstatus_update BEFORE UPDATE ON "BotTaskStatus" FOR EACH ROW EXECUTE PROCEDURE scraper.update_time_stamp_column();
-
-
-SET search_path = scraper, pg_catalog;
-
 --
 -- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
 --
 
-CREATE TRIGGER feedentry_insert BEFORE INSERT ON feedentry FOR EACH ROW EXECUTE PROCEDURE feedentry_insert();
 
 
 --

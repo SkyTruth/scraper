@@ -66,4 +66,5 @@ pg_dump --schema-only --clean \
     -t"\"EXPORT_FracFocusReport\"" \
     -t"\"EXPORT_FracFocusChemical\"" \
     -t"\"EXPORT_FracFocusCombined\"" \
-    skytruth
+    skytruth | grep -v "CREATE TRIGGER feedentry_insert"
+

@@ -39,7 +39,7 @@ DB_DATABASE = 'scraper_db'
 GEO_DB_HOST = 'localhost'
 GEO_DB_USER = 'scraper'
 GEO_DB_PASS = 'password'    ## CHANGE
-GEO_DB_DATABASE = 'scraper_db'  
+GEO_DB_DATABASE = 'scraper_db'
 
 GOOGLE_MAPS_API_KEY = 'NOT-SURE-WE-NEED-THIS'       ## CHANGE?
 
@@ -53,7 +53,12 @@ MAIL_TO = 'paul@skytruth.org'
 FUSION_TABLE_USER ='data@skytruth.org'
 FUSION_TABLE_PASS = 'password'  ## CHANGE
 
-#EXTENSIONS = {
-#        'nrc.extensions.failLogger.FailLogger': 599,
-#}
+EXTENSIONS = {
+        'nrc.extensions.failLogger.FailLogger': 599,
+}
+
+# The RssSubscriptionEmailer uses this template provider to format messages.
+RSS_EMAIL_TEMPLATES_MODULE = ""  # use DefaultEmailTemplates
+# An example configuration entry:
+#RSS_EMAIL_TEMPLATES_MODULE = "C:\Users\Craig\TestEmailTemplates.py"
 

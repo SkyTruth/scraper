@@ -125,8 +125,9 @@ class FracFocusScraper(NrcBot):
             '__EVENTARGUMENT':'Sort$JobDate',
         }
         request = self.create_request(response,response_parts, formdata, self.scrape_and_next)
-        request.meta['num_pages'] = meta['num_pages']
-        request.meta['cookiejar'] = response.meta['cookiejar']
+        if request:
+            request.meta['num_pages'] = meta['num_pages']
+            request.meta['cookiejar'] = response.meta['cookiejar']
         self.log('%s Sorting by Job Date' % response.meta['cookiejar'], log.INFO)
         yield request
 
@@ -154,8 +155,9 @@ class FracFocusScraper(NrcBot):
 #                request.meta['num_pages'] = num_pages - 1
 #                yield request
 
-            request.meta['num_pages'] = num_pages
-            request.meta['cookiejar'] = response.meta['cookiejar']
+            if request:
+                request.meta['num_pages'] = num_pages
+                request.meta['cookiejar'] = response.meta['cookiejar']
             yield request
 
 #        print response_parts['updatePanel.MainContent_UpdatePanel1']
@@ -194,13 +196,23 @@ class FracFocusScraper(NrcBot):
         fd['__EVENTVALIDATION'] = response_parts.get('hiddenField|__EVENTVALIDATION')
         fd['__ASYNCPOST'] = 'true'
 
-        # create new form request
-        request = FormRequest.from_response(
-            response=response,
-            formdata=formdata,
-            dont_click=True,
-            callback=callback,
-            errback=self.error_callback)
+        # defensive check for 'None' entries
+        formdata = dict([(k,'') if v is None else (k,v)
+                         for k,v in formdata.items()])
+
+        # create new form request; log exceptions
+        try:
+            request = FormRequest.from_response(
+                response=response,
+                formdata=formdata,
+                dont_click=True,
+                callback=callback,
+                errback=self.error_callback)
+        except Exception as e:
+            self.log('FracFocusScraper.create_request: %s\n\tformdata:%s'
+                     % (e, formdata), log.ERROR)
+            return None
+
         request.meta['full_response'] = response
 #        self._print_form_request(request)
         return request

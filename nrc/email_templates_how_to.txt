@@ -1,0 +1,117 @@
+
+The Skytruth Emailer System - Customized Templates
+
+The Skytruth scraper system provides for customized alert emails through 
+an installer provided collection of python string.Template objects 
+(see http://docs.python.org/2/library/string.html#template-strings).
+The distribution has a default template provider so there is no 
+requirement to customize the emails.  If the installer wishes to
+do so, the procedure is to write a template provider class and then 
+put the full path to that class file in settings file as the value
+of variable RSS_EMAIL_TEMPLATES_MODULE, for example:
+
+    RSS_EMAIL_TEMPLATES_MODULE = "C:\Users\Craig\EmailTemplates.py"
+
+The template provider class has the following characteristics:
+    - The name of the class is the same as the name of the file 
+      without the '.py' extension.
+    - The class provides two public methods: 
+            get_html_templates()
+            get_text_templates()
+    - Each method returns a python dictionary mapping template names to 
+      template strings.
+
+An example template provider class is in nrc/DefaultEmailTemplates.py.
+This file can be copied and used as a starting point for developing a 
+modified set of templates.
+
+The two template provider methods each return a mapping of the names
+'header', 'message', 'footer', 'body', 'item', 'confirm', and 
+'notice_overflow'.  As indicated by the method names, one method maps these
+names to template strings using html formatted text and the other maps them 
+to format strings in plain text.  This allows the emails to be accepted by 
+a wide variety of email readers.
+
+There are two different messages sent by the Emailer system.  The first email
+is a confirmation message sent to a new subscriber.  The system requires an
+affirmative response before sending alert emails.  The confirmation email
+uses the 'confirm' template only.  Subsequent emails are alert emails. These 
+emails use the other templates except the 'message' template which is not
+currently used.
+
+Within each template string are placeholders where the emailer code will
+place specific information about the alert or about alert system status.
+The placeholdes begin with '$' followed by an alphanumeric identifier.
+The following text describes the seven named templates and the placeholders 
+that are used by each of them.
+
+Template 'confirm' 
+    The confirm template explains the confirmation process to the 
+    user-recipient and provides a url to complete the confirmation process.
+    The html version provides a small map showing the region where the 
+    subscription alerts originate.
+    Template placeholders:
+        $confirm_url
+        $static_map_url (html)
+        $static_map_width (html)
+        $static_map_height (html)
+
+Template 'body' 
+    The 'body' template is the structural template for the four message 
+    elements: header, notices, items, footer.  It determines the order of
+    the elements and can provide spacing or other decorative elements.
+
+    Template placeholders:
+        $header
+        $notices
+        $items
+        $footer
+
+Template 'header' 
+    The 'header' template stores the text that will appear at the top of
+    the message.  In html this includes a small map of the alert region.
+    Except for the map, this template is a static element.
+
+    Template placeholders:
+        $static_map_url (html only)
+        $static_map_width (html only)
+        $static_map_height (htm only)
+
+Template 'notice_overflow'
+    The 'notice_overflow' template is included in the message when there are 
+    more alerts than the Emailer system allows in one message.  It informs 
+    the user-recipient that there are more alerts than he is seeing in the 
+    message, and suggests some remedies.  The placeholder reports the number
+    of alerts in the current message which is also the Emailer system limit.
+
+    Template placeholders:
+        $new_item_count
+
+Template 'item' 
+    The 'item' template is repeated one for each alert item.  It formats the 
+    three parts of the alert, the title, summary, and tags.  In the html 
+    template there is also a link so the user-recipient can click to the 
+    full report.
+
+    Template placeholders:
+        $link (html only)
+        $title
+        $summary
+        $tags
+
+Template 'footer' 
+    The 'footer' template stores the text that will appear at the bottom
+    of the alert email.  It is static except for the unsubscribe_url which
+    allows the user-recipient to unsubscribe from the alerts Emailer system.
+
+    Template placeholders:
+        $unsubscribe_url
+
+Template 'message' 
+    The 'message' template formats a generic message to the user-recipient.  
+    It is not currently in use.
+
+    Template placeholders:
+        $message_text
+
+
