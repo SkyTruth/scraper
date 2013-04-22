@@ -63,4 +63,5 @@ pg_dump --schema-only --clean \
     -t"\"RssFeed\"" \
     -t"\"RssFeedItem\"" \
     -t"\"WV_DrillingPermit\"" \
-    skytruth
+    skytruth | grep -v "CREATE TRIGGER feedentry_insert"
+
