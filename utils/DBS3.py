@@ -63,12 +63,15 @@ class Database(object):
         #sql = 'SELECT %s FROM "%s"' % (columns, tablename)
         c = self.db.cursor()
         c.execute(sql)
-        query_recs = c.fetchall ()
+        #query_recs = c.fetchall ()
 
         # Write header followed by data rows
         fp.write('\t'.join([desc[0] for desc in c.description]) + '\n')
-        for rec in query_recs:
+        #for rec in query_recs:
+        rec = c.fetchone()
+        while rec:
             fp.write('\t'.join([str(x) for x in rec]) + '\n')
+            rec = c.fetchone()
         logging.info("query extracted for S3 storage:%s."%(sql,))
 
     def table_to_tsv(self, tablename, fp, columns='*'):
