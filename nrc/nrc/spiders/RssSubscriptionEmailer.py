@@ -166,7 +166,8 @@ class RssSubscriptionEmailer (NrcBot):
             # get RSS feed
             self.log('reading rss feed: %s' % (sub['rss_url']), log.INFO)
 
-            feed_data = feedparser.parse(sub['rss_url'])
+            rss_complete_url = self.complete_url(sub)
+            feed_data = feedparser.parse(rss_complete_url)
 
             # construct message
             msg_parts = self.compose_message (sub, feed_data)
@@ -191,12 +192,21 @@ class RssSubscriptionEmailer (NrcBot):
                     {'last_email_sent': format_datetime(datetime.now()), 'last_item_updated': msg_parts['last_item_updated']})
 
 
+    def start_update_interval(self, sub):
+        # if last_item_updated is not set, start interval 3 days ago.
+        return sub['last_item_updated'] or datetime.now() - timedelta(days=3)
+
+    def complete_url(self, sub):
+        rss_url = sub['rss_url']
+        start_update = self.start_update_interval(sub)
+        return '%s&after=%s' % (rss_url, start_update)
 
     def compose_message (self, sub, feed_data):
 
         html_message_items = []
         text_message_items = []
-        last_item_updated = sub['last_item_updated'] or datetime.now() - timedelta(days=3) # 3 days ago
+        #last_item_updated = sub['last_item_updated'] or datetime.now() - timedelta(days=3) # 3 days ago
+        last_item_updated = self.start_update_interval(sub)
         new_last_item_updated = last_item_updated
 
         msg_templates = self.get_message_templates ()
