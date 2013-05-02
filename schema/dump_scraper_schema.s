@@ -22,6 +22,7 @@ pg_dump --schema-only --clean \
     -tpublishedfeeditems_id_seq \
     -trssfeed_id_seq \
     -twv_drillingpermit_st_id_seq \
+    -tRSSEmailSubscription_st_id_seq \
     -t"\"AreaCodeMap\"" \
     -t"\"BotTask\"" \
     -t"\"BotTaskError\"" \
