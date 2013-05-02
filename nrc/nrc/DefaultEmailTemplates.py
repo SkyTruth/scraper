@@ -53,8 +53,8 @@ class DefaultEmailTemplates(object):
                 "Unsubscribe</a> from this feed</p>"),
         'body' : Template("$header $notices $items $footer"),
         'item' : Template(
-                '<h2><a href="$link">$title</a></h2><p>$summary</p><p>Tags: '
-                '<b>$tags</b></p>'),
+                '\n<h2><a href="$link">$title</a></h2><p>$summary</p><p>Tags: '
+                '<b>$tags</b></p>\n'),
         'confirm' : Template(
                 "<h1><a href='http://www.skytruth.org'><img width='166' "
                 "height='64' "
