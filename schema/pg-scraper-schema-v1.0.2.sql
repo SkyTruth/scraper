@@ -177,6 +177,7 @@ DROP TABLE public."FracFocusPDF";
 DROP TABLE public."FeedSource";
 DROP SEQUENCE public.feedsource_id_seq;
 DROP TABLE public."FeedEntryTag";
+DROP VIEW public."FT_NRC_Incident_Reports";
 DROP TABLE public."CogisSpill";
 DROP SEQUENCE public.cogisspill_st_id_seq;
 DROP TABLE public."CogisInspection";
@@ -188,6 +189,7 @@ DROP TABLE public."BotTaskError";
 DROP TABLE public."BotTask";
 DROP TABLE public."AreaCodeMap";
 DROP SEQUENCE public.areacodemap_id_seq;
+DROP VIEW public."23051_Incidents";
 DROP TABLE public."NrcScrapedReport";
 DROP TABLE public."NrcParsedReport";
 DROP TABLE public."NrcGeocode";
@@ -223,7 +225,7 @@ ALTER TABLE public."NrcAnalysis" OWNER TO scraper;
 
 CREATE TABLE "NrcGeocode" (
     reportnum integer DEFAULT 0 NOT NULL,
-    source character(16) NOT NULL,
+    source character varying NOT NULL,
     lat double precision DEFAULT 0 NOT NULL,
     lng double precision DEFAULT 0 NOT NULL,
     "precision" numeric(16,0) DEFAULT 0 NOT NULL
@@ -284,6 +286,16 @@ CREATE TABLE "NrcScrapedReport" (
 ALTER TABLE public."NrcScrapedReport" OWNER TO scraper;
 
 --
+-- Name: 23051_Incidents; Type: VIEW; Schema: public; Owner: scraper
+--
+
+CREATE VIEW "23051_Incidents" AS
+    SELECT "NrcReleaseIncidents".reportnum, "NrcReleaseIncidents".calltype, "NrcReleaseIncidents".recieved_datetime, "NrcReleaseIncidents".description, "NrcReleaseIncidents".incident_datetime, "NrcReleaseIncidents".incidenttype, "NrcReleaseIncidents".cause, "NrcReleaseIncidents".location, "NrcReleaseIncidents".state, "NrcReleaseIncidents".nearestcity, "NrcReleaseIncidents".county, "NrcReleaseIncidents".suspected_responsible_company, "NrcReleaseIncidents".medium_affected, "NrcReleaseIncidents".material_name, "NrcReleaseIncidents".full_report_url, "NrcReleaseIncidents".materials_url, "NrcReleaseIncidents".sheen_length, "NrcReleaseIncidents".sheen_width, "NrcReleaseIncidents".reported_spill_volume, "NrcReleaseIncidents".min_spill_volume, "NrcReleaseIncidents".areaid, "NrcReleaseIncidents".blockid, "NrcReleaseIncidents".platform_letter, "NrcReleaseIncidents".zip, "NrcReleaseIncidents".affected_area, "NrcReleaseIncidents".geocode_source, "NrcReleaseIncidents".lat, "NrcReleaseIncidents".lng FROM "NrcReleaseIncidents" WHERE ((((((("NrcReleaseIncidents".areaid)::text ~~ 'MISSISSIPPI%'::text) AND (("NrcReleaseIncidents".blockid)::text = '20'::text)) OR ((("NrcReleaseIncidents".lat >= (28.922)::double precision) AND ("NrcReleaseIncidents".lat <= (28.954)::double precision)) AND (("NrcReleaseIncidents".lng >= ((-88.9945))::double precision) AND ("NrcReleaseIncidents".lng <= ((-88.956))::double precision)))) OR (((("NrcReleaseIncidents".suspected_responsible_company)::text ~~ 'TAYLOR EN%'::text) AND ("NrcReleaseIncidents".blockid IS NULL)) AND ("NrcReleaseIncidents".lat IS NULL))) AND (("NrcReleaseIncidents".medium_affected)::text = 'WATER'::text)) AND ("NrcReleaseIncidents".incident_datetime > '2004-09-15 00:00:00'::timestamp without time zone));
+
+
+ALTER TABLE public."23051_Incidents" OWNER TO scraper;
+
+--
 -- Name: areacodemap_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
 --
 
@@ -304,7 +316,7 @@ ALTER TABLE public.areacodemap_id_seq OWNER TO scraper;
 CREATE TABLE "AreaCodeMap" (
     id integer DEFAULT nextval('areacodemap_id_seq'::regclass) NOT NULL,
     pattern character varying(64) NOT NULL,
-    area_code character(2) NOT NULL
+    area_code character varying(2) NOT NULL
 );
 
 
@@ -372,7 +384,7 @@ ALTER TABLE public."BotTaskStatus" OWNER TO scraper;
 --
 
 CREATE TABLE "CO_Permits" (
-    seqid character(23) NOT NULL,
+    seqid character varying(23) NOT NULL,
     ft_id integer NOT NULL,
     county_name character varying(20),
     received_date date,
@@ -422,7 +434,7 @@ CREATE TABLE "CogisInspection" (
     county_code character varying(10),
     county_name character varying(30),
     date date,
-    doc_href character varying(120),
+    doc_href character varying,
     loc_id character varying(15),
     operator character varying(60),
     insp_api_num character varying(30),
@@ -464,7 +476,7 @@ CREATE TABLE "CogisSpill" (
     county_code character varying(10),
     county_name character varying(30),
     date date,
-    doc_href character varying(120),
+    doc_href character varying,
     facility_id character varying(15),
     operator_num character varying(15),
     company_name character varying(60),
@@ -482,11 +494,21 @@ CREATE TABLE "CogisSpill" (
 ALTER TABLE public."CogisSpill" OWNER TO scraper;
 
 --
+-- Name: FT_NRC_Incident_Reports; Type: VIEW; Schema: public; Owner: scraper
+--
+
+CREATE VIEW "FT_NRC_Incident_Reports" AS
+    SELECT p.time_stamp, r.reportnum, r.calltype, r.recieved_datetime, r.description, r.incident_datetime, r.incidenttype, r.cause, r.location, p.affected_area, r.state, p.county, r.nearestcity, p.zip, p.latitude, p.longitude, p.areaid, p.blockid, p.platform_letter, r.suspected_responsible_company, r.medium_affected, r.material_name, r.full_report_url, r.materials_url, p.sheen_size_length, p.sheen_size_width FROM ("NrcScrapedReport" r JOIN "NrcParsedReport" p ON ((r.reportnum = p.reportnum)));
+
+
+ALTER TABLE public."FT_NRC_Incident_Reports" OWNER TO scraper;
+
+--
 -- Name: FeedEntryTag; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
 --
 
 CREATE TABLE "FeedEntryTag" (
-    feed_entry_id character(36) NOT NULL,
+    feed_entry_id character varying(36) NOT NULL,
     tag character varying(64) NOT NULL,
     comment text
 );
@@ -1209,7 +1231,7 @@ ALTER TABLE public.publishedfeeditems_id_seq OWNER TO scraper;
 CREATE TABLE "PublishedFeedItems" (
     id integer DEFAULT nextval('publishedfeeditems_id_seq'::regclass) NOT NULL,
     task_id integer NOT NULL,
-    feed_item_id character(36) NOT NULL,
+    feed_item_id character varying(36) NOT NULL,
     published timestamp without time zone DEFAULT now() NOT NULL
 );
 
@@ -1221,7 +1243,7 @@ ALTER TABLE public."PublishedFeedItems" OWNER TO scraper;
 --
 
 CREATE TABLE "RSSEmailSubscription" (
-    id character(36) NOT NULL,
+    id character varying(36) NOT NULL,
     confirmed smallint DEFAULT 0 NOT NULL,
     email character varying(255) NOT NULL,
     rss_url character varying(255) NOT NULL,
@@ -1428,7 +1450,7 @@ ALTER TABLE scraper.region OWNER TO scraper;
 --
 
 CREATE TABLE feedentry (
-    id character(36) NOT NULL,
+    id character varying NOT NULL,
     title character varying(255) NOT NULL,
     link character varying(255),
     summary text,
@@ -2168,7 +2190,7 @@ CREATE INDEX region_the_geom_id ON region USING gist (the_geom);
 -- Name: feedentry_insert; Type: RULE; Schema: scraper; Owner: scraper
 --
 
-CREATE RULE feedentry_insert AS ON INSERT TO feedentry WHERE (NOT (EXISTS (SELECT 1 FROM feedentry WHERE (feedentry.id = new.id)))) DO UPDATE feedentry SET regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)), published = (SELECT to_timestamp((GREATEST(floor(date_part('epoch'::text, now())), date_part('epoch'::text, max(feedentry.published))) + (0.001)::double precision)) AS to_timestamp FROM feedentry) WHERE (feedentry.id = new.id);
+CREATE RULE feedentry_insert AS ON INSERT TO feedentry WHERE (NOT (EXISTS (SELECT 1 FROM feedentry WHERE ((feedentry.id)::text = (new.id)::text)))) DO UPDATE feedentry SET regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(feedentry.lng, feedentry.lat), (-1)), published = (SELECT to_timestamp((GREATEST(floor(date_part('epoch'::text, now())), date_part('epoch'::text, max(feedentry.published))) + (0.001)::double precision)) AS to_timestamp FROM feedentry) WHERE ((feedentry.id)::text = (new.id)::text);
 ALTER TABLE scraper.feedentry DISABLE RULE feedentry_insert;
 
 
@@ -2176,7 +2198,7 @@ ALTER TABLE scraper.feedentry DISABLE RULE feedentry_insert;
 -- Name: feedentry_replace; Type: RULE; Schema: scraper; Owner: scraper
 --
 
-CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 FROM feedentry WHERE (feedentry.id = new.id))) DO INSTEAD UPDATE feedentry SET title = new.title, link = new.link, summary = new.summary, content = new.content, lat = new.lat, lng = new.lng, source_id = new.source_id, kml_url = new.kml_url, incident_datetime = new.incident_datetime, tags = new.tags, regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)) WHERE (feedentry.id = new.id);
+CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 FROM feedentry WHERE ((feedentry.id)::text = (new.id)::text))) DO INSTEAD UPDATE feedentry SET title = new.title, link = new.link, summary = new.summary, content = new.content, lat = new.lat, lng = new.lng, source_id = new.source_id, kml_url = new.kml_url, incident_datetime = new.incident_datetime, tags = new.tags, regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)) WHERE ((feedentry.id)::text = (new.id)::text);
 ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 
 
