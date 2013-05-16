@@ -534,7 +534,7 @@ class FracFocusPDF (NrcItem):
     pdf = ContentField()
     filename = ContentField()
 
-def normalize_api (s):
+def normalize_api (s, gmax=None):
     # format an API number as one of;
     #   ddd-ddddd
     #   dd-ddd-ddddd
@@ -550,6 +550,9 @@ def normalize_api (s):
     stripped = strip_non_digits (s)
     grouping = groupings.get(len(stripped))
     if grouping:
+        if gmax is not None and gmax in range(2,6):
+            maxlen = (0,0,8,10,12,14)[gmax]
+            grouping = groupings.get(min(len(stripped), maxlen))
         return '-'.join([stripped[i:j] for i,j in grouping])
     return s
 

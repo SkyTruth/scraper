@@ -56,7 +56,10 @@ class FracFocusAnalyzer(NrcBot):
         analysis['county'] = scrape['county']
         analysis['operator'] = scrape['operator']
         analysis['well_name'] = scrape['well_name']
-        analysis['production_type'] = scrape['well_type'].title()
+        if scrape['well_type'] is None:
+            analysis['production_type'] = 'N/A'
+        else:
+            analysis['production_type'] = scrape['well_type'].title()
         analysis['true_vertical_depth'] = parse['true_vertical_depth']
         analysis['total_water_volume'] = parse['total_water_volume']
         analysis['latitude'] = scrape['latitude']

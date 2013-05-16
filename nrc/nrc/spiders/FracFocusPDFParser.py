@@ -21,7 +21,7 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.shell import inspect_response
 from scrapy import log
 
-from nrc.items import FracFocusParse, FracFocusParseChemical
+from nrc.items import FracFocusParse, FracFocusParseChemical, normalize_api
 from nrc.database import NrcDatabase
 from nrc.NrcBot import NrcBot
 
@@ -48,7 +48,7 @@ class FracFocusPDFParser(NrcBot):
         report = parser.parse_pdf()
         
         if report:
-            
+            rptdata = report.report_data
             try:
                 l = ItemLoader (FracFocusParse ())
                 l.county_in = lambda slist: [s[:20] for s in slist]
@@ -56,6 +56,14 @@ class FracFocusPDFParser(NrcBot):
                 l.operator_in = lambda slist: [s[:50] for s in slist]
                 l.well_name_in = lambda slist: [s[:50] for s in slist]
                 l.production_type_in = lambda slist: [s[:10] for s in slist]
+                # Delete fields of the new format report that are not in the DB table
+                for field in ('end_date', 'federal', 'base_nonwater_volume'):
+                    try:
+                        del rptdata[field]
+                    except KeyError:
+                        pass
+                # normalize the apo to 2-3-5 format
+                rptdata['api'] = normalize_api(rptdata['api'], gmax=3)
                 l.add_value (None, report.report_data)
                 l.add_value('seqid', task_id)
                 item = l.load_item()
