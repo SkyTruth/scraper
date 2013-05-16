@@ -17,6 +17,8 @@ import shutil
 
 # site modules
 import psycopg2
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key as S3Key
 from zipfile import ZipFile

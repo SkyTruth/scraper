@@ -2,6 +2,8 @@
 # encapsulates the database connection
 
 import psycopg2
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 from psycopg2.extras import RealDictCursor, register_uuid
 
 from scrapy import log, exceptions

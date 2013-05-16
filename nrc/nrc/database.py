@@ -9,6 +9,8 @@ import types
 import uuid
 
 import psycopg2
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 from psycopg2.extras import RealDictCursor as DictCursor
 from psycopg2.extras import register_uuid
 #Note:
@@ -170,7 +172,7 @@ class NrcDatabase(object):
         try:
             c.execute (sql, values)
         except:
-            log.msg ("insertItem error on %s:\n\t%s" 
+            log.msg ("insertItem error on %s:\n\t%s"
                      % (table_name, c.mogrify(sql, values)),
                      level=log.INFO)#DEBUG
             raise
@@ -526,7 +528,7 @@ class NrcDatabase(object):
         c = self.db.cursor()
         c.execute( 'UPDATE "FracFocusScrape" SET pdf_download_attempts=pdf_download_attempts+1 WHERE seqid=%s', (seqid,))
 
-    def _do_replace(self, tablenm, 
+    def _do_replace(self, tablenm,
                           fieldnms,
                           values,
                           rtn_clause="",
@@ -543,7 +545,7 @@ class NrcDatabase(object):
                 return c.fetchone()['return_id']
             return
         except Exception as e:
-            if (isinstance(e, psycopg2.IntegrityError) 
+            if (isinstance(e, psycopg2.IntegrityError)
                 and  str(e).find("duplicate key value") >= 0):
                pass
             else:

@@ -24,6 +24,8 @@ from BeautifulSoup import BeautifulSoup
 #from scrapy.stats import stats
 
 import psycopg2
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 from nrc.NrcBot import NrcBot
 from nrc.items import FracFocusScrape, FracFocusPDF

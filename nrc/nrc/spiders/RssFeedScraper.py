@@ -12,6 +12,8 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 from scrapy.shell import inspect_response
 from scrapy import log
 import psycopg2
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 from nrc.items import FeedEntry, FeedEntryTag, RssFeedItem, format_datetime
 from nrc.database import NrcDatabase
