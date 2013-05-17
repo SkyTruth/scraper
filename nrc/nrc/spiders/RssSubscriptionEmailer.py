@@ -180,8 +180,10 @@ class RssSubscriptionEmailer (NrcBot):
                 msg['Subject'] = msg_parts['subject']
                 msg['From'] = 'alerts@skytruth.org'
                 msg['To'] = sub['email']
-                msg.attach(MIMEText(msg_parts['text'], 'plain'))
-                msg.attach(MIMEText(msg_parts['html'], 'html'))
+
+                # The email lib has trouble with unocode, so we encode as ascii
+                msg.attach(MIMEText(msg_parts['text'].encode('ascii', 'replace'), 'plain'))
+                msg.attach(MIMEText(msg_parts['html'].encode('ascii', 'xmlcharrefreplace'), 'html'))
 
                 self.log('sending email to %s with %s new items' % (msg['To'], msg_parts['item_count']), log.INFO)
 
