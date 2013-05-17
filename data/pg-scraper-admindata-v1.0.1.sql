@@ -163,9 +163,9 @@ COPY "BotTaskParams" (task_id, bot, key, value) FROM stdin;
 104	PAViolationScraper	date_offset	14
 126	NightfireScraper	record_count	0
 126	NightfireScraper	file_count	1000000
-4	UshahidiPublisher	last_item_updated	2013-04-04 07:41:11.009
 5	UshahidiPublisher	api_version	LABB
-5	UshahidiPublisher	last_item_updated	2013-04-04 07:41:15.003
+4	UshahidiPublisher	last_item_updated	2013-05-16 07:41:22.001
+5	UshahidiPublisher	last_item_updated	2013-05-16 07:41:22.001
 \.
 
 
@@ -189,14 +189,76 @@ COPY "FeedSource" (id, name) FROM stdin;
 
 
 --
+-- Data for Name: NrcMaterials; Type: TABLE DATA; Schema: public; Owner: scraper
+--
+
+COPY "NrcMaterials" (id, pattern, group_label) FROM stdin;
+1	OIL: CRUDE	oil
+2	CONDENSATE	oil
+3	UNKNOWN OIL	oil
+4	GASOLINE	fuel
+5	OIL: DIESEL	fuel
+6	OIL, FUEL: 	fuel
+7	JET FUEL	fuel
+8	FUEL OIL	fuel
+9	HYDRAULIC	mechanical
+10	OIL, MISC: LUBRICATING	mechanical
+11	TRANSMISSION FLUID	mechanical
+12	OIL, MISC: MOTOR	mechanical
+13	OIL, MISC: TRANSFORMER	mechanical
+\.
+
+
+--
+-- Data for Name: NrcUnits; Type: TABLE DATA; Schema: public; Owner: scraper
+--
+
+COPY "NrcUnits" (id, unit_type, pattern, standardized_unit, conversion_factor) FROM stdin;
+2	LENGTH	METER	FEET	3.28083990000000014
+3	LENGTH	MILE	FEET	5280
+4	VOLUME	GALLON	GALLON	1
+5	VOLUME	BARREL	GALLON	42
+6	VOLUME	TEASPOON	GALLON	0.00130208333000000009
+7	VOLUME	CUP	GALLON	0.0625
+8	VOLUME	CUBIC F[EO][EO]T	CUBIC FT	1.0
+9	VOLUME	DROP	GALLON	1.71321916083000014e-05
+10	VOLUME	LITER	GALLON	0.264172052358000009
+11	VOLUME	QUART	GALLON	0.25
+12	WEIGHT	OUNCE	POUND	0.0625
+13	WEIGHT	POUND	POUND	1
+14	WEIGHT	TON	POUND	2000
+15	LENGTH	Y	FEET	3
+16	LENGTH	INCH	FEET	0.0833333333329999981
+17	OTHER	EACH	EACH	1
+18	VOLUME	PINT	GALLON	0.125
+19	VOLUME	TABLESPOON	GALLON	0.00390625
+20	OTHER	OTHER	OTHER	1
+21	OTHER	PART\\(S\\) PER MILLION	PART(S) PER MILLION	1
+22	OTHER	MIL CBF	MIL CBF	1
+23	OTHER	MILCURIE	MILCURIE(S)	1
+24	VOLUME	CUBIC METER	GALLON	264.172052000000008
+25	WEIGHT	GRAM	POUND	0.00220462261999999996
+26	VOLUME	CUBIC YARD	GALLON	201.974026000000009
+27	LENGTH	KILOMETER	FEET	3280.83989999999994
+28	OTHER	UNK	UNKNOWN	1
+29	OTHER	N/A	NONE	1
+30	OTHER	CURIE	CURIE	1
+31	LENGTH	F	FEET	1
+32	OTHER	UKN	UNKNOWN	1
+33	OTHER	NONE	NONE	1
+34	LENGTH	`[\\s]*FEET	FEET	1
+\.
+
+
+--
 -- Data for Name: RssFeed; Type: TABLE DATA; Schema: public; Owner: scraper
 --
 
 COPY "RssFeed" (id, url, last_read, update_interval_secs, tag, name, source_id) FROM stdin;
-1	http://skytruth-alerts.blogspot.com/feeds/posts/default	2013-04-04 18:51:13.2948	3000	SkyTruth	Skytruth Alert	2
-2	http://blog.skytruth.org/feeds/posts/default/-/Alerts	2013-04-04 18:51:14.587035	3000	SkyTruth	SkyTruth Alert	2
-3	http://www.incidentnews.gov/incidents.atom	2013-04-04 18:51:15.026144	3000	NOAA	NOAA Incident News	3
-6	http://earthquake.usgs.gov/earthquakes/catalogs/7day-M5.xml	2013-04-04 18:51:15.329828	3000	Earthquake	USGS Earthquake Alerts	6
+1	http://skytruth-alerts.blogspot.com/feeds/posts/default	2013-05-16 15:51:07.747569	3000	SkyTruth	Skytruth Alert	2
+2	http://blog.skytruth.org/feeds/posts/default/-/Alerts	2013-05-16 15:51:08.881801	3000	SkyTruth	SkyTruth Alert	2
+3	http://www.incidentnews.gov/incidents.atom	2013-05-16 15:51:09.403804	3000	NOAA	NOAA Incident News	3
+6	http://earthquake.usgs.gov/earthquakes/catalogs/7day-M5.xml	2013-05-16 15:51:09.786463	3000	Earthquake	USGS Earthquake Alerts	6
 \.
 
 

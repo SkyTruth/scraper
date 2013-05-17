@@ -343,6 +343,7 @@ class NrcAnalysis (Item):
     sheen_length = SingleField ()
     sheen_width = SingleField ()
     reported_spill_volume = SingleField ()
+    reported_spill_unit = SingleField ()
     min_spill_volume = SingleField ()
     calltype = SingleField ()
     severity = SingleField ()

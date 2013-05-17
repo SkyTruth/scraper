@@ -140,7 +140,8 @@ class NrcFeedGenerator (NrcBot):
                     self.format_value_area(report_analysis['sheen_width'] * report_analysis['sheen_length'])))
             if report_analysis['reported_spill_volume']:
                 l.add_value ('content', u'Reported Spill Volume: %s' %
-                    (self.format_value_volume(report_analysis['reported_spill_volume'])))
+                    (self.format_value_volume(report_analysis['reported_spill_volume'],
+                                              report_analysis['reported_spill_unit'])))
             if report_analysis['min_spill_volume']:
                 l.add_value ('content', u'SkyTruth Minimum Estimate: %s'%
                     (self.format_value_volume(report_analysis['min_spill_volume'])))
@@ -198,8 +199,11 @@ class NrcFeedGenerator (NrcBot):
         return '%s %s' % (locale.format("%.12g", round(value,2), False), units)
 
     # assumes value in gallons
-    def format_value_volume (self, value):
+    def format_value_volume (self, value, units=None):
         if not value: return ''
-        units = 'gallons'
+        if units is None:
+            units = 'gallons'
+        else:
+            units = units.lower()
         return '%s %s' % (locale.format("%.12g", round(value,2), False), units)
 
