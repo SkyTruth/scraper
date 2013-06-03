@@ -179,7 +179,9 @@ class CogisScraper (NrcBot):
 
     def process_spill_item(self, item):
         stats = self.crawler.stats
-        if item['doc_num'] and item['doc_href'] and item['facility_id']:
+        if ( item.get('doc_num') and
+             item.get('doc_href') and
+             item.get('facility_id')):
             existing_item = self.db.loadItem(item,
                                             {'doc_num':item['doc_num'],
                                              'doc_href':item['doc_href'],
@@ -190,10 +192,14 @@ class CogisScraper (NrcBot):
             else:
                 stats.inc_value('_new_spill_count', spider=self)
                 return item
+        else:
+            self.log('Incomplete spill record for doc_num %s'
+                     %(item.get('doc_num'),),
+                     log.WARNING)
 
     def process_insp_item(self, item):
         stats = self.crawler.stats
-        if item['doc_num'] and item['doc_href'] and item['loc_id']:
+        if item.get('doc_num') and item.get('doc_href') and item.get('loc_id'):
             existing_item = self.db.loadItem(item,
                                              {'doc_num':item['doc_num'],
                                               'doc_href':item['doc_href'],
@@ -204,6 +210,10 @@ class CogisScraper (NrcBot):
             else:
                 stats.inc_value('_new_insp_count', spider=self)
                 return item
+        else:
+            self.log('Incomplete inspection record for doc_num %s'
+                     %(item.get('doc_num'),),
+                     log.WARNING)
 
     def item_stored(self, item, id):
         self.log('Stored item %s to NEW' % (item['doc_num'],), log.INFO)
