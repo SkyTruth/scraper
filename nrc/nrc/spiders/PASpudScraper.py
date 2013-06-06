@@ -6,7 +6,7 @@ import xlrd
 #import uuid
 from string import Template
 from xml.sax.saxutils import escape
-
+from dateutil.parser import parse as parse_date
 
 from scrapy.spider import BaseSpider
 from scrapy.contrib.loader import ItemLoader
@@ -26,6 +26,26 @@ class PASpudScraper (AtomPubScraper):
     name = 'PASpudScraper'
     allowed_domains = None
 
+    def process_item(self, task):
+        from_date = parse_date('11-01-2012', fuzzy=1)
+        to_date =  parse_date('12-31-2013', fuzzy=1)
+        if 'from_date' in task and 'to_date' in task:
+            from_date = parse_date(task['from_date'], fuzzy=1)
+            to_date = parse_date(task['to_date'], fuzzy=1)
+        elif 'date_offset' in task:
+            to_date = datetime.today()
+            from_date = to_date - timedelta(days=int(task['date_offset']))
+
+        date_fmt = "%m/%d/%Y 23:59:59"
+        target_url = ("%s&P_SPUD_START_DATE=%s&P_SPUD_END_DATE=%s"
+                      % (task['target_url'],
+                         from_date.strftime(date_fmt),
+                         to_date.strftime(date_fmt)))
+
+        request = Request (target_url, callback=self.parse_xml)
+        self.log('Downloading xml from url %s' % (target_url), log.INFO)
+        request.meta['task'] = task
+        yield request
 
     def process_row (self, row, task):
 
