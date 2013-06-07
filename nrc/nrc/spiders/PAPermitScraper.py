@@ -51,13 +51,14 @@ class PAPermitScraper (AtomPubScraper):
 
         #screen for bad API
         if not self.base_api(row['WELL_API']):
-            self.log("Invalid API '';".format(row['WELL_API']), log.INFO)
+            self.log("Invalid API '';".format(row['WELL_API']), log.WARNING)
             yield None
+            return
 
         l=ItemLoader (PA_DrillingPermit())
         l.Well_Type_in = lambda slist: [s[:20] for s in slist]
         l.County_Name_in = lambda slist: [s[:20] for s in slist]
-        l.Municipality_in = lambda slist: [s[:20] for s in slist]
+        l.Municipality_Name_in = lambda slist: [s[:20] for s in slist]
         l.Site_Name_in = lambda slist: [s[:50] for s in slist]
 
         #l.add_value ('County_Name', row['COUNTY_NAME'])
