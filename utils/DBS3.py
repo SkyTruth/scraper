@@ -72,7 +72,8 @@ class Database(object):
         #for rec in query_recs:
         rec = c.fetchone()
         while rec:
-            fp.write('\t'.join([str(x) for x in rec]) + '\n')
+            fp.write((u'\t'.join([unicode(x) for x in rec]) + '\n')
+                     .encode('utf-8'))
             rec = c.fetchone()
         logging.info("query extracted for S3 storage:%s."%(sql,))
 
