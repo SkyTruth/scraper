@@ -199,9 +199,9 @@ class CogisLocator (NrcBot):
         params['summ_tmpl'] = spill_summ_template
         params['notestring'] = ""
         params['notes'] = []
-        if item['groundwater'].upper() == 'Y':
+        if item['groundwater'] and item['groundwater'].upper() == 'Y':
             params['notes'].append('groundwater affected')
-        if item['surfacewater'].upper() == 'Y':
+        if item['surfacewater'] and item['surfacewater'].upper() == 'Y':
             params['notes'].append('surfacewater affected')
         return self.create_feed_entry(item, task, params)
 

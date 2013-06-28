@@ -164,9 +164,16 @@ class CogisScraper (NrcBot):
                     process_table_item = self.process_spill_item
                 else:
                     return
-                for field_nm, field_val in zip(
-                        field_names,
-                        [[x] for x in row.select('./td')]):
+#                for field_nm, field_val in zip(
+#                        field_names,
+#                        [[x] for x in row.select('./td')]):
+                field_vals = row.select('./td')
+                for i_, field_nm in enumerate(field_names):
+                    try:
+                        field_val = field_vals[i_]
+                    except IndexError:
+                        field_val = ''
+                    if field_val is None: field_val = ''
                     ldr.add_value(field_nm, field_val)
                 ldr.add_value('doc_href', row.select('./td')[1])
                 ldr.add_value('county_code', response.meta['county'][0])
