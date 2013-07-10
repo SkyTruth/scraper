@@ -6,5 +6,6 @@ pg_dump --data-only \
     -t"\"RssFeed\"" \
     -t"\"NrcUnits\"" \
     -t"\"NrcMaterials\"" \
+    -t"\"NrcScraperTarget\"" \
     skytruth
 
