@@ -5,7 +5,7 @@
 
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import re
 from urlparse import urlsplit, urljoin
 from dateutil.parser import parse as parse_date
@@ -35,6 +35,11 @@ def convert_date_MDY(dt):
 def convert_fuzzy_date(dt):
     new_dt=parse_date(dt,fuzzy=1)
     return format_datetime(new_dt)
+
+def convert_fuzzy_dt(dt):
+    if isinstance(dt, (date, datetime)):
+        return dt
+    return parse_date(dt,fuzzy=1)
 
 def convert_lat_lng(l):
     # assume l is a string with 1, 2 or 3 separate numbers in it
@@ -116,6 +121,15 @@ def extract_largest_float(s):
 def title_case (s):
     return s.title()
 
+def item_dict_to_string(dic, header=None):
+    if header is None:
+        header = dic.__class__.__name__+':'
+    field_list = dict(dic).items()
+    field_list.sort()
+    output_list = [header] + \
+                  ['\t%s: %s'%(f[0], f[1]) for f in field_list]
+    return u'\n'.join(output_list)
+
 class SingleField (Field):
     def __init__(self,**kwargs):
         kwargs['output_processor'] = TakeFirst()
@@ -132,8 +146,6 @@ class KeyField (ContentField):
     def __init__(self,**kwargs):
         kwargs['iskey'] = True
         SingleField.__init__(self,**kwargs)
-
-
 
 class NrcItem (Item):
     insert_mode = 'replace'  #  ( insert | replace )

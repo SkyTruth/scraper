@@ -34,6 +34,7 @@ class NrcBot(BaseSpider):
     status_dropped = 'SKIPPED'
     status_new = 'NEW'
     status_no_data = 'NODATA'
+    status_updated = 'UPDATED'
 
     #TODO: get this from config
     botmaster_url_template = 'http://ewn2.skytruth.org/nrc/botmaster.php?bot={0}'
@@ -53,7 +54,7 @@ class NrcBot(BaseSpider):
         dispatcher.connect(self.spider_closed, signal=signals.spider_closed)
         if 'task_id' in kwargs:
             self.task_id = kwargs['task_id']
-        self.task_params = kwargs            
+        self.task_params = kwargs
         self.exception_count = 0
 
 
@@ -147,6 +148,9 @@ class NrcBot(BaseSpider):
 
     def item_new (self, task_id):
         self.db.setBotTaskStatus(task_id, self.name, self.status_new)
+
+    def item_updated(self, task_id):
+        self.db.setBotTaskStatus(task_id, self.name, self.status_updated)
 
     def item_completed (self, task_id):
         self.db.setBotTaskStatus(task_id, self.name, self.status_done)

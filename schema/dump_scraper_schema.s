@@ -1,8 +1,9 @@
 
-pg_dump --schema-only --clean \
+pg_dump --schema-only --clean -Upostgres \
     -tareacodemap_id_seq \
     -tcogisinspection_st_id_seq \
     -tcogisspill_st_id_seq \
+    -tcogispermit_st_id_seq \
     -tfeedentry_published_seq_seq \
     -tfeedsource_id_seq \
     -tfracfocusparse_seqid_seq \
@@ -31,7 +32,8 @@ pg_dump --schema-only --clean \
     -t"\"CO_Permits\"" \
     -t"\"CogisInspection\"" \
     -t"\"CogisSpill\"" \
-    -t"\"feedentry\"" \
+    -t"\"CogisPermit\"" \
+    -tscraper.feedentry \
     -t"\"FeedEntryTag\"" \
     -t"\"FeedSource\"" \
     -t"\"FracFocusPDF\"" \

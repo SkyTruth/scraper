@@ -10,24 +10,8 @@ SET client_min_messages = warning;
 
 SET search_path = scraper, pg_catalog;
 
-DROP TRIGGER feedentry_insert ON scraper.feedentry;
-SET search_path = public, pg_catalog;
-
-DROP TRIGGER bottaskstatus_update ON public."BotTaskStatus";
-SET search_path = scraper, pg_catalog;
-
 DROP RULE feedentry_replace ON scraper.feedentry;
 DROP RULE feedentry_insert ON scraper.feedentry;
-DROP INDEX scraper.region_the_geom_id;
-DROP INDEX scraper.region_src_like;
-DROP INDEX scraper.region_src;
-DROP INDEX scraper.region_simple_geom_id;
-DROP INDEX scraper.region_name_like;
-DROP INDEX scraper.region_name;
-DROP INDEX scraper.region_code_like;
-DROP INDEX scraper.region_code;
-DROP INDEX scraper.idx_regions_the_geom;
-DROP INDEX scraper.idx_regions_code;
 DROP INDEX scraper.feedentry_tags;
 DROP INDEX scraper.feedentry_regions;
 DROP INDEX scraper.feedentry_published;
@@ -70,11 +54,6 @@ DROP INDEX public.activity_date;
 DROP INDEX public."ViolationID";
 DROP INDEX public."Nightfire_record_Lon_GMTCO";
 DROP INDEX public."Nightfire_record_Lat_GMTCO";
-SET search_path = scraper, pg_catalog;
-
-ALTER TABLE ONLY scraper.region DROP CONSTRAINT region_pkey;
-SET search_path = public, pg_catalog;
-
 ALTER TABLE ONLY public."WV_DrillingPermit" DROP CONSTRAINT "WV_DrillingPermit_pkey";
 ALTER TABLE ONLY public."RssFeed" DROP CONSTRAINT "RssFeed_pkey";
 ALTER TABLE ONLY public."RssFeedItem" DROP CONSTRAINT "RssFeedItem_pkey";
@@ -107,27 +86,18 @@ ALTER TABLE ONLY public."FracFocusPDF" DROP CONSTRAINT "FracFocusPDF_pkey";
 ALTER TABLE ONLY public."FeedSource" DROP CONSTRAINT "FeedSource_pkey";
 ALTER TABLE ONLY public."FeedEntryTag" DROP CONSTRAINT "FeedEntryTag_pkey";
 ALTER TABLE ONLY public."CogisSpill" DROP CONSTRAINT "CogisSpill_pkey";
+ALTER TABLE ONLY public."CogisPermit" DROP CONSTRAINT "CogisPermit_pkey";
 ALTER TABLE ONLY public."CogisInspection" DROP CONSTRAINT "CogisInspection_pkey";
 ALTER TABLE ONLY public."BotTask" DROP CONSTRAINT "BotTask_pkey";
 ALTER TABLE ONLY public."BotTaskStatus" DROP CONSTRAINT "BotTaskStatus_pkey";
 ALTER TABLE ONLY public."BotTaskParams" DROP CONSTRAINT "BotTaskParams_pkey";
 ALTER TABLE ONLY public."BotTaskError" DROP CONSTRAINT "BotTaskError_pkey";
 ALTER TABLE ONLY public."AreaCodeMap" DROP CONSTRAINT "AreaCodeMap_pkey";
-SET search_path = scraper, pg_catalog;
-
-ALTER TABLE scraper.region ALTER COLUMN id DROP DEFAULT;
-SET search_path = public, pg_catalog;
-
 ALTER TABLE public."RSSEmailSubscription" ALTER COLUMN st_id DROP DEFAULT;
 ALTER TABLE public."Nightfire_file" ALTER COLUMN id DROP DEFAULT;
 SET search_path = scraper, pg_catalog;
 
-DROP SEQUENCE scraper.region_id_seq;
 DROP TABLE scraper.feedentry;
-DROP TABLE scraper.region;
-DROP VIEW scraper."EXPORT_FracFocusReport";
-DROP VIEW scraper."EXPORT_FracFocusCombined";
-DROP VIEW scraper."EXPORT_FracFocusChemical";
 SET search_path = public, pg_catalog;
 
 DROP SEQUENCE public.la_lease_blocks_id_seq;
@@ -157,6 +127,8 @@ DROP SEQUENCE public.nrcscrapedmaterial_st_id_seq;
 DROP TABLE public."NrcScrapedFullReport";
 DROP TABLE public."NrcMaterials";
 DROP SEQUENCE public.nrcmaterials_id_seq;
+DROP TABLE public."NrcGeocode";
+DROP TABLE public."NrcAnalysis";
 DROP TABLE public."Nightfire_record";
 DROP SEQUENCE public."Nightfire_file_id_seq";
 DROP TABLE public."Nightfire_file";
@@ -178,8 +150,12 @@ DROP TABLE public."FeedSource";
 DROP SEQUENCE public.feedsource_id_seq;
 DROP TABLE public."FeedEntryTag";
 DROP VIEW public."FT_NRC_Incident_Reports";
+DROP TABLE public."NrcScrapedReport";
+DROP TABLE public."NrcParsedReport";
 DROP TABLE public."CogisSpill";
 DROP SEQUENCE public.cogisspill_st_id_seq;
+DROP TABLE public."CogisPermit";
+DROP SEQUENCE public.cogispermit_st_id_seq;
 DROP TABLE public."CogisInspection";
 DROP SEQUENCE public.cogisinspection_st_id_seq;
 DROP TABLE public."CO_Permits";
@@ -189,112 +165,7 @@ DROP TABLE public."BotTaskError";
 DROP TABLE public."BotTask";
 DROP TABLE public."AreaCodeMap";
 DROP SEQUENCE public.areacodemap_id_seq;
-DROP VIEW public."23051_Incidents";
-DROP TABLE public."NrcScrapedReport";
-DROP TABLE public."NrcParsedReport";
-DROP TABLE public."NrcGeocode";
-DROP TABLE public."NrcAnalysis";
 SET search_path = public, pg_catalog;
-
-SET default_tablespace = '';
-
-SET default_with_oids = false;
-
---
--- Name: NrcAnalysis; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE "NrcAnalysis" (
-    reportnum integer NOT NULL,
-    sheen_length double precision,
-    sheen_width double precision,
-    reported_spill_volume double precision,
-    min_spill_volume double precision,
-    calltype character varying(20),
-    severity character varying(20),
-    region character varying(20),
-    release_type character varying(20),
-    reported_spill_unit character varying
-);
-
-
-ALTER TABLE public."NrcAnalysis" OWNER TO scraper;
-
---
--- Name: NrcGeocode; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE "NrcGeocode" (
-    reportnum integer DEFAULT 0 NOT NULL,
-    source character varying NOT NULL,
-    lat double precision DEFAULT 0 NOT NULL,
-    lng double precision DEFAULT 0 NOT NULL,
-    "precision" numeric(16,0) DEFAULT 0 NOT NULL
-);
-
-
-ALTER TABLE public."NrcGeocode" OWNER TO scraper;
-
---
--- Name: NrcParsedReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE "NrcParsedReport" (
-    reportnum integer NOT NULL,
-    latitude double precision,
-    longitude double precision,
-    areaid character varying(32),
-    blockid character varying(32),
-    zip character varying(16),
-    platform_letter character varying(16),
-    sheen_size_length character varying(16),
-    sheen_size_width character varying(16),
-    affected_area character varying(32),
-    county character varying(32),
-    time_stamp timestamp without time zone DEFAULT now() NOT NULL,
-    ft_id integer
-);
-
-
-ALTER TABLE public."NrcParsedReport" OWNER TO scraper;
-
---
--- Name: NrcScrapedReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE "NrcScrapedReport" (
-    reportnum integer NOT NULL,
-    calltype character varying(16),
-    recieved_datetime timestamp without time zone,
-    description text,
-    incident_datetime timestamp without time zone,
-    incidenttype character varying(32),
-    cause character varying(32),
-    location character varying(255),
-    state character varying(255),
-    nearestcity character varying(255),
-    county character varying(255),
-    suspected_responsible_company character varying(255),
-    medium_affected character varying(255),
-    material_name character varying(255),
-    full_report_url character varying(255),
-    materials_url character varying(255),
-    time_stamp timestamp without time zone DEFAULT now() NOT NULL,
-    ft_id integer
-);
-
-
-ALTER TABLE public."NrcScrapedReport" OWNER TO scraper;
-
---
--- Name: 23051_Incidents; Type: VIEW; Schema: public; Owner: scraper
---
-
-CREATE VIEW "23051_Incidents" AS
-    SELECT "NrcReleaseIncidents".reportnum, "NrcReleaseIncidents".calltype, "NrcReleaseIncidents".recieved_datetime, "NrcReleaseIncidents".description, "NrcReleaseIncidents".incident_datetime, "NrcReleaseIncidents".incidenttype, "NrcReleaseIncidents".cause, "NrcReleaseIncidents".location, "NrcReleaseIncidents".state, "NrcReleaseIncidents".nearestcity, "NrcReleaseIncidents".county, "NrcReleaseIncidents".suspected_responsible_company, "NrcReleaseIncidents".medium_affected, "NrcReleaseIncidents".material_name, "NrcReleaseIncidents".full_report_url, "NrcReleaseIncidents".materials_url, "NrcReleaseIncidents".sheen_length, "NrcReleaseIncidents".sheen_width, "NrcReleaseIncidents".reported_spill_volume, "NrcReleaseIncidents".min_spill_volume, "NrcReleaseIncidents".areaid, "NrcReleaseIncidents".blockid, "NrcReleaseIncidents".platform_letter, "NrcReleaseIncidents".zip, "NrcReleaseIncidents".affected_area, "NrcReleaseIncidents".geocode_source, "NrcReleaseIncidents".lat, "NrcReleaseIncidents".lng FROM "NrcReleaseIncidents" WHERE ((((((("NrcReleaseIncidents".areaid)::text ~~ 'MISSISSIPPI%'::text) AND (("NrcReleaseIncidents".blockid)::text = '20'::text)) OR ((("NrcReleaseIncidents".lat >= (28.922)::double precision) AND ("NrcReleaseIncidents".lat <= (28.954)::double precision)) AND (("NrcReleaseIncidents".lng >= ((-88.9945))::double precision) AND ("NrcReleaseIncidents".lng <= ((-88.956))::double precision)))) OR (((("NrcReleaseIncidents".suspected_responsible_company)::text ~~ 'TAYLOR EN%'::text) AND ("NrcReleaseIncidents".blockid IS NULL)) AND ("NrcReleaseIncidents".lat IS NULL))) AND (("NrcReleaseIncidents".medium_affected)::text = 'WATER'::text)) AND ("NrcReleaseIncidents".incident_datetime > '2004-09-15 00:00:00'::timestamp without time zone));
-
-
-ALTER TABLE public."23051_Incidents" OWNER TO scraper;
 
 --
 -- Name: areacodemap_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
@@ -309,6 +180,10 @@ CREATE SEQUENCE areacodemap_id_seq
 
 
 ALTER TABLE public.areacodemap_id_seq OWNER TO scraper;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
 
 --
 -- Name: AreaCodeMap; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
@@ -454,6 +329,54 @@ CREATE TABLE "CogisInspection" (
 ALTER TABLE public."CogisInspection" OWNER TO scraper;
 
 --
+-- Name: cogispermit_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
+--
+
+CREATE SEQUENCE cogispermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.cogispermit_st_id_seq OWNER TO scraper;
+
+--
+-- Name: CogisPermit; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "CogisPermit" (
+    st_id integer DEFAULT nextval('cogispermit_st_id_seq'::regclass) NOT NULL,
+    ft_id integer,
+    county character varying,
+    date_received date,
+    date_posted date,
+    operator character varying,
+    operator_number character varying,
+    contact character varying,
+    well_name character varying NOT NULL,
+    field character varying,
+    formation character varying,
+    proposed_depth integer,
+    permit_number character varying,
+    permit_type character varying,
+    permit_status character varying,
+    permit_status_date date,
+    permit_link character varying,
+    well_api character varying,
+    well_lat double precision NOT NULL,
+    well_lng double precision NOT NULL,
+    well_status character varying,
+    well_status_date date,
+    well_spud_date date,
+    well_link character varying
+);
+
+
+ALTER TABLE public."CogisPermit" OWNER TO scraper;
+
+--
 -- Name: cogisspill_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
 --
 
@@ -493,6 +416,57 @@ CREATE TABLE "CogisSpill" (
 
 
 ALTER TABLE public."CogisSpill" OWNER TO scraper;
+
+--
+-- Name: NrcParsedReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "NrcParsedReport" (
+    reportnum integer NOT NULL,
+    latitude double precision,
+    longitude double precision,
+    areaid character varying(32),
+    blockid character varying(32),
+    zip character varying(16),
+    platform_letter character varying(16),
+    sheen_size_length character varying(16),
+    sheen_size_width character varying(16),
+    affected_area character varying(32),
+    county character varying(32),
+    time_stamp timestamp without time zone DEFAULT now() NOT NULL,
+    ft_id integer
+);
+
+
+ALTER TABLE public."NrcParsedReport" OWNER TO scraper;
+
+--
+-- Name: NrcScrapedReport; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "NrcScrapedReport" (
+    reportnum integer NOT NULL,
+    calltype character varying(16),
+    recieved_datetime timestamp without time zone,
+    description text,
+    incident_datetime timestamp without time zone,
+    incidenttype character varying(32),
+    cause character varying(32),
+    location character varying(255),
+    state character varying(255),
+    nearestcity character varying(255),
+    county character varying(255),
+    suspected_responsible_company character varying(255),
+    medium_affected character varying(255),
+    material_name character varying(255),
+    full_report_url character varying(255),
+    materials_url character varying(255),
+    time_stamp timestamp without time zone DEFAULT now() NOT NULL,
+    ft_id integer
+);
+
+
+ALTER TABLE public."NrcScrapedReport" OWNER TO scraper;
 
 --
 -- Name: FT_NRC_Incident_Reports; Type: VIEW; Schema: public; Owner: scraper
@@ -905,6 +879,41 @@ CREATE TABLE "Nightfire_record" (
 
 
 ALTER TABLE public."Nightfire_record" OWNER TO scraper;
+
+--
+-- Name: NrcAnalysis; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "NrcAnalysis" (
+    reportnum integer NOT NULL,
+    sheen_length double precision,
+    sheen_width double precision,
+    reported_spill_volume double precision,
+    min_spill_volume double precision,
+    calltype character varying(20),
+    severity character varying(20),
+    region character varying(20),
+    release_type character varying(20),
+    reported_spill_unit character varying
+);
+
+
+ALTER TABLE public."NrcAnalysis" OWNER TO scraper;
+
+--
+-- Name: NrcGeocode; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "NrcGeocode" (
+    reportnum integer DEFAULT 0 NOT NULL,
+    source character varying NOT NULL,
+    lat double precision DEFAULT 0 NOT NULL,
+    lng double precision DEFAULT 0 NOT NULL,
+    "precision" numeric(16,0) DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public."NrcGeocode" OWNER TO scraper;
 
 --
 -- Name: nrcmaterials_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
@@ -1399,54 +1408,6 @@ ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
 SET search_path = scraper, pg_catalog;
 
 --
--- Name: EXPORT_FracFocusChemical; Type: VIEW; Schema: scraper; Owner: scraper
---
-
-CREATE VIEW "EXPORT_FracFocusChemical" AS
-    SELECT "FracFocusReportChemical".seqid AS c_seqid, "FracFocusReportChemical".pdf_seqid, "FracFocusReportChemical".api, "FracFocusReportChemical".fracture_date, "FracFocusReportChemical"."row", COALESCE("FracFocusReportChemical".trade_name, ''::character varying) AS trade_name, COALESCE("FracFocusReportChemical".supplier, ''::character varying) AS supplier, COALESCE("FracFocusReportChemical".purpose, ''::character varying) AS purpose, COALESCE("FracFocusReportChemical".ingredients, ''::character varying) AS ingredients, COALESCE("FracFocusReportChemical".cas_number, ''::character varying) AS cas_number, COALESCE("FracFocusReportChemical".additive_concentration, NULL::double precision) AS additive_concentration, COALESCE("FracFocusReportChemical".hf_fluid_concentration, NULL::double precision) AS hf_fluid_concentration, COALESCE("FracFocusReportChemical".comments, ''::character varying) AS comments, COALESCE("FracFocusReportChemical".cas_type, ''::character varying) AS cas_type FROM (public."FracFocusReportChemical" JOIN public."FracFocusReport" ON (("FracFocusReportChemical".pdf_seqid = "FracFocusReport".pdf_seqid))) WHERE ("FracFocusReport".published < date_trunc('month'::text, now())) ORDER BY "FracFocusReportChemical".seqid;
-
-
-ALTER TABLE scraper."EXPORT_FracFocusChemical" OWNER TO scraper;
-
---
--- Name: EXPORT_FracFocusCombined; Type: VIEW; Schema: scraper; Owner: scraper
---
-
-CREATE VIEW "EXPORT_FracFocusCombined" AS
-    SELECT r.seqid AS r_seqid, r.pdf_seqid, r.api, r.fracture_date, COALESCE(r.state, ''::character varying) AS state, COALESCE(r.county, ''::character varying) AS county, COALESCE(r.operator, ''::character varying) AS operator, COALESCE(r.well_name, ''::character varying) AS well_name, COALESCE(r.production_type, ''::character varying) AS production_type, COALESCE(r.latitude, NULL::double precision) AS latitude, COALESCE(r.longitude, NULL::double precision) AS longitude, COALESCE(r.datum, ''::character varying) AS datum, COALESCE(r.true_vertical_depth, NULL::double precision) AS true_vertical_depth, COALESCE(r.total_water_volume, NULL::double precision) AS total_water_volume, COALESCE(r.published, NULL::timestamp without time zone) AS published, c.seqid AS c_seqid, c."row", COALESCE(c.trade_name, ''::character varying) AS trade_name, COALESCE(c.supplier, ''::character varying) AS supplier, COALESCE(c.purpose, ''::character varying) AS purpose, COALESCE(c.ingredients, ''::character varying) AS ingredients, COALESCE(c.cas_number, ''::character varying) AS cas_number, COALESCE(c.additive_concentration, NULL::double precision) AS additive_concentration, COALESCE(c.hf_fluid_concentration, NULL::double precision) AS hf_fluid_concentration, COALESCE(c.comments, ''::character varying) AS comments, COALESCE(c.cas_type, ''::character varying) AS cas_type FROM (public."FracFocusReport" r JOIN public."FracFocusReportChemical" c ON ((r.pdf_seqid = c.pdf_seqid))) WHERE (r.published < date_trunc('month'::text, now())) ORDER BY r.pdf_seqid, c."row";
-
-
-ALTER TABLE scraper."EXPORT_FracFocusCombined" OWNER TO scraper;
-
---
--- Name: EXPORT_FracFocusReport; Type: VIEW; Schema: scraper; Owner: scraper
---
-
-CREATE VIEW "EXPORT_FracFocusReport" AS
-    SELECT "FracFocusReport".seqid AS r_seqid, "FracFocusReport".pdf_seqid, "FracFocusReport".api, "FracFocusReport".fracture_date, COALESCE("FracFocusReport".state, ''::character varying) AS state, COALESCE("FracFocusReport".county, ''::character varying) AS county, COALESCE("FracFocusReport".operator, ''::character varying) AS operator, COALESCE("FracFocusReport".well_name, ''::character varying) AS well_name, COALESCE("FracFocusReport".production_type, ''::character varying) AS production_type, COALESCE("FracFocusReport".latitude, NULL::double precision) AS latitude, COALESCE("FracFocusReport".longitude, NULL::double precision) AS longitude, COALESCE("FracFocusReport".datum, ''::character varying) AS datum, COALESCE("FracFocusReport".true_vertical_depth, NULL::double precision) AS true_vertical_depth, COALESCE("FracFocusReport".total_water_volume, NULL::double precision) AS total_water_volume, COALESCE("FracFocusReport".published, NULL::timestamp without time zone) AS published FROM public."FracFocusReport" WHERE ("FracFocusReport".published < date_trunc('month'::text, now())) ORDER BY "FracFocusReport".seqid;
-
-
-ALTER TABLE scraper."EXPORT_FracFocusReport" OWNER TO scraper;
-
---
--- Name: region; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE region (
-    id integer NOT NULL,
-    name character varying(256),
-    code character varying(20),
-    the_geom public.geometry,
-    kml text,
-    simple_geom public.geometry,
-    src character varying(128),
-    srcfile character varying(1024)
-);
-
-
-ALTER TABLE scraper.region OWNER TO scraper;
-
---
 -- Name: feedentry; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
 --
 
@@ -1471,27 +1432,6 @@ CREATE TABLE feedentry (
 
 ALTER TABLE scraper.feedentry OWNER TO scraper;
 
---
--- Name: region_id_seq; Type: SEQUENCE; Schema: scraper; Owner: scraper
---
-
-CREATE SEQUENCE region_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE scraper.region_id_seq OWNER TO scraper;
-
---
--- Name: region_id_seq; Type: SEQUENCE OWNED BY; Schema: scraper; Owner: scraper
---
-
-ALTER SEQUENCE region_id_seq OWNED BY region.id;
-
-
 SET search_path = public, pg_catalog;
 
 --
@@ -1507,17 +1447,6 @@ ALTER TABLE ONLY "Nightfire_file" ALTER COLUMN id SET DEFAULT nextval('"Nightfir
 
 ALTER TABLE ONLY "RSSEmailSubscription" ALTER COLUMN st_id SET DEFAULT nextval('"RSSEmailSubscription_st_id_seq"'::regclass);
 
-
-SET search_path = scraper, pg_catalog;
-
---
--- Name: id; Type: DEFAULT; Schema: scraper; Owner: scraper
---
-
-ALTER TABLE ONLY region ALTER COLUMN id SET DEFAULT nextval('region_id_seq'::regclass);
-
-
-SET search_path = public, pg_catalog;
 
 --
 -- Name: AreaCodeMap_pkey; Type: CONSTRAINT; Schema: public; Owner: scraper; Tablespace: 
@@ -1565,6 +1494,14 @@ ALTER TABLE ONLY "BotTask"
 
 ALTER TABLE ONLY "CogisInspection"
     ADD CONSTRAINT "CogisInspection_pkey" PRIMARY KEY (st_id);
+
+
+--
+-- Name: CogisPermit_pkey; Type: CONSTRAINT; Schema: public; Owner: scraper; Tablespace: 
+--
+
+ALTER TABLE ONLY "CogisPermit"
+    ADD CONSTRAINT "CogisPermit_pkey" PRIMARY KEY (st_id);
 
 
 --
@@ -1822,18 +1759,6 @@ ALTER TABLE ONLY "RssFeed"
 ALTER TABLE ONLY "WV_DrillingPermit"
     ADD CONSTRAINT "WV_DrillingPermit_pkey" PRIMARY KEY (st_id);
 
-
-SET search_path = scraper, pg_catalog;
-
---
--- Name: region_pkey; Type: CONSTRAINT; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-ALTER TABLE ONLY region
-    ADD CONSTRAINT region_pkey PRIMARY KEY (id);
-
-
-SET search_path = public, pg_catalog;
 
 --
 -- Name: Nightfire_record_Lat_GMTCO; Type: INDEX; Schema: public; Owner: scraper; Tablespace: 
@@ -2118,76 +2043,6 @@ CREATE INDEX feedentry_tags ON feedentry USING gin (tags);
 
 
 --
--- Name: idx_regions_code; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE UNIQUE INDEX idx_regions_code ON region USING btree (code);
-
-
---
--- Name: idx_regions_the_geom; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX idx_regions_the_geom ON region USING gist (the_geom);
-
-
---
--- Name: region_code; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_code ON region USING btree (code);
-
-
---
--- Name: region_code_like; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_code_like ON region USING btree (code varchar_pattern_ops);
-
-
---
--- Name: region_name; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_name ON region USING btree (name);
-
-
---
--- Name: region_name_like; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_name_like ON region USING btree (name varchar_pattern_ops);
-
-
---
--- Name: region_simple_geom_id; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_simple_geom_id ON region USING gist (simple_geom);
-
-
---
--- Name: region_src; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_src ON region USING btree (src);
-
-
---
--- Name: region_src_like; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_src_like ON region USING btree (src varchar_pattern_ops);
-
-
---
--- Name: region_the_geom_id; Type: INDEX; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE INDEX region_the_geom_id ON region USING gist (the_geom);
-
-
---
 -- Name: feedentry_insert; Type: RULE; Schema: scraper; Owner: scraper
 --
 
@@ -2201,32 +2056,6 @@ ALTER TABLE scraper.feedentry DISABLE RULE feedentry_insert;
 
 CREATE RULE feedentry_replace AS ON INSERT TO feedentry WHERE (EXISTS (SELECT 1 FROM feedentry WHERE ((feedentry.id)::text = (new.id)::text))) DO INSTEAD UPDATE feedentry SET title = new.title, link = new.link, summary = new.summary, content = new.content, lat = new.lat, lng = new.lng, source_id = new.source_id, kml_url = new.kml_url, incident_datetime = new.incident_datetime, tags = new.tags, regions = ARRAY(SELECT region.id FROM region WHERE public.st_contains(region.the_geom, public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)))), the_geom = public.st_setsrid(public.st_makepoint(new.lng, new.lat), (-1)) WHERE ((feedentry.id)::text = (new.id)::text);
 ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
-
-
-SET search_path = public, pg_catalog;
-
---
--- Name: bottaskstatus_update; Type: TRIGGER; Schema: public; Owner: scraper
---
-
-CREATE TRIGGER bottaskstatus_update BEFORE UPDATE ON "BotTaskStatus" FOR EACH ROW EXECUTE PROCEDURE scraper.update_time_stamp_column();
-
-
-SET search_path = scraper, pg_catalog;
-
---
--- Name: feedentry_insert; Type: TRIGGER; Schema: scraper; Owner: scraper
---
-
-
-
---
--- Name: region; Type: ACL; Schema: scraper; Owner: scraper
---
-
-REVOKE ALL ON TABLE region FROM PUBLIC;
-REVOKE ALL ON TABLE region FROM scraper;
-GRANT ALL ON TABLE region TO scraper;
 
 
 --

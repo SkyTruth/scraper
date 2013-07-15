@@ -31,6 +31,9 @@ class NrcDatabase(object):
     def uuid3_str(namespace=uuid.NAMESPACE_URL, name=None):
         return NrcDatabase.uuid_str(uuid.uuid3(namespace, name))
     @staticmethod
+    def uuid4_str():
+        return NrcDatabase.uuid_str(uuid.uuid4())
+    @staticmethod
     def uuid5_str(namespace=uuid.NAMESPACE_URL, name=None):
         return NrcDatabase.uuid_str(uuid.uuid5(namespace, name))
 

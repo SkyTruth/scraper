@@ -1,5 +1,5 @@
 
-pg_dump --data-only \
+pg_dump --data-only -Upostgres \
     -t"\"BotTask\"" \
     -t"\"BotTaskParams\"" \
     -t"\"FeedSource\"" \
