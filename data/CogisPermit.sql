@@ -31,6 +31,6 @@ COPY "BotTaskParams" (task_id, bot, key, value) FROM stdin;
 127	CogisPendingPermits	county	All
 128	CogisApprovedPermits	target_url	http://cogcc.state.co.us/COGIS/DrillingPermits.asp
 128	CogisApprovedPermits	feedsource_id	1002
-\.
 128	CogisApprovedPermits	county	All
+\.
 
