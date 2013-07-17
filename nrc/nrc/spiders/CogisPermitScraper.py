@@ -145,7 +145,7 @@ class CogisPermitScraper (NrcBot):
         rows = hxs.select('//table[2]//tr')
         if (len(rows) == 0):
             self.send_alert ('No data found in COGIS permit search response')
-            self.log('No permit data present in response', log.ERROR)
+            self.log('No permit data present in response', log.WARNING)
         elif (len(rows) <= 1):
             self.log('No permits found in COGIS response', log.WARNING)
         else:
@@ -275,10 +275,11 @@ class CogisPermitScraper (NrcBot):
             self.log(("Record well_name match with mismatched key numbers:\n"
                       "    well_name: {}\n"
                       "    scraped: {}\n"
-                      "    existing: {}").format(well_name,
-                                                 dict(item),
-                                                 dict(existing_item)),
-                     log.ERROR)
+                      "    existing: {}").format(
+                              well_name,
+                              item_dict_to_string(item, "Scraped:"),
+                              item_dict_to_string(existing_item, "Existing")),
+                     log.WARNING)
             self.item_dropped(self.get_permit_task_id(item))
             stats.inc_value('4_invalid_permit_count', spider=self)
             return
@@ -432,6 +433,10 @@ class CogisPermitScraper (NrcBot):
 
         l.add_value ('source_id', params['feedsource_id'])
 
+        ### DURING TESTING PERIOD EMIT DRAFT ALERTS
+        l.add_value ('status', 'draft')
+        ###########################################
+
         feed_item = l.load_item()
 
         if (feed_item.get('lat')
@@ -444,9 +449,6 @@ class CogisPermitScraper (NrcBot):
                 yield self.create_tag (feed_entry_id, tag)
             self.crawler.stats.inc_value('5_permit_alert_count', spider=self)
 
-        ### DURING TESTING PERIOD EMIT DRAFT ALERTS
-        l.add_value ('status', 'draft')
-        ###########################################
 
     def get_tags (self, params):
         tags = []
