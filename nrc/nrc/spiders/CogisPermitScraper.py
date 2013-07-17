@@ -444,6 +444,9 @@ class CogisPermitScraper (NrcBot):
                 yield self.create_tag (feed_entry_id, tag)
             self.crawler.stats.inc_value('5_permit_alert_count', spider=self)
 
+        ### DURING TESTING PERIOD EMIT DRAFT ALERTS
+        l.add_value ('status', 'draft')
+        ###########################################
 
     def get_tags (self, params):
         tags = []
@@ -500,7 +503,7 @@ def parse_well_latlng(text):
     return lat, lng
 
 # NOTE: Extractors return two values because many table fields
-#       have two lines of distinct data.
+#       have two lines with distinct data in each.
 def extract_null(td):
     return [None, None]
 

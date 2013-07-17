@@ -339,6 +339,11 @@ class FeedEntry (Item):
     kml_url = SingleField ()
     incident_datetime = SingleField ()   # date of the incident
     source_item_id = SingleField ()     # id of the item in the source data (usually equal to task_id)
+    status = SingleField ()  # if left null, default is 'published'
+                             # when testing a scraper, set status to 'draft'
+                             # and view alerts at
+                             # http://alerts.skytruth.org/?show=draft
+                             # or 'show=draftonly'
 
 class NrcTag (Item):
     reportnum = SingleField()
