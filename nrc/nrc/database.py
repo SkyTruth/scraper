@@ -190,6 +190,12 @@ class NrcDatabase(object):
             sql = """UPDATE "%s" SET %s WHERE %s='%s'""" % (table_name, field_str, id_field, id)
             self.db.cursor().execute (sql, update_fields.values())
 
+    def deleteItem(self, table_name, id, id_field='id'):
+        sql = """DELETE FROM "%s" WHERE %s='%s';"""%(table_name, id_field, id)
+        c = self.db.cursor()
+        c.execute(sql)
+        return c.rowcount
+
     def loadScrapedReport (self, reportnum):
         c = self.db.cursor(cursor_factory=DictCursor)
         c.execute( 'SELECT * from "NrcScrapedReport" WHERE reportnum=%s', (reportnum,))

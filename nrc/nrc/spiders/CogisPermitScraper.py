@@ -4,6 +4,11 @@ Created on Mon Jul 08 13:34:26 2013
 
 @author: Craig
 """
+#
+# NOTICE:  The two operating scrapers, CogisPendingPermits and
+#          CogisApprovedPermits are derived from CogisPermitScraper
+#          and are located in the last 60 lines of this file.
+#
 
 # standard modules
 from datetime import date, datetime, timedelta
@@ -68,12 +73,12 @@ Permit type: <a href="http://cogcc.state.co.us/COGIS_Help/Permit_Types.htm">
             {permit_type}</a><br>
 Operator: {operator}<br>
 County: {county}<br>
-Application date: {date_received}
-Permit status: {permit_status}
-Status date: {permit_status_date}
-Well name: {well_name}
-Field: {field}
-Planned depth: {proposed_depth}
+Application date: {date_received}<br>
+Permit status: {permit_status}<br>
+Status date: {permit_status_date}<br>
+Well name: {well_name}<br>
+Field: {field}<br>
+Planned depth: {proposed_depth}<br>
 {well_data}
 {notestring}
 """
@@ -84,7 +89,7 @@ Permit application: <a href="{permit_link}">{permit_number}</a><br>
 well_data_tmpl = """\
 Well status: <a href="http://cogcc.state.co.us/COGIS_Help/Status_Codes.htm">
             {well_status}</a><br>
-Well SPUD date: {well_spud_date}
+Well SPUD date: {well_spud_date}<br>
 Well API Record: <a href="{well_link}">{api}</a><br>
 """
 
@@ -237,10 +242,11 @@ class CogisPermitScraper (NrcBot):
         #print "Processing item:", dict(item)
         stats = self.crawler.stats
         stats.inc_value('3_permits_processed_count', spider=self)
+
+        # Check that we have the essential information
         well_name = item.get('well_name', '')
         api = item.get('well_api', '')
         permit_number = item.get('permit_number', '')
-
         if not( well_name and (permit_number or api)):
             self.log('Incomplete permit data for well %s'%(well_name,),
                      log.WARNING)
@@ -248,9 +254,26 @@ class CogisPermitScraper (NrcBot):
             stats.inc_value('4_incomplete_permit_count', spider=self)
             return
 
-        # If a new record, emit item and alert
-        existing_item = self.db.loadItem(item, {'well_name':well_name,})
+        # See if we already have a permit record for this item
+        # If we have an existing item, merge in that data
+        # We unset PROCESSING status because task_id may change in merge
+        self.item_completed(self.get_permit_task_id(item))
+        item, existing_item = self.merge_existing_item(item)
+        # if item is not None it should be updated
+        # if existing_item is not None, it contains the existing data
+        if not item:
+            if existing_item:
+                stats.inc_value('4_existing_permit_count', spider=self)
+            # If there is no existing item, then there is a special condition
+            # which was reported by merge_existing_item method.
+            return
+
+        # Reset items to PROCESSING status so we know if we lose any
+        task_id = self.get_permit_task_id(item)
+        self.item_processing(self.get_permit_task_id(item))
+
         if not existing_item:
+            # this is a new item; yield item and alerts
             self.log('New permit data for %s, well %s'
                      %(self.get_permit_task_id(item), well_name,),
                      log.INFO)
@@ -259,100 +282,134 @@ class CogisPermitScraper (NrcBot):
             stats.inc_value('4_new_permit_count', spider=self)
             return
 
-#        print "New record:", item_dict_to_string(item)
-#        print "Existing record:", item_dict_to_string(existing_item,
-#                                                       'CogisPermit:')
+        # Here we have a modified item and an existing item
+        # Update the item and check for alert conditions.
+        self.log("Record updated for %s, well %s" %(task_id, well_name),
+                 log.INFO)
+        yield item
 
-        # verify item match
-        try:
-            ex_api = existing_item.get('well_api', '')
-            if api and ex_api:
-                assert ex_api == api
-            ex_permit_num = existing_item.get('permit_number', '')
-            if permit_number and ex_permit_num:
-                assert permit_number == ex_permit_num
-        except AssertionError:
-            self.log(("Record well_name match with mismatched key numbers:\n"
-                      "    well_name: {}\n"
-                      "    scraped: {}\n"
-                      "    existing: {}").format(
-                              well_name,
-                              item_dict_to_string(item, "Scraped:"),
-                              item_dict_to_string(existing_item, "Existing")),
-                     log.WARNING)
-            self.item_dropped(self.get_permit_task_id(item))
-            stats.inc_value('4_invalid_permit_count', spider=self)
-            return
-
-        ##################################################################
-        ## merge items
-        # The task_id can change if an Approved record (task_id is api) merges
-        # in an existing permit_number (the preferred task_id for CogisPermit).
-        # Therefore we clear the item's PROCESSING status, do the merge,
-        # then reset status to "PROCESSING" with the possibly new task_id.
-        self.item_completed(self.get_permit_task_id(item))
-        for name, val in existing_item.items():
-            current = item.get(name);
-            if not current and val:
-                item[name] = val
-        # NOTE:  If the existing record shows it 'APPROVED', maintain
-        #        that status.  We may be reprocessing a Pending record
-        #        after the approved record has been downloaded.
-        ex_status = existing_item.get('permit_status')
-        if ex_status == "APPROVED":
-            item['permit_status'] = ex_status
-        status = item.get('permit_status')
-        task_id = self.get_permit_task_id(item)
-        del permit_number  # may not be valid after merge
-        self.item_processing(self.get_permit_task_id(item))
-
-        ##################################################################
-        ## screen for status changes
-        if status != ex_status:
-            self.log('Permit status to %s from %s for %s, well %s'
-                     %(status, ex_status, task_id, well_name,),
-                     log.INFO)
-            yield item
+        #########
+        ## screen for alert data changes
+        # screen for permit status change
+        if (item.get('permit_status')
+            and item.get('permit_status')
+                != existing_item.get('permit_status')):
             for result in self.alert_permit_status(item): yield result
             stats.inc_value('4_update_permit_status_count', spider=self)
             return
 
-        # screen for spud date
-        if ( str(existing_item.get('well_spud_date'))
-             != str(item.get('well_spud_date')) ):
-            self.log('Well spud date %s for %s, well %s.'
-                     %(item.get('well_spud_date'), task_id, well_name),
-                     log.INFO)
-            yield item
+        # screen for new spud date
+        if (item.get('well_spud_date')
+            and str(item.get('well_spud_date'))!=
+                str(existing_item.get('well_spud_date')) ):
             for result in self.alert_spud(item): yield result
             stats.inc_value('4_update_spud_count', spider=self)
             return
 
-        if existing_item.get('well_status') != item.get('well_status'):
-            self.log('Well status to %s from %s for %s, well %s'
-                     %(item['well_status'], existing_item['well_status'],
-                       task_id, well_name),
-                     log.INFO)
-            yield item
+        # screen for well status change
+        if (item.get('well_status')
+            and item.get('well_status') != existing_item.get('well_status')):
             for result in self.alert_well_status(item): yield result
             stats.inc_value('4_update_well_status_count', spider=self)
             return
 
-        # screen for other updaates
-        if ( (existing_item.get('well_lat'), existing_item.get('well_lng'))
-                != (item.get('well_lat'), item.get('well_lng')) ):
-            self.log('Well location set to %s/%s for %s, well %s'
-                     %(item['well_lat'], item['well_lng'], task_id, well_name),
-                     log.INFO)
-            yield item
-            # no alert
-            stats.inc_value('_update_well_location_count', spider=self)
-            return
-
-        # Nothing new here.  Skip it.
-        self.item_dropped(self.get_permit_task_id(item))
-        stats.inc_value('4_existing_permit_count', spider=self)
+        # Count un-alerted updates
+        stats.inc_value('4_update_permit_data_count', spider=self)
         return
+
+    def merge_existing_item(self, item):
+        stats = self.crawler.stats
+        well_name = item.get('well_name')
+
+        # See if existing record exists
+        existing_item = self.db.loadItem(item, {'well_name':well_name,})
+        if not existing_item:
+            return item, None
+
+        #########
+        # verify item match
+        status = item.get('permit_status')
+        ex_status = existing_item.get('permit_status')
+        api = item.get('well_api', '')
+        ex_api = existing_item.get('well_api', '')
+        permit_number = item.get('permit_number', '')
+        ex_permit_num = existing_item.get('permit_number', '')
+        try:
+            if api and ex_api:
+                # do not mismatch on last two of 2-3-5-2 api.
+                assert ex_api[:12] == api[:12]
+            if permit_number and ex_permit_num:
+                assert permit_number == ex_permit_num
+        ## Deal with possible record key value mismatches here
+        except AssertionError:
+            # There is an identification conflict involving the well name.
+            # If either record is permit_status = "WITHDRAWN" then the
+            # well name is being re-used for a new permit.  Ignore
+            # and delete if needed, the "WITHDRAWN" record.
+            if ex_status == "WITHDRAWN":
+                # The existing record is WITHDRAWN, so delete it
+                self.log(("Record well_name match on '%s' has mismatched "
+                          "key numbers.  Delete existing record "
+                          "with permit status WITHDRAWN."
+                            %(well_name,)),
+                          log.WARNING)
+                id = existing_item.get('st_id')
+                if id:
+                    rows = self.db.deleteItem("CogisPermit", id, 'st_id')
+                    assert rows == 1
+                    stats.inc_value('6_deleted_record_count', spider=self)
+
+                existing_item = None
+
+            if status == "WITHDRAWN":
+                # The new record is WITHDRAWN so ignore it.
+                self.log(("Record well_name match on '%s' has mismatched "
+                          "key numbers.  Ignoring scraped record "
+                          "with permit status WITHDRAWN."
+                            %(well_name,)),
+                          log.WARNING)
+                self.item_dropped(self.get_permit_task_id(item))
+                stats.inc_value('4_withdrawn_permit_count', spider=self)
+                item = existing_item = None
+
+            # Unresolved mismatch generates an error.
+            if "WITHDRAWN" not in (status, ex_status):
+                self.log(
+                    "Record well_name match with mismatched key numbers:\n"
+                    "Well name: {}\n{}\n{}".format(
+                        well_name,
+                        item_dict_to_string(item, "Scraped:"),
+                        item_dict_to_string(existing_item, "Existing")),
+                    log.WARNING)
+                self.item_dropped(self.get_permit_task_id(item))
+                stats.inc_value('4_invalid_permit_count', spider=self)
+                item = existing_item = None
+
+            return item, existing_item
+
+        ########
+        ## merge existing values into scraped item
+        ## check for any new values in scraped item
+        update_item = False
+        for name, ex_val in existing_item.items():
+            current = item.get(name);
+            if not current and ex_val:
+                item[name] = ex_val
+            elif ex_status == "APPROVED":
+                # NOTE:  If the existing record shows it 'APPROVED', maintain
+                #        that status.  We may be reprocessing a Pending record
+                #        after the approved record has been downloaded.
+                item['permit_status'] = ex_status
+            elif str(current) != str(ex_val):
+                # We have new information in the scraped record.
+                update_item = True
+                self.log("Permit data '%s' set to %s from %s for well %s"
+                         %(name, item.get(name), existing_item.get(name),
+                           well_name),
+                         log.INFO)
+        if not update_item:
+            return None, existing_item
+        return item, existing_item
 
     def alert_new_permit(self, item):
         params = dict(item)
@@ -663,4 +720,3 @@ class CogisApprovedPermits(CogisPermitScraper):
                          "B1": "Go!",
                         }
         yield self.request_form(task)
-
