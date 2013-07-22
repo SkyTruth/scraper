@@ -164,19 +164,19 @@ COPY "BotTaskParams" (task_id, bot, key, value) FROM stdin;
 126	NightfireScraper	record_count	0
 126	NightfireScraper	file_count	1000000
 5	UshahidiPublisher	api_version	LABB
-5	UshahidiPublisher	last_item_updated	2013-07-10 07:41:26.005
+127	CogisPendingPermits	target_url	http://cogcc.state.co.us/COGIS/DrillingPermits.asp
 6	PAPermitScraper	target_url	http://www.depreportingservices.state.pa.us/ReportServer?%2FOil_Gas%2FPermits_Issued_Detail&P_COUNTY%3Aisnull=True&P_MUNICIPALITY%3Aisnull=True&P_SEARCH_NAME%3Aisnull=True&rs%3AParameterLanguage=&rs%3ACommand=Render&rs%3AFormat=ATOM&rc%3ADataFeed=xAx0x0
+127	CogisPendingPermits	feedsource_id	1002
+127	CogisPendingPermits	permit_link_tmpl	http://ogccweblink.state.co.us/results.aspx?id=%s
+127	CogisPendingPermits	county	All
 7	PASpudScraper	target_url	http://www.depreportingservices.state.pa.us/ReportServer?%2FOil_Gas%2FSpud_External_Data&P_COUNTY%3Aisnull=True&P_MUNICIPALITY%3Aisnull=True&P_REGION%3Aisnull=True&P_OPERATOR%3Aisnull=True&rs%3AParameterLanguage=&rs%3ACommand=Render&rs%3AFormat=ATOM&rc%3ADataFeed=xAx0x0
 6	PAPermitScraper	date_offset	15
 7	PASpudScraper	date_offset	15
-4	UshahidiPublisher	last_item_updated	2013-07-10 07:41:26.005
-127	CogisPendingPermits	target_url	http://cogcc.state.co.us/COGIS/DrillingPermits.asp
 128	CogisApprovedPermits	target_url	http://cogcc.state.co.us/COGIS/DrillingPermits.asp
-127	CogisPendingPermits	feedsource_id	1002
-127	CogisPendingPermits	permit_link_tmpl	http://ogccweblink.state.co.us/results.aspx?id=%s
 128	CogisApprovedPermits	feedsource_id	1002
 128	CogisApprovedPermits	county	All
-127	CogisPendingPermits	county	All
+5	UshahidiPublisher	last_item_updated	2013-07-18 07:41:20.001
+4	UshahidiPublisher	last_item_updated	2013-07-18 07:41:16.007
 \.
 
 
@@ -196,6 +196,7 @@ COPY "FeedSource" (id, name) FROM stdin;
 9	PA DEP Violation
 10	FracFocus
 1001	COGIS
+1002	COGIS
 \.
 
 
@@ -502,20 +503,20 @@ COPY "NrcScraperTarget" (id, done, execute_order, startdate, enddate) FROM stdin
 --
 
 COPY "NrcUnits" (id, unit_type, pattern, standardized_unit, conversion_factor) FROM stdin;
-2	LENGTH	METER	FEET	3.2808399000000001
+2	LENGTH	METER	FEET	3.28083990000000014
 3	LENGTH	MILE	FEET	5280
 4	VOLUME	GALLON	GALLON	1
 5	VOLUME	BARREL	GALLON	42
-6	VOLUME	TEASPOON	GALLON	0.0013020833300000001
+6	VOLUME	TEASPOON	GALLON	0.00130208333000000009
 7	VOLUME	CUP	GALLON	0.0625
-9	VOLUME	DROP	GALLON	1.7132191608300001e-005
-10	VOLUME	LITER	GALLON	0.26417205235800001
+9	VOLUME	DROP	GALLON	1.71321916083000014e-05
+10	VOLUME	LITER	GALLON	0.264172052358000009
 11	VOLUME	QUART	GALLON	0.25
 12	WEIGHT	OUNCE	POUND	0.0625
 13	WEIGHT	POUND	POUND	1
 14	WEIGHT	TON	POUND	2000
 15	LENGTH	Y	FEET	3
-16	LENGTH	INCH	FEET	0.083333333332999998
+16	LENGTH	INCH	FEET	0.0833333333329999981
 17	OTHER	EACH	EACH	1
 18	VOLUME	PINT	GALLON	0.125
 19	VOLUME	TABLESPOON	GALLON	0.00390625
@@ -523,10 +524,10 @@ COPY "NrcUnits" (id, unit_type, pattern, standardized_unit, conversion_factor) F
 21	OTHER	PART\\(S\\) PER MILLION	PART(S) PER MILLION	1
 22	OTHER	MIL CBF	MIL CBF	1
 23	OTHER	MILCURIE	MILCURIE(S)	1
-24	VOLUME	CUBIC METER	GALLON	264.17205200000001
-25	WEIGHT	GRAM	POUND	0.00220462262
-26	VOLUME	CUBIC YARD	GALLON	201.97402600000001
-27	LENGTH	KILOMETER	FEET	3280.8398999999999
+24	VOLUME	CUBIC METER	GALLON	264.172052000000008
+25	WEIGHT	GRAM	POUND	0.00220462261999999996
+26	VOLUME	CUBIC YARD	GALLON	201.974026000000009
+27	LENGTH	KILOMETER	FEET	3280.83989999999994
 28	OTHER	UNK	UNKNOWN	1
 29	OTHER	N/A	NONE	1
 30	OTHER	CURIE	CURIE	1
@@ -543,10 +544,32 @@ COPY "NrcUnits" (id, unit_type, pattern, standardized_unit, conversion_factor) F
 --
 
 COPY "RssFeed" (id, url, last_read, update_interval_secs, tag, name, source_id) FROM stdin;
-1	http://skytruth-alerts.blogspot.com/feeds/posts/default	2013-07-10 13:51:07.877107	3000	SkyTruth	Skytruth Alert	2
-2	http://blog.skytruth.org/feeds/posts/default/-/Alerts	2013-07-10 13:51:09.255653	3000	SkyTruth	SkyTruth Alert	2
-3	http://www.incidentnews.gov/incidents.atom	2013-07-10 13:51:09.332317	3000	NOAA	NOAA Incident News	3
-6	http://earthquake.usgs.gov/earthquakes/catalogs/7day-M5.xml	2013-07-10 13:51:09.683479	3000	Earthquake	USGS Earthquake Alerts	6
+1	http://skytruth-alerts.blogspot.com/feeds/posts/default	2013-07-18 20:51:12.464932	3000	SkyTruth	Skytruth Alert	2
+2	http://blog.skytruth.org/feeds/posts/default/-/Alerts	2013-07-18 20:51:13.760382	3000	SkyTruth	SkyTruth Alert	2
+3	http://www.incidentnews.gov/incidents.atom	2013-07-18 20:51:13.802701	3000	NOAA	NOAA Incident News	3
+6	http://earthquake.usgs.gov/earthquakes/catalogs/7day-M5.xml	2013-07-18 20:51:14.184131	3000	Earthquake	USGS Earthquake Alerts	6
+\.
+
+
+SET search_path = scraper, pg_catalog;
+
+--
+-- Data for Name: feedsource; Type: TABLE DATA; Schema: scraper; Owner: scraper
+--
+
+COPY feedsource (id, name) FROM stdin;
+1	NRC
+2	SkyTruth
+4	PA DEP Permit
+5	PA DEP SPUD
+6	USGS Earthquakes
+3	NOAA
+7	WV DEP Permit Issued
+8	WV DEP Permit Activity
+9	PA DEP Permit Violation
+10	FracFocus
+1002	COGIS
+1001	COGIS
 \.
 
 

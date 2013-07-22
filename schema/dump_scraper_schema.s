@@ -1,5 +1,5 @@
 
-pg_dump --schema-only --clean -Upostgres \
+pg_dump --schema-only --clean \
     -tareacodemap_id_seq \
     -tcogisinspection_st_id_seq \
     -tcogisspill_st_id_seq \

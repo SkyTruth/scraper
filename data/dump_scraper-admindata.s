@@ -1,5 +1,5 @@
 
-pg_dump --data-only -Upostgres \
+pg_dump --data-only \
     -t"\"BotTask\"" \
     -t"\"BotTaskParams\"" \
     -t"\"FeedSource\"" \
@@ -7,5 +7,7 @@ pg_dump --data-only -Upostgres \
     -t"\"NrcUnits\"" \
     -t"\"NrcMaterials\"" \
     -t"\"NrcScraperTarget\"" \
+    -t"\"FeedSource\"" \
+    -tfeedsource \
     skytruth
 
