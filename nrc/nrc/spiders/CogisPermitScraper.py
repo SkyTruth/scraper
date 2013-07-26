@@ -26,8 +26,13 @@ from nrc.items import item_dict_to_string
 from nrc.NrcBot import NrcBot
 
 # CONSTANTS
-request_url = 'http://cogcc.state.co.us/COGIS/DrillingPermits.asp'
-feedsource_id = 1002
+WELL_INFO_INTERVAL = 10   # Days inwhich full well set is checked for changes.
+PRE_PRODUCTION = True  # If true, emit draft alerts
+
+# Moved to BotTaskParams
+#request_url = 'http://cogcc.state.co.us/COGIS/DrillingPermits.asp'
+#feedsource_id = 1002
+
 permit_link_tmpl = 'http://ogccweblink.state.co.us/results.aspx?id=%s'
 
 new_permit_title_tmpl = \
@@ -178,13 +183,44 @@ class CogisPermitScraper (NrcBot):
 
                 self.crawler.stats.inc_value('1_permits_returned_count',
                                              spider=self)
-
-                if item['permit_status'] == 'APPROVED':
-                    yield self.request_well_data(item)
-                else:
-                    for result in self.process_permit_item(item):
-                        yield result
+                for result in self.pre_process_permit_item(item):
+                    yield result
         self.item_completed (task['task_id'])
+
+    def pre_process_permit_item(self, item):
+        stats = self.crawler.stats
+        # Check that we have the essential information
+        well_name = item.get('well_name', '')
+        api = item.get('well_api', '')
+        permit_number = item.get('permit_number', '')
+        if not( well_name and (permit_number or api)):
+            self.log('Incomplete permit data for well %s'%(well_name,),
+                     log.WARNING)
+            self.item_dropped(self.get_permit_task_id(item))
+            stats.inc_value('4_incomplete_permit_count', spider=self)
+            return
+
+        existing_item = self.db.loadItem(item, {'well_name':well_name,})
+
+        # See if we need well data.
+        # Permit must be APPROVED to access well data.
+        if item['permit_status'] == 'APPROVED' and item.get('well_api'):
+            api = item.get('well_api', "")
+            api_int = int(api.replace('-','')[:10])
+            # We will get well data if:
+            #   this is the first time this item has been seen as APPROVED...
+            #   or it's this api's lucky day
+            #      in an update period of WELL_INFO_INTERVAL days
+            if ((not existing_item or
+                  existing_item.get('permit_status') != 'APPROVED')
+                or
+                (api_int % WELL_INFO_INTERVAL ==
+                      date.today().toordinal() % WELL_INFO_INTERVAL) ):
+                    yield self.request_well_data(item)
+                    return
+
+        for result in self.process_permit_item(item):
+            yield result
 
     def get_permit_task_id(self, item):
         api = item.get('well_api', "")
@@ -238,40 +274,36 @@ class CogisPermitScraper (NrcBot):
             yield item
 
     def process_permit_item(self, item):
-        ## Validate item and find matching database item if it exists.
         #print "Processing item:", dict(item)
         stats = self.crawler.stats
         stats.inc_value('3_permits_processed_count', spider=self)
-
-        # Check that we have the essential information
         well_name = item.get('well_name', '')
-        api = item.get('well_api', '')
-        permit_number = item.get('permit_number', '')
-        if not( well_name and (permit_number or api)):
-            self.log('Incomplete permit data for well %s'%(well_name,),
-                     log.WARNING)
-            self.item_dropped(self.get_permit_task_id(item))
-            stats.inc_value('4_incomplete_permit_count', spider=self)
-            return
 
-        # See if we already have a permit record for this item
-        # If we have an existing item, merge in that data
+        # If we already have a permit record for this item
+        # get the existing item and merge it's data into item
         # We unset PROCESSING status because task_id may change in merge
         self.item_completed(self.get_permit_task_id(item))
         item, existing_item = self.merge_existing_item(item)
-        # if item is not None it should be updated
-        # if existing_item is not None, it contains the existing data
+
+        # if item is None it does not contain new data and
+        # need not be updated.
         if not item:
             if existing_item:
                 stats.inc_value('4_existing_permit_count', spider=self)
             # If there is no existing item, then there is a special condition
-            # which was reported by merge_existing_item method.
+            # which was handled in the merge_existing_item method.
+            return
+
+        # first check for required fields
+        if (not (item.get('well_lat') and item.get('well_lng') ) ):
+            stats.inc_value('4_incomplete_permit_count', spider=self)
             return
 
         # Reset items to PROCESSING status so we know if we lose any
         task_id = self.get_permit_task_id(item)
         self.item_processing(self.get_permit_task_id(item))
 
+        # existing_item contains the current database contents.
         if not existing_item:
             # this is a new item; yield item and alerts
             self.log('New permit data for %s, well %s'
@@ -313,7 +345,7 @@ class CogisPermitScraper (NrcBot):
             stats.inc_value('4_update_well_status_count', spider=self)
             return
 
-        # Count un-alerted updates
+        # Count un-alerted data updates
         stats.inc_value('4_update_permit_data_count', spider=self)
         return
 
@@ -343,8 +375,9 @@ class CogisPermitScraper (NrcBot):
         ## Deal with possible record key value mismatches here
         except AssertionError:
             # There is an identification conflict involving the well name.
-            # If either record is permit_status = "WITHDRAWN" then the
-            # well name is being re-used for a new permit.  Ignore
+            # This is usually a permit number mismatch because a permit
+            # is withdrawn and the well_name is being reused for a new permit.
+            # If either record is permit_status = "WITHDRAWN" then ignore
             # and delete if needed, the "WITHDRAWN" record.
             if ex_status == "WITHDRAWN":
                 # The existing record is WITHDRAWN, so delete it
@@ -491,7 +524,8 @@ class CogisPermitScraper (NrcBot):
         l.add_value ('source_id', params['feedsource_id'])
 
         ### DURING TESTING PERIOD EMIT DRAFT ALERTS
-        l.add_value ('status', 'draft')
+        if PRE_PRODUCTION:
+            l.add_value ('status', 'draft')
         ###########################################
 
         feed_item = l.load_item()
@@ -679,9 +713,9 @@ class CogisPendingPermits(CogisPermitScraper):
             (11, extract_ints, "proposed_depth", ""),
             (12, extract_textlines, "field", "field"),
             (13, extract_permit_county, "county", ""),
-#            (1, extract_null, "well_api", "well_spud_date"),
-#            (1, extract_null, "well_status", "well_status_date"),
-#            (1, extract_null, "well_link", ""),
+            (1, extract_null, "well_api", "well_spud_date"),
+            (1, extract_null, "well_status", "well_status_date"),
+            (1, extract_null, "well_link", ""),
             )
 
     def process_item(self, task):
@@ -709,7 +743,7 @@ class CogisApprovedPermits(CogisPermitScraper):
             (8, extract_ints, "proposed_depth", ""),
             (11, extract_textlines, "field", "field"),
             (12, extract_permit_county, "county", ""),
-#            (1, extract_null, "permit_number", "permit_link"),
+            (1, extract_null, "permit_number", "permit_link"),
             )
     def process_item(self, task):
         CogisPermitScraper.feedsource_id = task['feedsource_id']

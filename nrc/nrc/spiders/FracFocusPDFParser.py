@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#NRC Analyzer Spider 
+#NRC Analyzer Spider
 
 import re
 import pprint
@@ -28,25 +28,33 @@ from nrc.NrcBot import NrcBot
 from fracfocustools import FracFocusPDFParser as Parser
 from fracfocustools import Report, Logger
 
-                
+
 class FracFocusPDFParser(NrcBot):
     name = 'FracFocusPDFParser'
     allowed_domains = ['skytruth.org']
     task_conditions = {'FracFocusPDFDownloader':'DONE'}
     job_item_limit = 1000  # maximum total items to process in one job execution
-        
+
     def process_item(self, task_id):
 
         logger = Logger()
-        
+
         # Load the PDF
         pdf = self.db.loadFracFocusPDF(task_id)
         scrape = self.db.loadFracFocusScrape (task_id)
-        
+
         parser = Parser (str(pdf['pdf']), logger)
-        
+
         report = parser.parse_pdf()
-        
+        if report is None:
+            # Here we modify the pdf text by an imperically determined replacement.
+            # I seems that some older pdfs stored in the database don't parse
+            # unless we make this change.
+            pdftext = str(pdf['pdf']).replace("''","'")
+            logger = Logger()
+            parser = Parser (pdftext, logger)
+            report = parser.parse_pdf()
+
         if report:
             rptdata = report.report_data
             try:
@@ -67,12 +75,12 @@ class FracFocusPDFParser(NrcBot):
                 l.add_value (None, report.report_data)
                 l.add_value('seqid', task_id)
                 item = l.load_item()
-                
+
                 if (item['api'] != scrape['api']) or (item['fracture_date'][:10]!=str(scrape['job_date'])):
                     yield self.make_bot_task_error (task_id, 'API_MISMATCH', 'API/Job Date mismatch scraped api: %s, date: %s  parsed api: %s date: %s' %(item['api'],item['fracture_date'],scrape['api'],scrape['job_date']))
-                    
+
                 yield(item)
-                
+
                 for chem in report.chemicals:
                     l = ItemLoader (FracFocusParseChemical())
                     l.supplier_in = lambda slist: [s[:50] for s in slist]
@@ -85,16 +93,16 @@ class FracFocusPDFParser(NrcBot):
                     l.add_value ('api', report.report_data['api'])
                     l.add_value ('fracture_date', report.report_data['fracture_date'])
                     yield l.load_item()
-    
+
             except ValueError as e:
                 logger.error('%s'%e)
                 logger.error(report.report_data)
-                
+
         msg = logger.get_messages()
         if logger.has_error():
             self.log (msg, log.ERROR)
             yield self.make_bot_task_error(task_id, 'PARSE_ERROR', msg)
-#            self.send_alert(msg, context='task_id: %s' %(task_id,) ) 
+#            self.send_alert(msg, context='task_id: %s' %(task_id,) )
             self.item_dropped(task_id)
         else:
             if logger.has_warning():
