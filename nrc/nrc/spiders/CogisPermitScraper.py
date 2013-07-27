@@ -658,7 +658,7 @@ def extract_pending_latlng(td):
     return [None, None]
 
 def extract_permit_county(td):
-    if CogisPermitScraper.county != 'All':
+    if CogisPermitScraper.county.upper() != 'ALL':
         return [CogisPermitScraper.county, '']
     return extract_text(td)
 
