@@ -660,7 +660,7 @@ def extract_pending_latlng(td):
 def extract_permit_county(td):
     if CogisPermitScraper.county.upper() != 'ALL':
         return [CogisPermitScraper.county, '']
-    return extract_text(td)
+    return extract_textlines(td)
 
 def find_well_data(tds,
                    parser,
