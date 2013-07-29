@@ -251,10 +251,13 @@ class CogisPermitScraper (NrcBot):
         # Note that there may be two instances of lat/lng in the record,
         # one is 'as planned' and the 2nd is 'as built'.
         # We want the 2nd if it's there.
-        lat, lng = find_well_data(tds,
-                                  parse_well_latlng,
-                                  "Lat/Long:",
-                                  all=True)[-1]
+        try:
+            lat, lng = find_well_data(tds,
+                                      parse_well_latlng,
+                                      "Lat/Long:",
+                                      all=True)[-1]
+        except IndexError:
+            lat = lng = None
         well_status = find_well_data(tds, parse_text, "Status:", embedded=True)
         well_spud_date = find_well_data(tds,
                                         parse_date,
@@ -270,8 +273,8 @@ class CogisPermitScraper (NrcBot):
         if well_spud_date or 'well_spud_date' not in item:
             item['well_spud_date'] = well_spud_date
 
-        for item in self.process_permit_item(item):
-            yield item
+        for result in self.process_permit_item(item):
+            yield result
 
     def process_permit_item(self, item):
         #print "Processing item:", dict(item)
