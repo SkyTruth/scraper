@@ -26,7 +26,7 @@ class NrcDatabase(object):
     @staticmethod
     def uuid_str(uuid_obj):
         s = uuid_obj.hex
-        return '-'.join( [ s[0:8], s[8:12], s[12:16], s[16:20], s[24:] ] )
+        return '-'.join( [ s[0:8], s[8:12], s[12:16], s[16:20], s[20:] ] )
     @staticmethod
     def uuid3_str(namespace=uuid.NAMESPACE_URL, name=None):
         return NrcDatabase.uuid_str(uuid.uuid3(namespace, name))

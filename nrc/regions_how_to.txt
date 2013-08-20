@@ -36,7 +36,7 @@ Move the geometry into the region table.  For example:
         ST_asKML(ST_Transform(the_geom, 4326)) as kml 
         from "HUC10_Monongahela";
 
-Create the simplified outine with this (replace 'KY' with the code of your new region)
+Create the simplified outline with this (replace 'KY' with the code of your new region)
 
   
     update region r1 set simple_geom = 
