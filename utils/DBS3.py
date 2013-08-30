@@ -8,22 +8,16 @@ Created on Tue Apr 16 11:26:39 2013
 
 # standard modules
 import sys
-import logging
 import os.path
 import argparse
 import tempfile
-import zipfile
 import shutil
 
 # site modules
-import psycopg2
-psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
-psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key as S3Key
-from zipfile import ZipFile
 
 # local modules
+from database import Database
+from s3access import S3access
 import settings
 
 # CONSTANTS
@@ -35,104 +29,6 @@ DB_USER       = settings.DB_USER
 DB_PASSWD     = settings.DB_PASSWD
 DB_DATABASE   = settings.DB_DATABASE
 
-
-class Database(object):
-    def __init__(self, host, user, pwd, dbname):
-        try:
-            self.db = psycopg2.connect (host=host,
-                                        user=user,
-                                        password=pwd,
-                                        database=dbname)
-                                        #charset = 'utf8')
-            self.db.autocommit = True
-
-            logging.info ("Connected to database %s.%s as user %s."
-                    % (host, dbname, user))
-        except psycopg2.Error, e:
-            self.db = None
-            logging.error ("Unable to connect to database: Error %s" % (e,))
-            raise
-
-    def close(self):
-        self.db.close()
-
-    def submitSQL(self, sql):
-        c = self.db.cursor()
-        c.execute(sql)
-        return c
-
-    def query_to_tsv(self, sql, fp, columns='*'):
-        #sql = 'SELECT %s FROM "%s"' % (columns, tablename)
-        c = self.db.cursor()
-        c.execute(sql)
-        #query_recs = c.fetchall ()
-
-        # Write header followed by data rows
-        fp.write('\t'.join([desc[0] for desc in c.description]) + '\n')
-        #for rec in query_recs:
-        rec = c.fetchone()
-        while rec:
-            fp.write((u'\t'.join([unicode(x) for x in rec]) + '\n')
-                     .encode('utf-8'))
-            rec = c.fetchone()
-        logging.info("query extracted for S3 storage:%s."%(sql,))
-
-    def table_to_tsv(self, tablename, fp, columns='*'):
-        sql = 'SELECT %s FROM "%s"' % (columns, tablename)
-        self.query_to_tsv(sql, fp, columns)
-
-class S3access(object):
-    def __init__(self, aws_access, aws_secret):
-        self.conn = S3Connection(aws_access, aws_secret)
-        if self.conn is None:
-            raise RuntimeError("AWS connection failed")
-
-        logging.info ("Connected to AWS through %s."%(aws_access,))
-
-    def close(self):
-        self.conn.close()
-
-    def ship_file(self, fpath, bucketnm, s3name=None, public=None):
-        if s3name is None:
-            s3name = os.path.basename(fpath)
-
-        # set access control
-        if public is None or public == '':
-            acl = 'private'
-        elif public.upper() == 'R':
-            acl = 'public-read'
-        elif public.upper() == 'W':
-            acl = 'public-read-write'
-        else:
-            logging.warn(
-                    "Unrecognized access code '%s'; setting private access."
-                    %(public,))
-            acl = 'private'
-
-        try:
-            bucket = self.conn.lookup(bucketnm)
-            k = S3Key(bucket)
-            k.key = s3name
-            k.set_contents_from_filename(fpath,
-                                         reduced_redundancy=True,
-                                         policy=acl)
-            k.set_acl(acl)
-        except Exception:
-            logging.error (
-                    "S3 connection failed; check AWS access code and password")
-            raise
-
-        logging.info ("S3 file '%s' stored as %s."%(s3name, acl))
-
-    def zip_and_ship_file(self, fpath, bucketnm, s3name=None, public=None):
-        zfpath = fpath + '.zip'
-        zfile = ZipFile(zfpath, 'w', zipfile.ZIP_DEFLATED)
-        try:
-            zfile.write(fpath, os.path.basename(fpath))
-        finally:
-            zfile.close()
-
-        self.ship_file(zfpath, bucketnm, s3name, public)
 
 class DBS3_session(object):
     def __init__(self):
