@@ -56,7 +56,7 @@ class Database(object):
             fp.write((u'\t'.join([unicode(x) for x in rec]) + '\n')
                      .encode('utf-8'))
             rec = c.fetchone()
-        logging.info("query extracted for CKAN storage:{}."
+        logging.debug("query extracted for CKAN storage:{}."
                      .format(pprint.pformat(sql)))
 
     def table_to_tsv(self, tablename, fp, columns='*'):
@@ -100,9 +100,9 @@ class Database(object):
         rec = c.fetchone()
         while rec:
             field_nm, field_type = rec
-            if field_nm in exclude_fields: continue
-            if include_fields and field_nm not in include_fields: continue
-            fields.append((field_nm, field_type))
+            if not ((field_nm in exclude_fields) or
+                    (include_fields and field_nm not in include_fields)):
+                fields.append((field_nm, field_type))
             rec = c.fetchone()
         logging.debug("fields: %s"%(fields,))
         return fields

@@ -19,7 +19,7 @@ import database
 import ckanAccess
 
 # CONSTANTS
-TRANSFERSIZE = 50
+TRANSFERSIZE = 25
 
 """
 Logic:
@@ -96,7 +96,11 @@ def main():
                            settings.DB_PASSWD,
                            settings.DB_DATABASE)
 
-    fields = db.get_table_fields(table_nm)
+    if table_nm == 'FracFocusReport':
+        exclude_fields = ('api_old')
+    else:
+        exclude_fields = ()
+    fields = db.get_table_fields(table_nm, exclude_fields=exclude_fields)
     field_nms = [f[0] for f in fields]
 
     tempdir = tempfile.mkdtemp()
@@ -146,11 +150,15 @@ def main():
             if line:
                 record_count += 1
                 records.append(line)
-            if not line or (record_count % TRANSFERSIZE == 0):
+            if record_count % TRANSFERSIZE == 0:
                 dstore.transfer_tsv_records(field_nms, records)
                 records = []
     finally:
         fp.close()
+    if records:
+            logging.info("TableToCKAN: transferring {} records."
+                         .format(len(records)))
+            dstore.transfer_tsv_records(field_nms, records)
 
 if __name__ == "__main__":
     main()

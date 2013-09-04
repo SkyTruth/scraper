@@ -9,7 +9,7 @@ Created on Wed Aug 28 11:46:55 2013
 import json
 import logging
 import pprint
-#import urllib
+import urllib
 import urllib2
 
 # site modules
@@ -46,11 +46,12 @@ class CKANaccess(object):
     def send_request(self, action, request_dict):
         url = self.base_url + 'api/3/action/' + action
         logging.info('ckan request: {}'.format(url))
-        logging.info('ckan request dict\n{}'
+        logging.debug('ckan request dict\n{}'
                      .format(pprint.pformat(request_dict)))
         request = urllib2.Request(url)
         request.add_header('Authorization', self.ckan_key)
-        response = urllib2.urlopen(request, json.dumps(request_dict))
+	request_string = urllib.quote(json.dumps(request_dict))
+        response = urllib2.urlopen(request, request_string)
         if response.code != 200:
             raise CKANerror("Invalid response code {}".format(response.code))
 
@@ -59,7 +60,7 @@ class CKANaccess(object):
         if response_dict['success'] is not True:
             raise CKANerror("Request failed for {}\n{}"
                             .format(url, response_dict['error']))
-        logging.info('ckan result:\n{}'
+        logging.debug('ckan result:\n{}'
                      .format(pprint.pformat(response_dict['result'])))
         return response_dict['result']
 
@@ -154,7 +155,7 @@ class CKANdataset(object):
                 'aliases': datastore_nm,
                 })
         datastore = self.access.send_request('datastore_create', request_dict)
-        logging.info('datastore_create response:\n{}'
+        logging.debug('datastore_create response:\n{}'
                      .format(pprint.pformat(datastore)))
         # What is this datastore dictionary returned by the api call???
         self.clear_datastore_dict()
@@ -189,13 +190,15 @@ class CKANdatastore(object):
         # format records for ckan
         records = []
         for recline in reclines:
-            datavals = recline.split('\t')
+            #datavals = recline.split('\t')
+            datavals = [None if dv == 'None' else dv.strip()
+                        for dv in recline.split('\t')]
             assert len(fields) == len(datavals)
             records.append(dict(zip(fields, datavals)))
         request_dict = {
                 'resource_id': self.datastore_id,
                 'records': records,
-                'method': 'insert',
+                #'method': 'insert',
                 }
         self.access.send_request('datastore_upsert', request_dict)
 
