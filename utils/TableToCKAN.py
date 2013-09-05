@@ -65,6 +65,13 @@ def get_args():
                         help='Enables creation of a new datastore'
                        )
 
+    parser.add_argument('--as',
+                        dest='dstore_nm', metavar='DATASTORE_NAME',
+                        help='Provide an alternative name for the datastore. '
+                             'By default the datastore '
+                             'is named after the table.'
+                       )
+
     parser.add_argument('dataset',
                         help='The name of the CKAN dataset to hold the table. '
                              'One dataset typically holds several datastores. '
@@ -86,6 +93,7 @@ def main():
     args = get_args()
     table_nm = args.tablename
     dataset = args.dataset
+    dstore_nm = args.dstore_nm if args.dstore_nm else table_nm
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=loglevel)
@@ -128,13 +136,13 @@ def main():
                 })
     # Acquire the datastore object
     try:
-        dstore = dset.get_datastore(table_nm)
+        dstore = dset.get_datastore(dstore_nm)
     except ckanAccess.CKANerror:
         if not args.create_store:
             raise
         ds_fields = [dict(zip(('id', 'type'), f)) for f in fields]
         pks = db.get_table_primarykey(table_nm)
-        dstore = dset.create_datastore(table_nm,
+        dstore = dset.create_datastore(dstore_nm,
                 **{
                 'fields': ds_fields,
                 'primary_key': pks
@@ -151,12 +159,14 @@ def main():
                 record_count += 1
                 records.append(line)
             if record_count % TRANSFERSIZE == 0:
+                logging.debug("TableToCKAN: transferring {} records."
+                             .format(len(records)))
                 dstore.transfer_tsv_records(field_nms, records)
                 records = []
     finally:
         fp.close()
     if records:
-            logging.info("TableToCKAN: transferring {} records."
+            logging.debug("TableToCKAN: transferring {} records."
                          .format(len(records)))
             dstore.transfer_tsv_records(field_nms, records)
 
