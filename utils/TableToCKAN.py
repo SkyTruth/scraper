@@ -31,15 +31,6 @@ Logic:
     Transfer data from tsv to ckan
 """
 
-
-
-# standard modules
-
-# site modules
-
-# local modules
-
-
 def get_args():
     parser = argparse.ArgumentParser(
             description=
@@ -72,6 +63,13 @@ def get_args():
                              'is named after the table.'
                        )
 
+    parser.add_argument('--ckan-site',
+                        choices=('ckan_ewn4', 'ckan_drilling'),
+                        default='ckan_drilling',
+                        help='Identifies the site from the setting file. '
+                             'Currently supports ckan_ewn4 and ckan_drilling. '
+                             'Defaults to ckan_drilling.  '
+                       )
     parser.add_argument('dataset',
                         help='The name of the CKAN dataset to hold the table. '
                              'One dataset typically holds several datastores. '
@@ -94,6 +92,8 @@ def main():
     table_nm = args.tablename
     dataset = args.dataset
     dstore_nm = args.dstore_nm if args.dstore_nm else table_nm
+    ckan_site = args.ckan_site
+    ckan_config = getattr(settings, ckan_site)
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=loglevel)
@@ -119,9 +119,11 @@ def main():
     finally:
         fp.close()
 
+    logging.info("Table data file '{}'.".format(fpath))
+
     # Initialize a CKAN session
-    CKANsession = ckanAccess.CKANaccess(settings.CKAN_BASE_URL,
-                                        settings.CKAN_KEY)
+    CKANsession = ckanAccess.CKANaccess(ckan_config['CKAN_BASE_URL'],
+                                        ckan_config['CKAN_KEY'])
 
     # Acquire the dataset object
     try:
@@ -169,6 +171,18 @@ def main():
             logging.debug("TableToCKAN: transferring {} records."
                          .format(len(records)))
             dstore.transfer_tsv_records(field_nms, records)
+
+# You can use ckanclient to upload files to CKAN's FileStore
+# via the Storage API, example:
+#
+#import ckanclient
+#ckan = ckanclient.CkanClient(base_location='http://datahub.io/api',
+#    api_key='aa9368b2-6f18-4c96-b190-4f3355613d88')
+#ckan.upload_file('my_data.csv')
+#ckan.add_package_resource('my_dataset', 'my_data_file.csv',
+#            resource_type='data', description='...')
+#ckan.add_package_resource('my_dataset', 'http://example.org/foo.txt',
+#            name='Foo', resource_type='metadata', format='csv')
 
 if __name__ == "__main__":
     main()
