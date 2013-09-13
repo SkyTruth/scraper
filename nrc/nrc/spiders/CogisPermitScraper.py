@@ -270,6 +270,11 @@ class CogisPermitScraper (NrcBot):
         if well_status and well_status != item.get('well_status'):
             item['well_status'] = well_status
             item['well_status_date'] = convert_fuzzy_date(str(date.today()))
+        elif 'well_status' not in item:
+            # To avoid keyerrors in feed generator, make sure well keys exist
+            item['well_status'] = None
+            item['well_status_date'] = None
+
         if well_spud_date or 'well_spud_date' not in item:
             item['well_spud_date'] = well_spud_date
 
@@ -408,7 +413,10 @@ class CogisPermitScraper (NrcBot):
                 stats.inc_value('4_withdrawn_permit_count', spider=self)
                 item = existing_item = None
 
-            # Unresolved mismatch generates an error.
+            # Unresolved mismatch.  This could be the result of a past mistake
+            # being correct in the current data.  We delete the existing
+            # record and ignore the current record, and let the next scrape
+            # pick up the latest information on this well.
             if "WITHDRAWN" not in (status, ex_status):
                 self.log(
                     "Record well_name match with mismatched key numbers:\n"
@@ -417,6 +425,12 @@ class CogisPermitScraper (NrcBot):
                         item_dict_to_string(item, "Scraped:"),
                         item_dict_to_string(existing_item, "Existing")),
                     log.WARNING)
+
+                id = existing_item.get('st_id')
+                if id:
+                    rows = self.db.deleteItem("CogisPermit", id, 'st_id')
+                    assert rows == 1
+                    stats.inc_value('6_deleted_record_count', spider=self)
                 self.item_dropped(self.get_permit_task_id(item))
                 stats.inc_value('4_invalid_permit_count', spider=self)
                 item = existing_item = None
