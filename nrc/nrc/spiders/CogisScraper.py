@@ -175,7 +175,10 @@ class CogisScraper (NrcBot):
                         field_val = ''
                     if field_val is None: field_val = ''
                     ldr.add_value(field_nm, field_val)
-                ldr.add_value('doc_href', row.select('./td')[1])
+                try:
+                    ldr.add_value('doc_href', row.select('./td')[1])
+                except IndexError:
+                    ldr.add_value('doc_href', '')
                 ldr.add_value('county_code', response.meta['county'][0])
                 ldr.add_value('county_name', response.meta['county'][1])
                 ldr.load_item()
