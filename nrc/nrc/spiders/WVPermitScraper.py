@@ -19,6 +19,7 @@ from scrapy.selector import HtmlXPathSelector
 
 
 from nrc.items import WV_DrillingPermit, FeedEntry, FeedEntryTag
+from nrc.items import normalize_api
 from nrc.database import NrcDatabase
 from nrc.NrcBot import NrcBot
 from nrc.ExcelScraper import ExcelScraper
@@ -27,6 +28,7 @@ from nrc.ExcelScraper import ExcelScraper
 class WVPermitScraper (NrcBot):
     name = 'WVPermitScraper'
     allowed_domains = None
+
     field_names = [
         'API',
         'permit_number',
@@ -101,6 +103,128 @@ class WVPermitScraper (NrcBot):
         '109' : 'Wyoming'
     }
 
+    formation_ids = None
+    formations = {
+        "TF055": "Alexander",
+        "TF001": "Balltown",
+        "TF002": "Bayard",
+        "TF066": "Beckley",
+        "TF003": "Benson",
+        "TF004": "Berea",
+        "TF005": "Big Dunkard",
+        "TF006": "Big Injun",
+        "TF007": "Big Lime",
+        "TF008": "Big Six",
+        "TF009": "Black River",
+        "TF076": "Blue Monday",
+        "TF072": "Bradford",
+        "TF010": "Braller Shale",
+        "TF011": "Brown Shale",
+        "TF116": "Burkett",
+        "TF088": "Chagrin",
+        "TF093": "Chert",
+        "TF012": "Clinton",
+        "TF108": "Cloyd",
+        "TF013": "Coffee Shale",
+        "TF014": "Cononsaga",
+        "TF106": "Copper Ridge Dolomite",
+        "TF068": "Denmar",
+        "TF015": "Devonian Shale",
+        "TF016": "Elizabeth",
+        "TF017": "Elk",
+        "TF018": "Fifth",
+        "TF096": "Fifth Elk",
+        "TF019": "Fifty-Foot",
+        "TF065": "Firecreek",
+        "TF103": "First Elk",
+        "TF020": "Fourth",
+        "TF109": "Fourth Elk",
+        "TF021": "Gantz",
+        "TF094": "Genesee",
+        "TF022": "Gordon",
+        "TF023": "Gordon Stray",
+        "TF107": "Greenbrier",
+        "TF058": "Haverty",
+        "TF057": "Helderberg",
+        "TF082": "Hillsdale",
+        "TF024": "Huntersville Chert",
+        "TF025": "Huron",
+        "TF026": "Java",
+        "TF113": "Juniata",
+        "TF027": "Keener",
+        "TF080": "Leopold",
+        "TF028": "Little Dunkard",
+        "TF099": "Little Lime",
+        "TF029": "Little Lime",
+        "TF030": "Lockport Dolomite",
+        "TF078": "Lower Beckley",
+        "TF101": "Lower Berea",
+        "TF074": "Lower Horsepen",
+        "TF031": "Lower Huron",
+        "TF092": "Lower Kittanning",
+        "TF032": "Lower Maxton",
+        "TF105": "Lower Speechly",
+        "TF089": "Lower Weir",
+        "TF033": "Loyalhanna",
+        "TF034": "Marcellus Shale",
+        "TF035": "Maxton",
+        "TF112": "Medina",
+        "TF097": "Middle Huron",
+        "TF091": "Middle Kittanning",
+        "TF102": "Middle Maxton",
+        "TF036": "Needmore Shale",
+        "TF115": "Nestor Dolostone",
+        "TF037": "Newburg",
+        "TF038": "Onondaga Limestone",
+        "TF039": "Oriskany Sandstone",
+        "TF069": "Pickway",
+        "TF054": "Pittsburgh",
+        "TF059": "Pocahontas 1",
+        "TF060": "Pocahontas 2",
+        "TF061": "Pocahontas 3",
+        "TF062": "Pocahontas 4",
+        "TF063": "Pocahontas 5",
+        "TF064": "Pocahontas 6",
+        "TF083": "Pocahontas 7",
+        "TF084": "Pocahontas 8",
+        "TF085": "Pocahontas 9",
+        "TF077": "Pocono",
+        "TF117": "Point Pleasant",
+        "TF075": "Price",
+        "TF067": "Price",
+        "TF040": "Princeton",
+        "TF041": "Ravencliffe",
+        "TF042": "Rhinestreet",
+        "TF056": "Riley",
+        "TF043": "Rose Run",
+        "TF044": "Salina",
+        "TF045": "Salt Sands",
+        "TF098": "Second Elk",
+        "TF046": "Speechley",
+        "TF047": "Squaw",
+        "TF048": "Sycamore Grit",
+        "TF087": "Third Elk",
+        "TF071": "Third Riley",
+        "TF049": "Thirty Foot",
+        "TF050": "Trenton",
+        "TF051": "Tuscarora",
+        "TF073": "Tygart",
+        "TF070": "Union",
+        "TF081": "Upper Balltown",
+        "TF100": "Upper Berea",
+        "TF111": "Upper Devonian Shale",
+        "TF079": "Upper Huron",
+        "TF090": "Upper Kittanning",
+        "TF086": "Upper Maxton",
+        "TF095": "Upper Riley",
+        "TF104": "Upper Speechly",
+        "TF110": "Utica",
+        "TF052": "Warren",
+        "TF053": "Weir",
+        "TF114": "Westfalls",
+    }
+    formations_by_county = ("TF034", "TF031")  # Marcellus Shale, Lower Huron
+
     def get_next_county_id (self, task):
         if self.county_ids == None:
             self.county_ids = self.counties.keys()
@@ -110,10 +234,26 @@ class WVPermitScraper (NrcBot):
             return self.county_ids.pop(0)
         return None
 
+    def get_county_from_api(self, api):
+        norm_api = normalize_api(api, gmax=2)
+        if norm_api[3] != '-': return None
+        return self.counties.get(norm_api[:3], None)
+
+    def get_next_formation_id(self):
+        if self.formation_ids == None:
+            self.formation_ids = self.formations.keys()
+            shuffle(self.formation_ids)
+
+        if self.formation_ids:
+            return self.formation_ids.pop(0)
+        return None
+
     def process_item(self, task):
         if task.get('county_id'):
             self.county_ids = [task.get('county_id')]
-            
+        if task.get('formation_id'):
+            self.formation_ids = [task.get('formation_id')]
+
         yield self.form_request(task)
 
     def form_request(self, task):
@@ -125,27 +265,37 @@ class WVPermitScraper (NrcBot):
 
     def parse_form(self, response):
         task = response.meta['task']
-        
-        county_id = self.get_next_county_id(task)
-        if county_id:
-            self.log('Requesting permit data for county %s: %s' % (county_id, self.counties[county_id]), log.INFO)
+
+        #county_id = self.get_next_county_id(task)
+        formation_id = self.get_next_formation_id()
+        if formation_id in self.formations_by_county:
+            pass
+        #if county_id:
+        if formation_id:
+            #self.log('Requesting permit data for county %s: %s' % (county_id, self.counties[county_id]), log.INFO)
+            self.log('Requesting permit data for formation %s: %s' % (formation_id, self.formations[formation_id]), log.INFO)
             request = FormRequest.from_response(response,
-            formdata={
-                'county': county_id,
-                'countyCx': 'on',
-                'searchButton': 'Search',
-                'searchPage': 'yes'
-            },
-            callback=self.parse_page,
-            errback=self.error_callback,
-            dont_filter=True)
+                                                formdata={
+                                                    #'county': county_id,
+                                                    #'countyCx': 'on',
+                                                    'Target_Formation': formation_id,
+                                                    'tfCx': 'on',
+
+                                                    'searchButton': 'Search',
+                                                    'searchPage': 'yes'
+                                                },
+                                                callback=self.parse_page,
+                                                errback=self.error_callback,
+                                                dont_filter=True)
             request.meta['task'] = task
-            request.meta['county_id'] = county_id
+            #request.meta['county_id'] = county_id
+            request.meta['formation_id'] = formation_id
             yield request
 
     def parse_page (self, response):
         task = response.meta['task']
-        county_id = response.meta['county_id']
+        #county_id = response.meta['county_id']
+        formation_id = response.meta['formation_id']
         hxs = HtmlXPathSelector(response)
 
 #        inspect_response (response);
@@ -156,7 +306,8 @@ class WVPermitScraper (NrcBot):
         if len(next) > 0:
             request = Request (urljoin(response.url, next[0].extract()), callback=self.parse_page, errback=self.error_callback, dont_filter=True)
             request.meta['task'] = task
-            request.meta['county_id'] = county_id
+            #request.meta['county_id'] = county_id
+            request.meta['formation_id'] = formation_id
             yield request
         else:
             yield self.form_request(task)
@@ -173,7 +324,9 @@ class WVPermitScraper (NrcBot):
             self.log('Retrieved {0} permits'.format(len(rows)), log.INFO)
             for row in rows:
                 r = dict(zip(self.field_names, [f.strip() for f in row.select ('td/text()').extract_unquoted()]))
-                r['county'] = self.counties[county_id]
+                #r['county'] = self.counties[county_id]
+                r['county'] = self.get_county_from_api(r['API'])
+                r['target_formation'] = self.formations[formation_id]
                 for item in self.process_row(r, task):
                     yield item
 
@@ -192,7 +345,21 @@ class WVPermitScraper (NrcBot):
                     })
 
             if existing_item:
-                stats.inc_value ('_existing_count', spider=self)
+                # Put in test for new method of determining county from API.
+                if existing_item['county'] != item['county']:
+                    self.log('County name mismatch on formation update: api %s, county %s, new county %s'
+                             %(item['API'], existing_item['county'], item['county']), log.ERROR)
+                    return
+                # Check for formation in existing item.
+                if existing_item['target_formation'] == row['target_formation']:
+                    stats.inc_value ('_existing_count', spider=self)
+                else:
+                    # Update existing record with formation name
+                    self.db.updateItem(table_name='WV_DrillingPermit',
+                                       id=existing_item['st_id'],
+                                       update_fields={'target_formation':row['target_formation']},
+                                       id_field='st_id')
+                    stats.inc_value ('_update_count', spider=self)
             else:
                 stats.inc_value ('_new_count', spider=self)
                 yield item

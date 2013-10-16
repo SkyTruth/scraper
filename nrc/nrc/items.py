@@ -505,6 +505,7 @@ class WV_DrillingPermit (NrcItem):
     utm_east = ContentField ()
     datum = ContentField ()
     county = ContentField ()
+    target_formation = ContentField()
 
 
 class FracFocusScrape (NrcItem):
