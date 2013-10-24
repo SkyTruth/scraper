@@ -1,0 +1,5 @@
+#! /bin/bash
+
+source ~/bin/activate
+cd ~/scraper/nrc
+exec scrapy server
