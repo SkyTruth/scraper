@@ -59,6 +59,12 @@ class GeoDatabase(object):
         rec = cur.fetchone ()
         return rec
 
+    def feedentryExists(self, feedentry_id):
+        sql = "SELECT id FROM feedentry WHERE id='%s'"%(feedentry_id,)
+        cur = self.db.cursor()
+        cur.execute (sql)
+        return cur.rowcount > 0
+
     def storeItem (self, item):
         table_name = item.__class__.__name__
 
