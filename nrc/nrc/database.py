@@ -188,7 +188,10 @@ class NrcDatabase(object):
             field_str += '=%s'
 
             sql = """UPDATE "%s" SET %s WHERE %s='%s'""" % (table_name, field_str, id_field, id)
-            self.db.cursor().execute (sql, update_fields.values())
+            c = self.db.cursor()
+            c.execute (sql, update_fields.values())
+            return c.rowcount
+        return -1
 
     def deleteItem(self, table_name, id, id_field='id'):
         sql = """DELETE FROM "%s" WHERE %s='%s';"""%(table_name, id_field, id)
