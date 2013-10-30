@@ -241,7 +241,7 @@ class NrcGeocoder(NrcBot):
             self.log ('Geocode failed for task id %s \n%s\n%s' % (reportnum, response.request, response.body), log.WARNING)
 
             # Do not mark the task as done, we will pick it up again on the next run
-            self.item_processing(task_id)
+            self.item_processing(reportnum)
 
             pass
         else:

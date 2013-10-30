@@ -1,4 +1,5 @@
 --
+
 -- PostgreSQL database dump
 --
 
@@ -70,10 +71,12 @@ DROP INDEX public.activity_date;
 DROP INDEX public."ViolationID";
 DROP INDEX public."Nightfire_record_Lon_GMTCO";
 DROP INDEX public."Nightfire_record_Lat_GMTCO";
+DROP FUNCTION scraper.update_time_stamp_column();
+
 SET search_path = scraper, pg_catalog;
 
 ALTER TABLE ONLY scraper.region DROP CONSTRAINT region_pkey;
-ALTER TABLE ONLY scraper.feedsource DROP CONSTRAINT feedsource_id;
+ALTER TABLE ONLY scraper."CogisPermit" DROP CONSTRAINT "CogisPermit_pkey";
 SET search_path = public, pg_catalog;
 
 ALTER TABLE ONLY public."WV_DrillingPermit" DROP CONSTRAINT "WV_DrillingPermit_pkey";
@@ -108,7 +111,6 @@ ALTER TABLE ONLY public."FracFocusPDF" DROP CONSTRAINT "FracFocusPDF_pkey";
 ALTER TABLE ONLY public."FeedSource" DROP CONSTRAINT "FeedSource_pkey";
 ALTER TABLE ONLY public."FeedEntryTag" DROP CONSTRAINT "FeedEntryTag_pkey";
 ALTER TABLE ONLY public."CogisSpill" DROP CONSTRAINT "CogisSpill_pkey";
-ALTER TABLE ONLY public."CogisPermit" DROP CONSTRAINT "CogisPermit_pkey";
 ALTER TABLE ONLY public."CogisInspection" DROP CONSTRAINT "CogisInspection_pkey";
 ALTER TABLE ONLY public."BotTask" DROP CONSTRAINT "BotTask_pkey";
 ALTER TABLE ONLY public."BotTaskStatus" DROP CONSTRAINT "BotTaskStatus_pkey";
@@ -125,12 +127,13 @@ ALTER TABLE public."Nightfire_file" ALTER COLUMN id DROP DEFAULT;
 SET search_path = scraper, pg_catalog;
 
 DROP SEQUENCE scraper.region_id_seq;
-DROP TABLE scraper.feedsource;
 DROP TABLE scraper.feedentry;
 DROP TABLE scraper.region;
 DROP VIEW scraper."EXPORT_FracFocusReport";
 DROP VIEW scraper."EXPORT_FracFocusCombined";
 DROP VIEW scraper."EXPORT_FracFocusChemical";
+DROP TABLE scraper."CogisPermit";
+DROP SEQUENCE scraper.cogispermit_st_id_seq;
 SET search_path = public, pg_catalog;
 
 DROP SEQUENCE public.la_lease_blocks_id_seq;
@@ -183,12 +186,6 @@ DROP TABLE public."FeedEntryTag";
 DROP VIEW public."FT_NRC_Incident_Reports";
 DROP TABLE public."CogisSpill";
 DROP SEQUENCE public.cogisspill_st_id_seq;
-DROP TABLE public."CogisPermit";
-SET search_path = scraper, pg_catalog;
-
-DROP SEQUENCE scraper.cogispermit_st_id_seq;
-SET search_path = public, pg_catalog;
-
 DROP TABLE public."CogisInspection";
 DROP SEQUENCE public.cogisinspection_st_id_seq;
 DROP TABLE public."CO_Permits";
@@ -472,58 +469,6 @@ CREATE TABLE "CogisInspection" (
 
 
 ALTER TABLE public."CogisInspection" OWNER TO scraper;
-
-SET search_path = scraper, pg_catalog;
-
---
--- Name: cogispermit_st_id_seq; Type: SEQUENCE; Schema: scraper; Owner: scraper
---
-
-CREATE SEQUENCE cogispermit_st_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE scraper.cogispermit_st_id_seq OWNER TO scraper;
-
-SET search_path = public, pg_catalog;
-
---
--- Name: CogisPermit; Type: TABLE; Schema: public; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE "CogisPermit" (
-    st_id integer DEFAULT nextval('scraper.cogispermit_st_id_seq'::regclass) NOT NULL,
-    ft_id integer,
-    county character varying,
-    date_received date,
-    date_posted date,
-    operator character varying,
-    operator_number character varying,
-    contact character varying,
-    well_name character varying NOT NULL,
-    field character varying,
-    formation character varying,
-    proposed_depth integer,
-    permit_number character varying,
-    permit_type character varying,
-    permit_status character varying,
-    permit_status_date date,
-    permit_link character varying,
-    well_api character varying,
-    well_lat double precision NOT NULL,
-    well_lng double precision NOT NULL,
-    well_status character varying,
-    well_status_date date,
-    well_spud_date date,
-    well_link character varying
-);
-
-
-ALTER TABLE public."CogisPermit" OWNER TO scraper;
 
 --
 -- Name: cogisspill_st_id_seq; Type: SEQUENCE; Schema: public; Owner: scraper
@@ -1472,6 +1417,54 @@ ALTER TABLE public.la_lease_blocks_id_seq OWNER TO scraper;
 SET search_path = scraper, pg_catalog;
 
 --
+-- Name: cogispermit_st_id_seq; Type: SEQUENCE; Schema: scraper; Owner: scraper
+--
+
+CREATE SEQUENCE cogispermit_st_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE scraper.cogispermit_st_id_seq OWNER TO scraper;
+
+--
+-- Name: CogisPermit; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
+--
+
+CREATE TABLE "CogisPermit" (
+    st_id integer DEFAULT nextval('cogispermit_st_id_seq'::regclass) NOT NULL,
+    ft_id integer,
+    county character varying,
+    date_received date,
+    date_posted date,
+    operator character varying,
+    operator_number character varying,
+    contact character varying,
+    well_name character varying NOT NULL,
+    field character varying,
+    formation character varying,
+    proposed_depth integer,
+    permit_number character varying,
+    permit_type character varying,
+    permit_status character varying,
+    permit_status_date date,
+    permit_link character varying,
+    well_api character varying,
+    well_lat double precision NOT NULL,
+    well_lng double precision NOT NULL,
+    well_status character varying,
+    well_status_date date,
+    well_spud_date date,
+    well_link character varying
+);
+
+
+ALTER TABLE scraper."CogisPermit" OWNER TO scraper;
+
+--
 -- Name: EXPORT_FracFocusChemical; Type: VIEW; Schema: scraper; Owner: scraper
 --
 
@@ -1544,18 +1537,6 @@ CREATE TABLE feedentry (
 
 
 ALTER TABLE scraper.feedentry OWNER TO scraper;
-
---
--- Name: feedsource; Type: TABLE; Schema: scraper; Owner: scraper; Tablespace: 
---
-
-CREATE TABLE feedsource (
-    id integer NOT NULL,
-    name character varying(32)
-);
-
-
-ALTER TABLE scraper.feedsource OWNER TO scraper;
 
 --
 -- Name: region_id_seq; Type: SEQUENCE; Schema: scraper; Owner: scraper
@@ -1651,14 +1632,6 @@ ALTER TABLE ONLY "BotTask"
 
 ALTER TABLE ONLY "CogisInspection"
     ADD CONSTRAINT "CogisInspection_pkey" PRIMARY KEY (st_id);
-
-
---
--- Name: CogisPermit_pkey; Type: CONSTRAINT; Schema: public; Owner: scraper; Tablespace: 
---
-
-ALTER TABLE ONLY "CogisPermit"
-    ADD CONSTRAINT "CogisPermit_pkey" PRIMARY KEY (st_id);
 
 
 --
@@ -1920,11 +1893,11 @@ ALTER TABLE ONLY "WV_DrillingPermit"
 SET search_path = scraper, pg_catalog;
 
 --
--- Name: feedsource_id; Type: CONSTRAINT; Schema: scraper; Owner: scraper; Tablespace: 
+-- Name: CogisPermit_pkey; Type: CONSTRAINT; Schema: scraper; Owner: scraper; Tablespace: 
 --
 
-ALTER TABLE ONLY feedsource
-    ADD CONSTRAINT feedsource_id PRIMARY KEY (id);
+ALTER TABLE ONLY "CogisPermit"
+    ADD CONSTRAINT "CogisPermit_pkey" PRIMARY KEY (st_id);
 
 
 --
@@ -2307,6 +2280,20 @@ ALTER TABLE scraper.feedentry DISABLE RULE feedentry_replace;
 
 SET search_path = public, pg_catalog;
 
+--
+-- Name: update_time_stamp_column(); Type: FUNCTION; Schema: scraper; Owner: scraper
+--
+
+CREATE FUNCTION update_time_stamp_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+	NEW.time_stamp = now();
+	return NEW;
+    END;
+$$;
+
+ALTER FUNCTION scraper.update_time_stamp_column() OWNER TO scraper;
 --
 -- Name: bottaskstatus_update; Type: TRIGGER; Schema: public; Owner: scraper
 --

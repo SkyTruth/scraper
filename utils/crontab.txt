@@ -1,0 +1,55 @@
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+# 
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+# 
+# For more information see the manual pages of crontab(5) and cron(8)
+# 
+# m h  dom mon dow   command
+03 06 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=BotMonitor
+27 */6 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=PAPermitScraper
+19 07 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=WVPermitScraper
+57 */6 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=PAViolationScraper
+47 */6 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=PASpudScraper
+17 0,6,12,18 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcScraper
+23 0,6,12,18 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcFullReportScraper
+27 0,6,12,18 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcMaterialsScraper
+01 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcExtractor
+21 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcGeocoder
+*/5 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcAnalyzer
+*/5 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcTagger
+41 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=NrcFeedGenerator
+15 20 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisScraper
+15 21 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisSpillScraper
+15 22 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisLocator
+15 23 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisSpillLocator
+45 23 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisPendingPermits
+45 0 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=CogisApprovedPermits
+51 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=RssFeedScraper
+06 5 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusScraper -d task_id=42
+06 7 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusScraper
+24 10 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusPDFDownloader
+#27 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusPDFParser
+#19 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusAnalyzer
+#13 * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=FracFocusFeedGenerator
+07 */4 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=UshahidiPublisher
+* * * * * curl http://localhost:6800/schedule.json -d project=default -d spider=RssSubscriptionEmailer -d task_id=confirm
+11 */4 * * * curl http://localhost:6800/schedule.json -d project=default -d spider=RssSubscriptionEmailer -d task_id=update
+31 * * * * /srv/scraper/bin/python /srv/scraper/trending-alerts/trending-alerts.py
+37 3 * * * /srv/scraper/FTutils/scripts/skytruth-DB2FT.s
+29 2 10 * * /srv/scraper/scraper/utils/fracfocus_export.s
+35 19 * * 7 /srv/scraper/FTutils/scripts/RssEmailSubscriptions-DB2FT.s
