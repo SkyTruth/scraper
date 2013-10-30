@@ -375,6 +375,8 @@ class WVPermitScraper (NrcBot):
         l.target_formation_out = lambda flist: flist
         l.add_value (None, row)
         item = l.load_item()
+        if 'target_formation' not in item:
+            item['target_formation'] = []
 
         if not(item.get('API', False) and
                item.get('permit_type', False) and
@@ -391,6 +393,8 @@ class WVPermitScraper (NrcBot):
                     })
 
             if existing_item:
+                if 'target_formation' not in existing_item:
+                    existing_item['target_formation'] = []
                 # Test for change of county; API county may differ from previous value
                 if existing_item['county'] != item['county']:
                     self.log('County name mismatch on formation update: api %s, county %s, new county %s'
@@ -414,7 +418,10 @@ class WVPermitScraper (NrcBot):
                     self.log('Update %s %s-%s: county %s->%s, formation %s->%s'
                              %(item['API'], item['permit_number'], item['permit_activity_type'],
                                existing_item['county'], item['county'],
-                               existing_item['target_formation'], item['target_formation']),
+                               existing_item['target_formation'] 
+                               if 'target_foramtion' in existing_item else '[]',
+                               item['target_formation']
+                               if 'target_formation' in item else '[]'),
                              log.DEBUG)
                     n = self.db.updateItem(
                             table_name='WV_DrillingPermit',

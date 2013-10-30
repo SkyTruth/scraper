@@ -19,11 +19,13 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.1 (
 ITEM_PIPELINES = [
     'nrc.pipelines.NrcDatabasePipeline'
 ]
+DOWNLOAD_TIMEOUT = 900   # 15 min  (for WV Marcellus Shale permits -- 22MB)
 
 DOWNLOADER_MIDDLEWARES = {
     'nrc.middlewares.CustomCookiesMiddleware': 700,
     'scrapy.contrib.downloadermiddleware.cookies.CookiesMiddleware': None,
     'scrapy.contrib.downloadermiddleware.httpauth.HttpAuthMiddleware': None,
+    'scrapy.contrib.downloadermiddleware.downloadtimeout.DownloadTimeoutMiddleware':800,
 }
 
 #CONCURRENT_REQUESTS_PER_SPIDER = 1
