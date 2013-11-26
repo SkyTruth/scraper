@@ -44,6 +44,7 @@ class FracFocusAnalyzer(NrcBot):
                     level=log.ERROR)
             self.item_dropped(task_id)
             yield None
+            return
 
         chemicals = self.db.loadFracFocusParseChemicals (task_id)
 
