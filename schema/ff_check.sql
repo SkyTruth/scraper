@@ -22,13 +22,13 @@
         on c.pdf_seqid = r.pdf_seqid
     where r.pdf_seqid is NULL;
 
-    CREATE VIEW FFScrape_wo_report as
+    CREATE VIEW FFS_wo_FFR as
     select s.* from "FracFocusScrape" s
         left join "FracFocusReport" r
         on s.seqid = r.pdf_seqid
     where r.seqid is NULL;
 
-    CREATE VIEW FFReport_wo_scrape as
+    CREATE VIEW FFR_wo_FFS as
     select r.* from "FracFocusReport" r
         left join "FracFocusScrape" s
         on r.pdf_seqid = s.seqid
