@@ -5,7 +5,7 @@ psql skytruth <<END
 \pset fieldsep ' '
 select 'FFS         ', count(*) from "FracFocusScrape";
 select 'FFR         ', count(*) from "FracFocusReport";
-select 'FFC         ', count(*) from "FracFocusReportChemical";
+select 'FFRC        ', count(*) from "FracFocusReportChemical";
 
 select 'FFR_dup     ', count(*) from ffr_dup;
 select 'FFR_0line   ', count(*) from ffr_0line;
