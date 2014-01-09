@@ -8,6 +8,7 @@ pg_dump --data-only \
     -t"\"NrcMaterials\"" \
     -t"\"NrcScraperTarget\"" \
     -t"\"FeedSource\"" \
+    -t"\"FracFocusTask\"" \
     -tfeedsource \
     skytruth
 

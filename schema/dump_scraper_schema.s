@@ -24,6 +24,7 @@ pg_dump --schema-only --clean \
     -trssfeed_id_seq \
     -twv_drillingpermit_st_id_seq \
     -tRSSEmailSubscription_st_id_seq \
+    -tfracfocustask_seqid_seq \
     -t"\"AreaCodeMap\"" \
     -t"\"BotTask\"" \
     -t"\"BotTaskError\"" \
@@ -44,6 +45,7 @@ pg_dump --schema-only --clean \
     -t"\"FracFocusReport\"" \
     -t"\"FracFocusReportChemical\"" \
     -t"\"FracFocusScrape\"" \
+    -t"\"FracFocusTask\"" \
     -t"\"GeocodeCache\"" \
     -t"\"LA_LeaseBlocks\"" \
     -t"\"LeaseBlockCentroid\"" \
