@@ -5,7 +5,7 @@ import re
 import pprint
 
 from StringIO import StringIO
-from pdfminer.pdfparser import PDFParser, PDFDocument
+#from pdfminer.pdfparser import PDFParser, PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer.layout import LTContainer, LTComponent, LTRect, LTLine, LAParams, LTTextLine
