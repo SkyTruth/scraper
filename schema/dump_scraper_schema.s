@@ -75,5 +75,10 @@ pg_dump --schema-only --clean \
     -t"\"FT_NRC_Incident_Reports\"" \
     -t"\"NrcReleaseIncidents\"" \
     -t"\"23051_Incidents\"" \
+    -tffr_dup \
+    -tffr_0line \
+    -tffrc_orphan \
+    -tffs_wo_ffr \
+    -tffr_wo_ffs \
     skytruth | grep -v "CREATE TRIGGER feedentry_insert"
 
