@@ -48,4 +48,6 @@ settings.py
 .#*
 \#*
 .idea
-env*  # kwurster env stuff
+env2
+env3
+ 
