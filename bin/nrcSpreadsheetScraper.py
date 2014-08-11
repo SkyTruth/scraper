@@ -216,6 +216,8 @@ def main(args):
     #/*     Defaults
     #/* ======================================================================= */#
 
+    download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
+
     #/* ======================================================================= */#
     #/*     Containers
     #/* ======================================================================= */#
@@ -243,8 +245,6 @@ def main(args):
             elif arg in ('--license', '-usage'):
                 return print_license()
 
-            # URL to
-
             # Positional arguments and errors
             else:
 
@@ -258,7 +258,6 @@ def main(args):
             arg_error = True
             print("ERROR: An argument has invalid parameters")
 
-
     #/* ======================================================================= */#
     #/*     Validate parameters
     #/* ======================================================================= */#
@@ -269,7 +268,6 @@ def main(args):
 
     # Success
     return 0
-
 
 
 #/* ======================================================================= */#
