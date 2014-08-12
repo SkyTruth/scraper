@@ -40,10 +40,12 @@ Scraper for the "temporary" NRC incident spreadsheet
 from __future__ import division
 from __future__ import print_function
 
-import json
+import os
 from os.path import *
-import psycopg2
 import sys
+
+import psycopg2
+from psycopg2 import extras as psycopg2_extras
 import xlrd
 
 
@@ -113,7 +115,8 @@ def print_usage():
     # TODO: Populate usage
 
     print("""
-
+Usage:
+    %s [options]
 """ % __docname__)
     return 1
 
@@ -381,15 +384,18 @@ class NrcParsedReportFields(object):
 
     @staticmethod
     def _coord_formatter(**kwargs):
-        try:
-            degrees = kwargs['processing']['args']['col_degrees']
-            minutes = kwargs['processing']['args']['col_minutes']
-            seconds = kwargs['processing']['args']['col_seconds']
-            quadrant = kwargs['processing']['args']['col_quadrant']
-        except KeyError:
-            raise ValueError("ERROR: Field map is missing degrees, minutes, seconds, or quadrant")
 
-        return dms2dd(degrees, minutes, seconds, quadrant)
+        try:
+            row = kwargs['processing']['args']['row']
+            col_deg = kwargs['processing']['args']['col_degrees']
+            col_min = kwargs['processing']['args']['col_minutes']
+            col_sec = kwargs['processing']['args']['col_seconds']
+            col_quad = kwargs['processing']['args']['col_quadrant']
+            output = dms2dd(row[col_deg], row[col_min], row[col_sec], row[col_quad])
+        except (ValueError, KeyError):
+            output = None
+
+        return output
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define latitude() static method
@@ -457,7 +463,7 @@ def main(args):
 
     # NRC file
     download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
-    file_to_process = basename(download_url)
+    file_to_process = 'docs/' + basename(download_url)
 
     # DB connection parameters
     db_host = 'ewn3'
@@ -478,7 +484,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'reportnum',
             'db_schema': 'public',
-            'sheet': 'CALLS',
+            'sheet_name': 'CALLS',
             'column': 'SEQNOS',
             'processing': None
         },
@@ -486,7 +492,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'received_datetime',
             'db_schema': 'public',
-            'sheet': 'CALLS',
+            'sheet_name': 'CALLS',
             'column': 'DATE_TIME_RECEIVED',
             'processing': None
         },
@@ -494,7 +500,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'calltype',
             'db_schema': 'public',
-            'sheet': 'CALLS',
+            'sheet_name': 'CALLS',
             'column': 'CALLTYPE',
             'processing': None
         },
@@ -502,7 +508,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'suspected_responsible_company',
             'db_schema': 'public',
-            'sheet': 'CALLS',
+            'sheet_name': 'CALLS',
             'column': 'RESPONSIBLE_COMPANY',
             'processing': None
         },
@@ -510,7 +516,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'description',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'DESCRIPTION_OF_INCIDENT',
             'processing': None
         },
@@ -518,7 +524,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'incident_datetime',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'INCIDENT_DATE_TIME',
             'processing': None
         },
@@ -526,7 +532,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'incidenttype',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'TYPE_OF_INCIDENT',
             'processing': None
         },
@@ -534,7 +540,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'cause',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'INCIDENT_CAUSE',
             'processing': None
         },
@@ -542,7 +548,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'location',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'LOCATION_ADDRESS',
             'processing': None
         },
@@ -550,7 +556,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'state',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'LOCATION_STATE',
             'processing': None
         },
@@ -558,7 +564,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'nearestcity',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'LOCATION_NEAREST_CITY',
             'processing': None
         },
@@ -566,7 +572,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'county',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'LOCATION_COUNTY',
             'processing': None
         },
@@ -574,7 +580,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'medium_affected',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_DETAILS',
+            'sheet_name': 'INCIDENT_DETAILS',
             'column': 'MEDIUM_DESC',
             'processing': None
         },
@@ -582,7 +588,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'material_name',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INVOLVED',
+            'sheet_name': 'MATERIAL_INVOLVED',
             'column': 'NAME_OF_MATERIAL',
             'processing': {
                 'function': NrcScrapedReportFields.material_name,
@@ -595,7 +601,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'full_report_url',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.full_report_url
@@ -605,7 +611,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'materials_url',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.materials_url
@@ -615,7 +621,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'time_stamp',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.time_stamp
@@ -625,7 +631,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.ft_id
@@ -639,7 +645,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'reportnum',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'SEQNOS',
             'processing': None
         },
@@ -647,7 +653,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'latitude',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.latitude,
@@ -663,7 +669,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'longitude',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.longitude,
@@ -679,7 +685,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'areaid',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.areaid
@@ -689,7 +695,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'blockid',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.blockid
@@ -699,7 +705,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'zip',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'LOCATION_ZIP',
             'processing': None
         },
@@ -707,7 +713,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'blockid',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.platform_letter
@@ -717,7 +723,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'sheen_size_length',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'SHEEN_SIZE_LENGTH',
             'processing': {
                 'function': NrcParsedReportFields.sheen_size_length,
@@ -728,7 +734,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'sheen_size_width',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'SHEEN_SIZE_WIDTH',
             'processing': {
                 'function': NrcParsedReportFields.sheen_size_width,
@@ -739,7 +745,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'affected_area',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.affected_area,
@@ -749,7 +755,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'county',
             'db_schema': 'public',
-            'sheet': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_COMMONS',
             'column': 'INCIDENT_COUNTY',
             'processing': None
         },
@@ -757,7 +763,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'time_stamp',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.time_stamp,
@@ -767,7 +773,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.ft_id,
@@ -781,7 +787,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'reportnum',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'SEQNOS',
             'processing': None
         },
@@ -789,7 +795,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'chris_code',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'CHRIS_CODE',
             'processing': None
         },
@@ -797,7 +803,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'name',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'NAME_OF_MATERIAL',
             'processing': None
         },
@@ -805,7 +811,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'amount',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'UPPER_BOUNDS',
             'processing': None
         },
@@ -813,7 +819,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'unit',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'UPPER_BOUNDS_UNITS',
             'processing': None
         },
@@ -821,7 +827,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'reached_water',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'IF_REACHED_WATER',
             'processing': None
         },
@@ -829,7 +835,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'amt_in_water',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'AMOUNT_IN_WATER',
             'processing': None
         },
@@ -837,7 +843,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'amt_in_water_unit',
             'db_schema': 'public',
-            'sheet': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INV0LVED_CR',
             'column': 'UNIT_OF_MEASURE_IF_REACH_WATER',
             'processing': None
         },
@@ -845,7 +851,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedMaterialsFields.ft_id
@@ -855,7 +861,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterials',
             'db_field': 'st_id',
             'db_schema': 'public',
-            'sheet': None,
+            'sheet_name': None,
             'column': None,
             'processing': {
                 'function': NrcScrapedMaterialsFields.st_id
@@ -891,18 +897,22 @@ def main(args):
             elif arg == '--db-connection-string':
                 i += 2
                 db_connection_string = args[i - 1]
-            elif arg == '-db-host':
+            elif arg == '--db-host':
                 i += 2
                 db_host = args[i - 1]
-            elif arg == '-db-user':
+            elif arg == '--db-user':
                 i += 2
                 db_user = args[i - 1]
-            elif arg == '-db-name':
+            elif arg == '--db-name':
                 i += 2
                 db_name = args[i - 1]
-            elif arg == '-db-pass':
+            elif arg == '--db-pass':
                 i += 2
                 db_pass = args[i - 1]
+
+            elif arg == 'go':
+                i += 1
+                pass
 
             # Positional arguments and errors
             else:
@@ -925,6 +935,22 @@ def main(args):
     #/*     Validate parameters
     #/* ----------------------------------------------------------------------- */#
 
+    bail = False
+
+    # Make sure arguments were properly parse
+    if arg_error:
+        bail = True
+        print("ERROR: Did not successfully parse arguments")
+
+    # Check the input file
+    if not os.access(file_to_process, os.R_OK):
+        bail = True
+        print("ERROR: Can't access input file: %s" % file_to_process)
+
+    # Exit if any problems were encountered
+    if bail:
+        return 1
+
     #/* ----------------------------------------------------------------------- */#
     #/*     Prep DB connection and XLRD workbook for processing
     #/* ----------------------------------------------------------------------- */#
@@ -933,71 +959,75 @@ def main(args):
     if db_connection_string is None:
         db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" % (db_host, db_name, db_user, db_pass)
 
-    # Connect to DB
-    with psycopg2.connect(db_connection_string) as db_conn:
+    # Test connection
+    try:
+        connection = psycopg2.connect(db_connection_string)
+        connection.close()
+    except psycopg2.OperationalError as e:
+        print("ERROR: Could not connect to database: %s" % db_connection_string)
+        print("  Postgres Error: %s" % e)
+        return 1
 
-        # Establish DB cursor using the DictCursor so that queries are received as a dict
-        with db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as db_cursor:
+    # Prep workbook
+    with xlrd.open_workbook(file_to_process, 'r') as workbook:
 
-            # Prep workbook
-            with xlrd.open_workbook(file_to_process) as workbook:
+        # Establish a DB connection  and turn on dict reading
+        db_conn = psycopg2.connect(db_connection_string)
+        db_cursor = db_conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
 
-                #/* ----------------------------------------------------------------------- */#
-                #/*     Validate field map definitions
-                #/* ----------------------------------------------------------------------- */#
+        #/* ----------------------------------------------------------------------- */#
+        #/*     Validate field map definitions
+        #/* ----------------------------------------------------------------------- */#
 
-                validate_field_map_error = False
+        validate_field_map_error = False
 
-                print("Validating field mapping ...")
-                for map_def in field_map_workbook_to_db:
+        print("Validating field mapping ...")
+        for db_map in (field_map_NrcScrapedMaterials, field_map_NrcScrapedReport, field_map_NrcParsedReport):
 
-                    # Attempt to get the sheet to test
+            # Check each field definition in the set of mappings
+            for map_def in db_map:
+
+                # Attempt to get the sheet to test
+                if map_def['sheet_name'] is not None and map_def['column'] is not None:
                     try:
-                        sheet = workbook.sheet_by_name(map_def['sheet'])
+                        sheet = workbook.sheet_by_name(map_def['sheet_name'])
                         if map_def['column'] not in column_names(sheet):
                             validate_field_map_error = True
-                            print("ERROR: Can't find source: %s:%s.%s"
-                                  % (file_to_process, map_def['sheet'], map_def['column']))
+                            print("ERROR: Can't find source: %s -> %s.%s"
+                                  % (file_to_process, map_def['sheet_name'], map_def['column']))
 
                     # Could not get the sheet to test
                     except xlrd.XLRDError:
                         validate_field_map_error = True
-                        print("ERROR: Sheet does not exist: %s" % map_def['sheet'])
+                        print("ERROR: Sheet does not exist: %s" % map_def['sheet_name'])
 
-                    # Make sure schema and table exist in the DB
-                    query = "SELECT * FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s' AND ;"
-                    db_cursor.execute(query)
-                    results = db_cursor.fetchall()
-                    if not results:
-                        validate_field_map_error = True
-                        print("ERROR: Invalid DB target: %s.%s.%s.%s.%s"
-                              % (db_host, db_name, map_def['db_schema'], map_def['db_table'], map_def['db_field']))
+                # Make sure schema and table exist in the DB
+                query = "SELECT * FROM information_schema.columns WHERE table_schema = '%s' AND table_name = '%s' AND column_name = '%s';" \
+                        % (map_def['db_schema'], map_def['db_table'], map_def['db_field'])
+                db_cursor.execute(query)
+                results = db_cursor.fetchall()
+                if not results:
+                    validate_field_map_error = True
+                    print("ERROR: Invalid DB target: %s.%s.%s.%s.%s"
+                          % (db_host, db_name, map_def['db_schema'], map_def['db_table'], map_def['db_field']))
 
-                # Encountered an error validating the field map
-                if validate_field_map_error:
-                    return 1
+        # Encountered an error validating the field map
+        if validate_field_map_error:
+            db_cursor.close()
+            db_conn.close()
+            return 1
 
                 #/* ----------------------------------------------------------------------- */#
                 #/*     Process data
                 #/* ----------------------------------------------------------------------- */#
-
-                # In order to optimize processing, cache all required sheets
-                all_sheet_names = set([md['sheet'] for md in field_map_workbook_to_db])
-                all_sheets = {sheet_name: workbook.sheet_by_name(sheet_name) for sheet_name in all_sheet_names}
-
-                # Loop through all map definitions and process each one individually
-                for map_def in field_map_workbook_to_db:
-
-                    # Get content from workbook
-                    cell_value = all_sheet_names[map_def['sheet']]
-                    query = "%s %s WHERE "
-
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
     # Success
+    db_cursor.close()
+    db_conn.close()
     return 0
 
 
