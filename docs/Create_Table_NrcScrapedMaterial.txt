@@ -13,7 +13,7 @@ CREATE TABLE public."NrcScrapedMaterial"
   amt_in_water double precision,
   amt_in_water_unit character varying(32),
   ft_id integer,
-  st_id integer NOT NULL DEFAULT nextval('nrcscrapedmaterial_st_id_seq'::regclass),
+  st_id integer,
   CONSTRAINT "NrcScrapedMaterial_pkey" PRIMARY KEY (reportnum, name)
 )
 WITH (
