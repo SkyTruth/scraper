@@ -61,14 +61,6 @@ if sys.version[0] is 2:
 
 
 #/* ======================================================================= */#
-#/*     Document level information
-#/* ======================================================================= */#
-
-__all__ = ['__version__', '__release__', '__author__', '__source__', '__package__', '__license__',
-           'print_usage', 'print_license', 'print_help', 'print_help_info', 'print_version', 'main']
-
-
-#/* ======================================================================= */#
 #/*     Build information
 #/* ======================================================================= */#
 
@@ -76,7 +68,7 @@ __version__ = '0.1-dev'
 __release__ = 'August 8, 2014'
 __author__ = 'Kevin D. Wurster'
 __source__ = 'https://github.com/SkyTruth/scraper'
-__package__ = 'scraper'
+#__package__ = 'scraper'
 __docname__ = basename(__file__)
 __license__ = '''
 New BSD License
@@ -237,7 +229,7 @@ def dms2dd(degrees, minutes, seconds, quadrant):
     :rtype: float
     """
 
-    output = degrees + (minutes / 60) + (seconds / 3600)
+    output = int(degrees) + (int(minutes) / 60) + (int(seconds) / 3600)
 
     if quadrant.lower() in ('s', 'w'):
         output *= -1
@@ -313,7 +305,7 @@ def sheet2dict(sheet):
 
     output = []
     columns = column_names(sheet)
-    for r in range(sheet.nrows):
+    for r in range(1, sheet.nrows):  # Skip first row since it contains the header
         output.append(dict((columns[c], sheet.cell_value(r, c)) for c in range(sheet.ncols)))
 
     return output
@@ -595,7 +587,7 @@ def main(args):
     """
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Defaults
+    #/*     Define Defaults
     #/* ----------------------------------------------------------------------- */#
 
     # NRC file
@@ -608,9 +600,13 @@ def main(args):
     db_user = 'scraper'
     db_pass = ''
     db_write_mode = 'REPLACE'
+    db_seqnos_field = 'reportnum'
+    db_null_value = 'NULL'
+    sheet_seqnos_field = 'SEQNOS'
+    sheet_primary_sheet = 'CALLS'
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Containers
+    #/*     Define Containers
     #/* ----------------------------------------------------------------------- */#
 
     db_connection_string = None
@@ -738,7 +734,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'full_report_url',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.full_report_url
@@ -748,7 +744,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'materials_url',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.materials_url
@@ -758,7 +754,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'time_stamp',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.time_stamp
@@ -768,7 +764,7 @@ def main(args):
             'db_table': 'NrcScrapedReport',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedReportFields.ft_id
@@ -900,7 +896,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'time_stamp',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.time_stamp,
@@ -910,7 +906,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcParsedReportFields.ft_id,
@@ -988,7 +984,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterial',
             'db_field': 'ft_id',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedMaterialFields.ft_id
@@ -998,7 +994,7 @@ def main(args):
             'db_table': 'NrcScrapedMaterial',
             'db_field': 'st_id',
             'db_schema': 'public',
-            'sheet_name': None,
+            'sheet_name': 'CALLS',
             'column': None,
             'processing': {
                 'function': NrcScrapedMaterialFields.st_id
@@ -1006,6 +1002,8 @@ def main(args):
         }
     ]
 
+    # Add new field maps here for processing
+    field_maps = [field_map_NrcParsedReport, field_map_NrcScrapedReport, field_map_NrcScrapedMaterial]
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Parse arguments
@@ -1097,6 +1095,7 @@ def main(args):
         db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" % (db_host, db_name, db_user, db_pass)
 
     # Test connection
+    print("Connecting to DB: %s" % db_connection_string)
     try:
         connection = psycopg2.connect(db_connection_string)
         connection.close()
@@ -1106,7 +1105,7 @@ def main(args):
         return 1
 
     # Prep workbook
-    print("Opening workbook ...")
+    print("Opening workbook: %s" % file_to_process)
     with xlrd.open_workbook(file_to_process, 'r') as workbook:
 
         # Establish a DB connection  and turn on dict reading
@@ -1120,7 +1119,7 @@ def main(args):
         validate_field_map_error = False
 
         print("Validating field mapping ...")
-        for db_map in (field_map_NrcScrapedMaterial, field_map_NrcScrapedReport, field_map_NrcParsedReport):
+        for db_map in field_maps:
 
             # Check each field definition in the set of mappings
             for map_def in db_map:
@@ -1156,15 +1155,70 @@ def main(args):
             return 1
 
         #/* ----------------------------------------------------------------------- */#
-        #/*     Process data
+        #/*     Additional prep
         #/* ----------------------------------------------------------------------- */#
 
+        # Cache all sheets needed by the field definitions as dictionaries
+        print("Caching sheets ...")
+        sheet_cache = {}
+        for db_map in field_maps:
+            for map_def in db_map:
+                sname = map_def['sheet_name']
+                if sname is not None and sname not in sheet_cache:
+                    # Make each row be reference-able by report number
+                    sheet_cache[sname] = {row[sheet_seqnos_field]: row for row in sheet2dict(workbook.sheet_by_name(sname))}
+
+        # Get a list of unique report id's
+        unique_report_ids = list(set(sheet_cache[sheet_primary_sheet].keys()))
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Process data
+    #/* ----------------------------------------------------------------------- */#
+
+    print("Processing spreadsheet ...")
+    total_executed_queries = 0
+    num_ids = len(unique_report_ids)
+    uid_i = 0
+    for uid in unique_report_ids:
+
+        # Update user
+        uid_i += 1
+        sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
+        sys.stdout.flush()
+
+        # Assemble the query by grabbing all necessary values
+        query = """%s""" % db_write_mode
+        for db_map in field_maps:
+            for map_def in db_map:
+
+                # If no additional processing is required, simply grab the value from the sheet and add to the query
+                if map_def['processing'] is None:
+
+                    # TODO: Fill out query
+                    value = sheet_cache[map_def['sheet_name']][uid][map_def['column']]
+                    query += """ %s = '%s' """ % (map_def['db_field'], value)
+
+                # Pass all necessary information to the processing function in order to get a result
+                else:
+
+                    # TODO: Fill out query
+                    result = map_def['function'](cursor=db_cursor, uid=uid, sheet=sheet_cache[map_def['sheet_name']])
+                    if result != '__NO_QUERY__':
+                        query += """ %s = '%s' """ % (map_def['db_field'], result)
+
+            # Execute the query for this DB table
+            # TODO: Execute query
+            total_executed_queries += 1
+            # query += ';'
+            # print(query)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
     # Success
+    print("")
+    print("Num executed queries: %s" % total_executed_queries)
     return 0
 
 
