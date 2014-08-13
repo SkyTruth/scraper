@@ -34,6 +34,9 @@
 
 """
 Scraper for the "temporary" NRC incident spreadsheet
+
+Sample command:
+    ./bin/nrcSpreadsheetScraper.py --db-name test_skytruth --db-user `whoami` --db-host localhost
 """
 
 
@@ -47,6 +50,14 @@ import sys
 import psycopg2
 from psycopg2 import extras as psycopg2_extras
 import xlrd
+
+
+#/* ======================================================================= */#
+#/*     Python 2 vs. 3 setup
+#/* ======================================================================= */#
+
+if sys.version[0] is 2:
+    range = xrange
 
 
 #/* ======================================================================= */#
@@ -256,10 +267,75 @@ def column_names(sheet, formatter=str):
 
 
 #/* ======================================================================= */#
+#/*     Define sheet2dict() function
+#/* ======================================================================= */#
+
+def sheet2dict(sheet):
+
+    """
+    Convert an XLRD sheet object into a list of rows, each structured as a dictionary
+
+
+    Example Input:
+
+        "Column1","Column2","Column3"
+        "Row 1 Val","Another Row 1 Val","Even More Row 1 Values"
+        "Row 2 Val","Another Row 2 Val","Even More Row 2 Values"
+        "Row 3 Val","Another Row 3 Val","Even More Row 3 Values"
+
+
+    Example Output:
+
+        [
+            {
+                'Column1': 'Row 1 Val',
+                'Column2': 'Another Row 1 Val',
+                'Column3': 'Even More Row 1 Values'
+            },
+            {
+                'Column1': 'Row 2 Val',
+                'Column2': 'Another Row 2 Val',
+                'Column3': 'Even more Row 2 Values'
+            }
+            {
+                'Column1': 'Row 3 Val',
+                'Column2': 'Another Row 3 Val',
+                'Column3': 'Even more Row 3 Values'
+            }
+        ]
+
+    :param sheet: XLRD sheet object from xlrd.open_workbook('workbook').sheet_by_name('name')
+    :type sheet: xlrd.Sheet
+
+    :return: list of elements, each containing one row of the sheet as a dictionary
+    :rtype: dict
+    """
+
+    output = []
+    columns = column_names(sheet)
+    for r in range(sheet.nrows):
+        output.append(dict((columns[c], sheet.cell_value(r, c)) for c in range(sheet.ncols)))
+
+    return output
+
+
+#/* ======================================================================= */#
 #/*     Define NrcScrapedReportField() class
 #/* ======================================================================= */#
 
 class NrcScrapedReportFields(object):
+
+    """
+    Some fields in the NRC spreadsheet do not map directly to a column in the
+    database.  These fields require an additional processing step that is
+    highly specific and cannot be re-used.  The field map definition contains
+    all of the additional arguments and information necessary to execute one
+    of these processing functions.
+
+    A class is used as a namespace to provide better organization and to
+    prevent having to name functions something like:
+    'get_NrcScrapedReport_material_name_field'
+    """
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define material_name() static method
@@ -276,6 +352,10 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def full_report_url(**kwargs):
 
+        """
+        Default value
+        """
+
         return 'http://cgmix.uscg.mil/NRC/'
     
     #/* ----------------------------------------------------------------------- */#
@@ -284,6 +364,10 @@ class NrcScrapedReportFields(object):
 
     @staticmethod
     def materials_url(**kwargs):
+
+        """
+        Default value
+        """
         
         return NrcScrapedReportFields.full_report_url()
     
@@ -294,7 +378,11 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def time_stamp(**kwargs):
 
-        return None
+        """
+        Required to insert a NULL value
+        """
+
+        return 'NULL'
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() function
@@ -303,7 +391,11 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def ft_id(**kwargs):
 
-        return None
+        """
+        Required to insert a NULL value
+        """
+
+        return 'NULL'
 
 
 #/* ======================================================================= */#
@@ -311,6 +403,18 @@ class NrcScrapedReportFields(object):
 #/* ======================================================================= */#
 
 class NrcParsedReportFields(object):
+
+    """
+    Some fields in the NRC spreadsheet do not map directly to a column in the
+    database.  These fields require an additional processing step that is
+    highly specific and cannot be re-used.  The field map definition contains
+    all of the additional arguments and information necessary to execute one
+    of these processing functions.
+
+    A class is used as a namespace to provide better organization and to
+    prevent having to name functions something like:
+    'get_NrcScrapedReport_material_name_field'
+    """
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define areaid() static method
@@ -367,7 +471,11 @@ class NrcParsedReportFields(object):
     @staticmethod
     def time_stamp(**kwargs):
 
-        return None
+        """
+        Required to insert a NULL value
+        """
+
+        return 'NULL'
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() static method
@@ -376,17 +484,26 @@ class NrcParsedReportFields(object):
     @staticmethod
     def ft_id(**kwargs):
 
-        return None
+        """
+        Required to insert a NULL value
+        """
+
+        return 'NULL'
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Define _coord_formatter() static method
+    #/*     Define _coord_formatter() protected static method
     #/* ----------------------------------------------------------------------- */#
 
     @staticmethod
     def _coord_formatter(**kwargs):
 
+        """
+        The latitude() and longitude() static methods require the same general
+        logic.
+        """
+
         try:
-            row = kwargs['processing']['args']['row']
+            row = kwargs['row'].copy()
             col_deg = kwargs['processing']['args']['col_degrees']
             col_min = kwargs['processing']['args']['col_minutes']
             col_sec = kwargs['processing']['args']['col_seconds']
@@ -404,6 +521,10 @@ class NrcParsedReportFields(object):
     @staticmethod
     def latitude(**kwargs):
 
+        """
+        Convert coordinates from DMS to DD
+        """
+
         return NrcParsedReportFields._coord_formatter(**kwargs)
 
     #/* ----------------------------------------------------------------------- */#
@@ -413,14 +534,30 @@ class NrcParsedReportFields(object):
     @staticmethod
     def longitude(**kwargs):
 
+        """
+        Convert coordinates from DMS to DD
+        """
+
         return NrcParsedReportFields._coord_formatter(**kwargs)
 
 
 #/* ======================================================================= */#
-#/*     Define NrcScrapedMaterialsFields() class
+#/*     Define NrcScrapedMaterialFields() class
 #/* ======================================================================= */#
 
-class NrcScrapedMaterialsFields(object):
+class NrcScrapedMaterialFields(object):
+
+    """
+    Some fields in the NRC spreadsheet do not map directly to a column in the
+    database.  These fields require an additional processing step that is
+    highly specific and cannot be re-used.  The field map definition contains
+    all of the additional arguments and information necessary to execute one
+    of these processing functions.
+
+    A class is used as a namespace to provide better organization and to
+    prevent having to name functions something like:
+    'get_NrcScrapedReport_material_name_field'
+    """
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() static method
@@ -490,7 +627,7 @@ def main(args):
         },
         {
             'db_table': 'NrcScrapedReport',
-            'db_field': 'received_datetime',
+            'db_field': 'recieved_datetime',
             'db_schema': 'public',
             'sheet_name': 'CALLS',
             'column': 'DATE_TIME_RECEIVED',
@@ -723,7 +860,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'sheen_size_length',
             'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_DETAILS',
             'column': 'SHEEN_SIZE_LENGTH',
             'processing': {
                 'function': NrcParsedReportFields.sheen_size_length,
@@ -734,7 +871,7 @@ def main(args):
             'db_table': 'NrcParsedReport',
             'db_field': 'sheen_size_width',
             'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
+            'sheet_name': 'INCIDENT_DETAILS',
             'column': 'SHEEN_SIZE_WIDTH',
             'processing': {
                 'function': NrcParsedReportFields.sheen_size_width,
@@ -756,7 +893,7 @@ def main(args):
             'db_field': 'county',
             'db_schema': 'public',
             'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'INCIDENT_COUNTY',
+            'column': 'LOCATION_COUNTY',
             'processing': None
         },
         {
@@ -782,9 +919,9 @@ def main(args):
     ]
 
     # === Field Map === #
-    field_map_NrcScrapedMaterials = [
+    field_map_NrcScrapedMaterial = [
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'reportnum',
             'db_schema': 'public',
             'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -792,7 +929,7 @@ def main(args):
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'chris_code',
             'db_schema': 'public',
             'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -800,7 +937,7 @@ def main(args):
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'name',
             'db_schema': 'public',
             'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -808,7 +945,7 @@ def main(args):
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'amount',
             'db_schema': 'public',
             'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -816,55 +953,55 @@ def main(args):
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'unit',
             'db_schema': 'public',
             'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'UPPER_BOUNDS_UNITS',
+            'column': 'UPPER_BOUNDS_UNIT',
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'reached_water',
             'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INVOLVED',
             'column': 'IF_REACHED_WATER',
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'amt_in_water',
             'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
+            'sheet_name': 'MATERIAL_INVOLVED',
             'column': 'AMOUNT_IN_WATER',
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'amt_in_water_unit',
             'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'UNIT_OF_MEASURE_IF_REACH_WATER',
+            'sheet_name': 'MATERIAL_INVOLVED',
+            'column': 'UNIT_OF_MEASURE_REACH_WATER',
             'processing': None
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'ft_id',
             'db_schema': 'public',
             'sheet_name': None,
             'column': None,
             'processing': {
-                'function': NrcScrapedMaterialsFields.ft_id
+                'function': NrcScrapedMaterialFields.ft_id
             }
         },
         {
-            'db_table': 'NrcScrapedMaterials',
+            'db_table': 'NrcScrapedMaterial',
             'db_field': 'st_id',
             'db_schema': 'public',
             'sheet_name': None,
             'column': None,
             'processing': {
-                'function': NrcScrapedMaterialsFields.st_id
+                'function': NrcScrapedMaterialFields.st_id
             }
         }
     ]
@@ -969,6 +1106,7 @@ def main(args):
         return 1
 
     # Prep workbook
+    print("Opening workbook ...")
     with xlrd.open_workbook(file_to_process, 'r') as workbook:
 
         # Establish a DB connection  and turn on dict reading
@@ -982,7 +1120,7 @@ def main(args):
         validate_field_map_error = False
 
         print("Validating field mapping ...")
-        for db_map in (field_map_NrcScrapedMaterials, field_map_NrcScrapedReport, field_map_NrcParsedReport):
+        for db_map in (field_map_NrcScrapedMaterial, field_map_NrcScrapedReport, field_map_NrcParsedReport):
 
             # Check each field definition in the set of mappings
             for map_def in db_map:
@@ -1017,17 +1155,16 @@ def main(args):
             db_conn.close()
             return 1
 
-                #/* ----------------------------------------------------------------------- */#
-                #/*     Process data
-                #/* ----------------------------------------------------------------------- */#
+        #/* ----------------------------------------------------------------------- */#
+        #/*     Process data
+        #/* ----------------------------------------------------------------------- */#
+
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
     # Success
-    db_cursor.close()
-    db_conn.close()
     return 0
 
 
@@ -1041,6 +1178,6 @@ if __name__ == '__main__':
     if len(sys.argv) is 1:
         sys.exit(print_usage())
 
-    # Got enough arguments - give all but the first to the main() function
+    # Got enough arguments - give all but the script name to the main() function
     else:
         sys.exit(main(sys.argv[1:]))
