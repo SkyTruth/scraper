@@ -42,6 +42,7 @@ Sample command:
 
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 from os.path import *
@@ -53,7 +54,7 @@ import xlrd
 
 
 #/* ======================================================================= */#
-#/*     Python 2 vs. 3 setup
+#/*     Python setup
 #/* ======================================================================= */#
 
 if sys.version[0] is 2:
@@ -68,7 +69,6 @@ __version__ = '0.1-dev'
 __release__ = 'August 8, 2014'
 __author__ = 'Kevin D. Wurster'
 __source__ = 'https://github.com/SkyTruth/scraper'
-#__package__ = 'scraper'
 __docname__ = basename(__file__)
 __license__ = '''
 New BSD License
@@ -312,6 +312,28 @@ def sheet2dict(sheet):
 
 
 #/* ======================================================================= */#
+#/*     Define report_exists() function
+#/* ======================================================================= */#
+
+def report_exists(cursor, seqnos, field='reportnum'):
+
+    """
+    Check to see if a report has already been submitted to a table
+
+    :param seqnos: SEQNOS/reportnum
+    :type seqnos: int|float
+    :param field:
+    :type field:
+
+    :return:
+    :rtype: bool
+    """
+
+    cursor.execute("SELECT * WHERE %s = '%s'" % (field, seqnos))
+    return cursor.fetchall() is 0
+
+
+#/* ======================================================================= */#
 #/*     Define NrcScrapedReportField() class
 #/* ======================================================================= */#
 
@@ -510,6 +532,11 @@ class NrcParsedReportFields(object):
     #/*     Define latitude() static method
     #/* ----------------------------------------------------------------------- */#
 
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define latitude() static method
+    #/* ----------------------------------------------------------------------- */#
+
     @staticmethod
     def latitude(**kwargs):
 
@@ -599,11 +626,15 @@ def main(args):
     db_name = 'skytruth'
     db_user = 'scraper'
     db_pass = ''
-    db_write_mode = 'REPLACE'
+    db_write_mode = 'INSERT INTO'
     db_seqnos_field = 'reportnum'
     db_null_value = 'NULL'
     sheet_seqnos_field = 'SEQNOS'
     sheet_primary_sheet = 'CALLS'
+
+    print_progress = True
+    print_queries = False
+    execute_queries = True
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define Containers
@@ -612,398 +643,393 @@ def main(args):
     db_connection_string = None
 
     # === Field Map === #
-    field_map_NrcScrapedReport = [
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'reportnum',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': 'SEQNOS',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'recieved_datetime',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': 'DATE_TIME_RECEIVED',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'calltype',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': 'CALLTYPE',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'suspected_responsible_company',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': 'RESPONSIBLE_COMPANY',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'description',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'DESCRIPTION_OF_INCIDENT',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'incident_datetime',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'INCIDENT_DATE_TIME',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'incidenttype',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'TYPE_OF_INCIDENT',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'cause',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'INCIDENT_CAUSE',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'location',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_ADDRESS',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'state',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_STATE',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'nearestcity',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_NEAREST_CITY',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'county',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_COUNTY',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'medium_affected',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_DETAILS',
-            'column': 'MEDIUM_DESC',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'material_name',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INVOLVED',
-            'column': 'NAME_OF_MATERIAL',
-            'processing': {
-                'function': NrcScrapedReportFields.material_name,
-                'args': {
-                    'extras_table': 'NrcScrapedMaterial'
+    field_map = {
+        'public.NrcScrapedReport': [
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'reportnum',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': 'SEQNOS',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'recieved_datetime',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': 'DATE_TIME_RECEIVED',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'calltype',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': 'CALLTYPE',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'suspected_responsible_company',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': 'RESPONSIBLE_COMPANY',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'description',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'DESCRIPTION_OF_INCIDENT',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'incident_datetime',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'INCIDENT_DATE_TIME',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'incidenttype',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'TYPE_OF_INCIDENT',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'cause',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'INCIDENT_CAUSE',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'location',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_ADDRESS',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'state',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_STATE',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'nearestcity',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_NEAREST_CITY',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'county',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_COUNTY',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'medium_affected',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_DETAILS',
+                'column': 'MEDIUM_DESC',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'material_name',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INVOLVED',
+                'column': 'NAME_OF_MATERIAL',
+                'processing': {
+                    'function': NrcScrapedReportFields.material_name,
+                    'args': {
+                        'extras_table': 'NrcScrapedMaterial'
+                    }
+                }
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'full_report_url',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedReportFields.full_report_url
+                }
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'materials_url',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedReportFields.materials_url
+                }
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'time_stamp',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedReportFields.time_stamp
+                }
+            },
+            {
+                'db_table': 'NrcScrapedReport',
+                'db_field': 'ft_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedReportFields.ft_id
                 }
             }
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'full_report_url',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedReportFields.full_report_url
-            }
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'materials_url',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedReportFields.materials_url
-            }
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'time_stamp',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedReportFields.time_stamp
-            }
-        },
-        {
-            'db_table': 'NrcScrapedReport',
-            'db_field': 'ft_id',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedReportFields.ft_id
-            }
-        }
-    ]
-
-    # === Field Map === #
-    field_map_NrcParsedReport = [
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'reportnum',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'SEQNOS',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'latitude',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.latitude,
-                'args': {
-                    'col_degrees': 'LAT_DEG',
-                    'col_minutes': 'LAT_MIN',
-                    'col_seconds': 'LAT_SEC',
-                    'col_quadrant': 'LAT_QUAD'
+        ],
+        'public.NrcParsedReport': [
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'reportnum',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'SEQNOS',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'latitude',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.latitude,
+                    'args': {
+                        'col_degrees': 'LAT_DEG',
+                        'col_minutes': 'LAT_MIN',
+                        'col_seconds': 'LAT_SEC',
+                        'col_quadrant': 'LAT_QUAD'
+                    }
+                }
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'longitude',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.longitude,
+                    'args': {
+                        'col_degrees': 'LONG_DEG',
+                        'col_minutes': 'LONG_MIN',
+                        'col_seconds': 'LONG_SEC',
+                        'col_quadrant': 'LONG_QUAD'
+                    }
+                }
+            },
+            {  # TODO: Implement - check notes about which column to use
+                'db_table': 'NrcParsedReport',
+                'db_field': 'areaid',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.areaid
+                }
+            },
+            {  # TODO: Implement - check notes about which column to use
+                'db_table': 'NrcParsedReport',
+                'db_field': 'blockid',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.blockid
+                }
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'zip',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_ZIP',
+                'processing': None
+            },
+            {  # TODO: Implement - check notes about which column to use
+                'db_table': 'NrcParsedReport',
+                'db_field': 'blockid',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.platform_letter
+                }
+            },
+            {  # TODO: Implement
+                'db_table': 'NrcParsedReport',
+                'db_field': 'sheen_size_length',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_DETAILS',
+                'column': 'SHEEN_SIZE_LENGTH',
+                'processing': {
+                    'function': NrcParsedReportFields.sheen_size_length,
+                    'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
+                }
+            },
+            {  # TODO: Implement
+                'db_table': 'NrcParsedReport',
+                'db_field': 'sheen_size_width',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_DETAILS',
+                'column': 'SHEEN_SIZE_WIDTH',
+                'processing': {
+                    'function': NrcParsedReportFields.sheen_size_width,
+                    'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
+                }
+            },
+            {  # TODO: Implement
+                'db_table': 'NrcParsedReport',
+                'db_field': 'affected_area',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.affected_area,
+                }
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'county',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'LOCATION_COUNTY',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'time_stamp',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.time_stamp,
+                }
+            },
+            {
+                'db_table': 'NrcParsedReport',
+                'db_field': 'ft_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcParsedReportFields.ft_id,
                 }
             }
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'longitude',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.longitude,
-                'args': {
-                    'col_degrees': 'LONG_DEG',
-                    'col_minutes': 'LONG_MIN',
-                    'col_seconds': 'LONG_SEC',
-                    'col_quadrant': 'LONG_QUAD'
+        ],
+        'public.NrcScrapedMaterial': [
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'reportnum',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                'column': 'SEQNOS',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'chris_code',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                'column': 'CHRIS_CODE',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'name',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                'column': 'NAME_OF_MATERIAL',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'amount',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                'column': 'UPPER_BOUNDS',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'unit',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                'column': 'UPPER_BOUNDS_UNIT',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'reached_water',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INVOLVED',
+                'column': 'IF_REACHED_WATER',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'amt_in_water',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INVOLVED',
+                'column': 'AMOUNT_IN_WATER',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'amt_in_water_unit',
+                'db_schema': 'public',
+                'sheet_name': 'MATERIAL_INVOLVED',
+                'column': 'UNIT_OF_MEASURE_REACH_WATER',
+                'processing': None
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'ft_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedMaterialFields.ft_id
+                }
+            },
+            {
+                'db_table': 'NrcScrapedMaterial',
+                'db_field': 'st_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedMaterialFields.st_id
                 }
             }
-        },
-        {  # TODO: Implement - check notes about which column to use
-            'db_table': 'NrcParsedReport',
-            'db_field': 'areaid',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.areaid
-            }
-        },
-        {  # TODO: Implement - check notes about which column to use
-            'db_table': 'NrcParsedReport',
-            'db_field': 'blockid',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.blockid
-            }
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'zip',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_ZIP',
-            'processing': None
-        },
-        {  # TODO: Implement - check notes about which column to use
-            'db_table': 'NrcParsedReport',
-            'db_field': 'blockid',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.platform_letter
-            }
-        },
-        {  # TODO: Implement
-            'db_table': 'NrcParsedReport',
-            'db_field': 'sheen_size_length',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_DETAILS',
-            'column': 'SHEEN_SIZE_LENGTH',
-            'processing': {
-                'function': NrcParsedReportFields.sheen_size_length,
-                'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
-            }
-        },
-        {  # TODO: Implement
-            'db_table': 'NrcParsedReport',
-            'db_field': 'sheen_size_width',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_DETAILS',
-            'column': 'SHEEN_SIZE_WIDTH',
-            'processing': {
-                'function': NrcParsedReportFields.sheen_size_width,
-                'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
-            }
-        },
-        {  # TODO: Implement
-            'db_table': 'NrcParsedReport',
-            'db_field': 'affected_area',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.affected_area,
-            }
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'county',
-            'db_schema': 'public',
-            'sheet_name': 'INCIDENT_COMMONS',
-            'column': 'LOCATION_COUNTY',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'time_stamp',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.time_stamp,
-            }
-        },
-        {
-            'db_table': 'NrcParsedReport',
-            'db_field': 'ft_id',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcParsedReportFields.ft_id,
-            }
-        }
-    ]
-
-    # === Field Map === #
-    field_map_NrcScrapedMaterial = [
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'reportnum',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'SEQNOS',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'chris_code',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'CHRIS_CODE',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'name',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'NAME_OF_MATERIAL',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'amount',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'UPPER_BOUNDS',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'unit',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INV0LVED_CR',
-            'column': 'UPPER_BOUNDS_UNIT',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'reached_water',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INVOLVED',
-            'column': 'IF_REACHED_WATER',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'amt_in_water',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INVOLVED',
-            'column': 'AMOUNT_IN_WATER',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'amt_in_water_unit',
-            'db_schema': 'public',
-            'sheet_name': 'MATERIAL_INVOLVED',
-            'column': 'UNIT_OF_MEASURE_REACH_WATER',
-            'processing': None
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'ft_id',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedMaterialFields.ft_id
-            }
-        },
-        {
-            'db_table': 'NrcScrapedMaterial',
-            'db_field': 'st_id',
-            'db_schema': 'public',
-            'sheet_name': 'CALLS',
-            'column': None,
-            'processing': {
-                'function': NrcScrapedMaterialFields.st_id
-            }
-        }
-    ]
-
-    # Add new field maps here for processing
-    field_maps = [field_map_NrcParsedReport, field_map_NrcScrapedReport, field_map_NrcScrapedMaterial]
+        ]
+    }
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Parse arguments
@@ -1045,6 +1071,19 @@ def main(args):
                 i += 2
                 db_pass = args[i - 1]
 
+            # Commandline print-outs
+            elif arg == '--no-print-progress':
+                i += 1
+                print_progress = False
+            elif arg == '--print-queries':
+                i += 1
+                print_queries = True
+                print_progress = False
+            elif arg == '--no-execute-queries':
+                i += 1
+                execute_queries = False
+
+            # TODO: Remove temp argument
             elif arg == 'go':
                 i += 1
                 pass
@@ -1119,10 +1158,10 @@ def main(args):
         validate_field_map_error = False
 
         print("Validating field mapping ...")
-        for db_map in field_maps:
+        for db_map in field_map.keys():
 
             # Check each field definition in the set of mappings
-            for map_def in db_map:
+            for map_def in field_map[db_map]:
 
                 # Attempt to get the sheet to test
                 if map_def['sheet_name'] is not None and map_def['column'] is not None:
@@ -1161,8 +1200,8 @@ def main(args):
         # Cache all sheets needed by the field definitions as dictionaries
         print("Caching sheets ...")
         sheet_cache = {}
-        for db_map in field_maps:
-            for map_def in db_map:
+        for db_map in field_map.keys():
+            for map_def in field_map[db_map]:
                 sname = map_def['sheet_name']
                 if sname is not None and sname not in sheet_cache:
                     # Make each row be reference-able by report number
@@ -1176,49 +1215,63 @@ def main(args):
     #/* ----------------------------------------------------------------------- */#
 
     print("Processing spreadsheet ...")
-    total_executed_queries = 0
     num_ids = len(unique_report_ids)
     uid_i = 0
     for uid in unique_report_ids:
 
         # Update user
         uid_i += 1
-        sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
-        sys.stdout.flush()
+        if print_progress:
+            sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
+            sys.stdout.flush()
 
         # Assemble the query by grabbing all necessary values
-        query = """%s""" % db_write_mode
-        for db_map in field_maps:
-            for map_def in db_map:
+        for db_map in field_map.keys():
+
+            query = """%s %s SET""" % (db_write_mode, db_map)
+
+            for map_def in field_map[db_map]:
+
+                value = db_null_value
 
                 # If no additional processing is required, simply grab the value from the sheet and add to the query
                 if map_def['processing'] is None:
-
-                    # TODO: Fill out query
-                    value = sheet_cache[map_def['sheet_name']][uid][map_def['column']]
-                    query += """ %s = '%s' """ % (map_def['db_field'], value)
+                    try:
+                        value = sheet_cache[map_def['sheet_name']][uid][map_def['column']]
+                    except KeyError:
+                        # UID doesn't appear in the specified sheet - populate a NULL value
+                        pass
 
                 # Pass all necessary information to the processing function in order to get a result
                 else:
+                    value = map_def['processing']['function'](cursor=db_cursor, uid=uid, sheet=sheet_cache[map_def['sheet_name']])
 
-                    # TODO: Fill out query
-                    result = map_def['function'](cursor=db_cursor, uid=uid, sheet=sheet_cache[map_def['sheet_name']])
-                    if result != '__NO_QUERY__':
-                        query += """ %s = '%s' """ % (map_def['db_field'], result)
+                # Handle NULL values
+                if value is None or value == db_null_value:
+                    value = db_null_value
 
-            # Execute the query for this DB table
+                # Assemble query
+                if value != '__NO_QUERY__':
+                    query += """ %s = %s, """ % (map_def['db_field'], "'" + unicode(value) + "'")
+
             # TODO: Execute query
-            total_executed_queries += 1
-            # query += ';'
-            # print(query)
+            query += ';'
+            if print_queries:
+                print("")
+                print(query)
+            if execute_queries:
+                #db_cursor.execute(query)
+                pass
+
+    # Done processing - update user
+    if print_progress:
+        print(" - Done")
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
     # Success
-    print("")
-    print("Num executed queries: %s" % total_executed_queries)
     return 0
 
 
