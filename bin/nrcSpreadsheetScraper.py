@@ -44,9 +44,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from datetime import datetime
 import os
 from os.path import *
 import sys
+import urllib2
 
 import psycopg2
 from psycopg2 import extras as psycopg2_extras
@@ -223,7 +225,7 @@ def dms2dd(degrees, minutes, seconds, quadrant):
     :param seconds: coordinate seconds
     :type seconds: int
     :param quadrant: coordinate quadrant (N, E, S, W)
-    :type quadrant: str
+    :type quadrant: str|unicode
 
     :return: decimal degrees
     :rtype: float
@@ -315,7 +317,7 @@ def sheet2dict(sheet):
 #/*     Define report_exists() function
 #/* ======================================================================= */#
 
-def report_exists(cursor, seqnos, field='reportnum'):
+def report_exists(**kwargs):
 
     """
     Check to see if a report has already been submitted to a table
@@ -329,8 +331,93 @@ def report_exists(cursor, seqnos, field='reportnum'):
     :rtype: bool
     """
 
-    cursor.execute("SELECT * WHERE %s = '%s'" % (field, seqnos))
-    return cursor.fetchall() is 0
+    reportnum = kwargs.get('reportnum', None)
+    cursor = kwargs.get('cursor', None)
+    table = kwargs.get('table', None)
+    field = kwargs.get('field', 'reportnum')
+
+    if None in (reportnum, cursor, table, field):
+        raise ValueError("ERROR: Missing reportnum, cursor, table, or field")
+
+    cursor.execute("SELECT * FROM %s WHERE %s = %s" % (table, field, reportnum))
+    return len(cursor.fetchall()) > 0
+
+
+#/* ======================================================================= */#
+#/*     Define timestamp2datetime() function
+#/* ======================================================================= */#
+
+def timestamp2datetime(stamp, mode, formatter='%Y-%m-%d %I:%M:%S.%f'):
+
+        """
+        Convert a float formatted date a Postgres supported timestamp
+
+        :param stamp: timestamp from XLRD reading a date encoded field
+        :type stamp: float
+        :param mode: from xlrd.Workbook.datemode
+        :type mode: int
+
+        :return: date capable of being inserted into Postgres timestamp field
+        :rtype: str|unicode
+        """
+
+        dt = datetime(*xlrd.xldate_as_tuple(stamp, mode))
+
+        return dt.strftime(formatter)
+
+
+#/* ======================================================================= */#
+#/*     Define get_current_spreadsheet() function
+#/* ======================================================================= */#
+
+def download(url, destination, overwrite=False):
+
+    """
+    Download a file
+
+    :param url: URL to download from
+    :type url: str|unicode
+    :param destination: target path and filename for downloaded file
+    :type destination: str|unicode
+    :param overwrite: specify whether or not an existing destination should be overwritten
+    :type overwrite: bool
+
+    :return: path to downloaded file
+    :rtype: str|unicode
+    """
+
+    # Validate arguments
+    if not overwrite and isfile(destination):
+        raise ValueError("ERROR: Overwrite=%s and outfile exists: %s" % (overwrite, destination))
+
+    # Download
+    response = urllib2.urlopen(url)
+    with open(destination, 'w') as f:
+        f.write(response.read())
+
+    return destination
+
+
+#/* ======================================================================= */#
+#/*     Define name_current_spreadsheet() function
+#/* ======================================================================= */#
+
+def name_current_spreadsheet(input_name):
+
+    """
+    Generate the output Current.xlsx name for permanent archival
+
+    :param input_name: input file name (e.g. Current.xlsx)
+    :type input_name: str|unicode
+
+    :return: output formatted name
+    :rtype: str|unicode
+    """
+
+    filename, extension = input_name.split('.', -1)
+    dt = datetime.now()
+
+    return filename + dt.strftime("_%Y-%m-%d_%I:%M:%S") + "." + extension
 
 
 #/* ======================================================================= */#
@@ -410,6 +497,63 @@ class NrcScrapedReportFields(object):
         """
 
         return 'NULL'
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define _datetime_caller() function
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def _datetime_caller(**kwargs):
+
+        """
+        Several methods require converting a timestamp to a Postgres supported
+        timestamp format.  This method eliminates repitition
+
+        :param workbook:
+        :type workbook:
+        :param row:
+        :type row:
+        :param map_def:
+        :type map_def:
+
+        :rtype:
+        :return:
+        """
+
+        workbook = kwargs.get('workbook')
+        row = kwargs.get('row')
+        map_def = kwargs.get('map_def')
+
+        if None in (workbook, row, map_def):
+            raise ValueError("ERROR: Missing a workbook, row, or map_def")
+
+        return timestamp2datetime(row[map_def['column']], workbook.datemode)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define recieved_time() function
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def recieved_datetime(**kwargs):
+
+        """
+        See documentation for function called in the return statement
+        """
+
+        return NrcScrapedReportFields._datetime_caller(**kwargs)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define incident_datetime() function
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def incident_datetime(**kwargs):
+
+        """
+        See documentation for function called in the return statement
+        """
+
+        return NrcScrapedReportFields._datetime_caller(**kwargs)
 
 
 #/* ======================================================================= */#
@@ -614,35 +758,9 @@ def main(args):
     """
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Define Defaults
+    #/*     Define Field Maps
     #/* ----------------------------------------------------------------------- */#
 
-    # NRC file
-    download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
-    file_to_process = 'docs/' + basename(download_url)
-
-    # DB connection parameters
-    db_host = 'ewn3'
-    db_name = 'skytruth'
-    db_user = 'scraper'
-    db_pass = ''
-    db_write_mode = 'INSERT INTO'
-    db_seqnos_field = 'reportnum'
-    db_null_value = 'NULL'
-    sheet_seqnos_field = 'SEQNOS'
-    sheet_primary_sheet = 'CALLS'
-
-    print_progress = True
-    print_queries = False
-    execute_queries = True
-
-    #/* ----------------------------------------------------------------------- */#
-    #/*     Define Containers
-    #/* ----------------------------------------------------------------------- */#
-
-    db_connection_string = None
-
-    # === Field Map === #
     field_map = {
         'public.NrcScrapedReport': [
             {
@@ -659,7 +777,9 @@ def main(args):
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
                 'column': 'DATE_TIME_RECEIVED',
-                'processing': None
+                'processing': {
+                    'function': NrcScrapedReportFields.recieved_datetime
+                }
             },
             {
                 'db_table': 'NrcScrapedReport',
@@ -691,7 +811,9 @@ def main(args):
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
                 'column': 'INCIDENT_DATE_TIME',
-                'processing': None
+                'processing': {
+                    'function': NrcScrapedReportFields.incident_datetime
+                }
             },
             {
                 'db_table': 'NrcScrapedReport',
@@ -874,7 +996,7 @@ def main(args):
             },
             {  # TODO: Implement - check notes about which column to use
                 'db_table': 'NrcParsedReport',
-                'db_field': 'blockid',
+                'db_field': 'platform_letter',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
                 'column': None,
@@ -1032,6 +1154,32 @@ def main(args):
     }
 
     #/* ----------------------------------------------------------------------- */#
+    #/*     Define Defaults
+    #/* ----------------------------------------------------------------------- */#
+
+    # Database
+    db_connection_string = None
+    db_host = 'ewn3'
+    db_name = 'skytruth'
+    db_user = 'scraper'
+    db_pass = ''
+    db_write_mode = 'INSERT INTO'
+    db_seqnos_field = 'reportnum'
+    db_null_value = 'NULL'
+    sheet_seqnos_field = 'SEQNOS'
+    sheet_primary_sheet = 'CALLS'
+
+    # NRC file I/O
+    download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
+    file_to_process = os.getcwd() + sep + name_current_spreadsheet(basename(download_url))
+    overwrite_downloaded_file = False
+
+    # User feedback settings
+    print_progress = True
+    print_queries = False
+    execute_queries = True
+
+    #/* ----------------------------------------------------------------------- */#
     #/*     Parse arguments
     #/* ----------------------------------------------------------------------- */#
 
@@ -1106,6 +1254,15 @@ def main(args):
             print("ERROR: An argument has invalid parameters")
 
     #/* ----------------------------------------------------------------------- */#
+    #/*     Adjust options
+    #/* ----------------------------------------------------------------------- */#
+
+    # Database - must be done here in order to allow the user to overwrite the default credentials and settings
+    if db_connection_string is None:
+        db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" % (db_host, db_name, db_user, db_pass)
+
+
+    #/* ----------------------------------------------------------------------- */#
     #/*     Validate parameters
     #/* ----------------------------------------------------------------------- */#
 
@@ -1116,22 +1273,36 @@ def main(args):
         bail = True
         print("ERROR: Did not successfully parse arguments")
 
-    # Check the input file
-    if not os.access(file_to_process, os.R_OK):
+    # Make sure the downloaded file is not going to be accidentally deleted
+    if not overwrite_downloaded_file and isfile(file_to_process):
         bail = True
-        print("ERROR: Can't access input file: %s" % file_to_process)
+        print("ERROR: Overwrite=%s and download target exists: %s" % (overwrite_downloaded_file, file_to_process))
+
+    # Make sure the user has write permission to the target directory
+    if not os.access(dirname(file_to_process), os.W_OK):
+        bail = True
+        print("ERROR: Need write permission for download directory: %s" % dirname(file_to_process))
 
     # Exit if any problems were encountered
     if bail:
         return 1
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Prep DB connection and XLRD workbook for processing
+    #/*     Download the spreadsheet
     #/* ----------------------------------------------------------------------- */#
 
-    # Allow user to provide a complete DB connection string
-    if db_connection_string is None:
-        db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" % (db_host, db_name, db_user, db_pass)
+    print("Downloading: %s" % download_url)
+    print("Target: %s" % file_to_process)
+    try:
+        download(download_url, file_to_process)
+    except urllib2.URLError, e:
+        print("ERROR: Could not download from URL: %s" % download_url)
+        print("       URLLIB Error: %s" % e)
+        return 1
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Prep DB connection and XLRD workbook for processing
+    #/* ----------------------------------------------------------------------- */#
 
     # Test connection
     print("Connecting to DB: %s" % db_connection_string)
@@ -1210,68 +1381,92 @@ def main(args):
         # Get a list of unique report id's
         unique_report_ids = list(set(sheet_cache[sheet_primary_sheet].keys()))
 
-    #/* ----------------------------------------------------------------------- */#
-    #/*     Process data
-    #/* ----------------------------------------------------------------------- */#
+        #/* ----------------------------------------------------------------------- */#
+        #/*     Process data
+        #/* ----------------------------------------------------------------------- */#
 
-    print("Processing spreadsheet ...")
-    num_ids = len(unique_report_ids)
-    uid_i = 0
-    for uid in unique_report_ids:
+        print("Processing workbook ...")
+        num_ids = len(unique_report_ids)
+        uid_i = 0
+        for uid in unique_report_ids:
 
-        # Update user
-        uid_i += 1
+            # Update user
+            uid_i += 1
+            if print_progress:
+                sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
+                sys.stdout.flush()
+
+            # Assemble the query by grabbing all necessary values
+            for db_map in field_map.keys():
+
+                query_fields = [db_seqnos_field]
+                query_values = [str(uid)]
+
+                for map_def in field_map[db_map]:
+
+                    # Don't need to process the reportnum information since it was added to the initial query above
+                    if map_def['db_field'] != db_seqnos_field:
+
+                        # Get the row for this sheet
+                        row = sheet_cache[map_def['sheet_name']].get(uid, None)
+
+                        # If no additional processing is required, simply grab the value from the sheet and add to the query
+                        if row is not None:
+
+                            if map_def['processing'] is None:
+                                try:
+                                    value = row[map_def['column']]
+                                except KeyError:
+                                    # UID doesn't appear in the specified sheet - populate a NULL value
+                                    value = db_null_value
+
+                            # Pass all necessary information to the processing function in order to get a result
+                            else:
+                                value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook, row=row,
+                                                                          map_def=map_def, sheet=sheet_cache[map_def['sheet_name']])
+
+                            # Handle NULL values
+                            if value is None or not value:
+                                value = db_null_value
+
+                            # Assemble query
+                            if value not in ('__NO_QUERY__', db_null_value):
+                                query_fields.append(map_def['db_field'])
+
+                                # Only put quotes around specific values
+                                if isinstance(value, str) or isinstance(value, unicode):
+
+                                    # Having single quotes in the string causes problems on insert because the entire
+                                    # value is single quoted
+                                    value = value.replace("'", '"')
+                                    query_values.append("'%s'" % value)
+                                else:
+                                    query_values.append("%s" % value)
+
+                # Execute query, but not if the report already exists
+                _schema, _table = db_map.split('.')
+                _schema_table = _schema + '."%s"' % _table
+                query = """%s %s %s VALUES %s;""" % (db_write_mode, _schema_table,
+                                                     "(" + ", ".join(query_fields) + ")",
+                                                     "(" + ", ".join(query_values) + ")")
+                if print_queries:
+                    print("")
+                    print(query)
+                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, table=_schema_table):
+                    db_cursor.execute(query)
+
+        # Done processing - update user
         if print_progress:
-            sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
-            sys.stdout.flush()
-
-        # Assemble the query by grabbing all necessary values
-        for db_map in field_map.keys():
-
-            query = """%s %s SET""" % (db_write_mode, db_map)
-
-            for map_def in field_map[db_map]:
-
-                value = db_null_value
-
-                # If no additional processing is required, simply grab the value from the sheet and add to the query
-                if map_def['processing'] is None:
-                    try:
-                        value = sheet_cache[map_def['sheet_name']][uid][map_def['column']]
-                    except KeyError:
-                        # UID doesn't appear in the specified sheet - populate a NULL value
-                        pass
-
-                # Pass all necessary information to the processing function in order to get a result
-                else:
-                    value = map_def['processing']['function'](cursor=db_cursor, uid=uid, sheet=sheet_cache[map_def['sheet_name']])
-
-                # Handle NULL values
-                if value is None or value == db_null_value:
-                    value = db_null_value
-
-                # Assemble query
-                if value != '__NO_QUERY__':
-                    query += """ %s = %s, """ % (map_def['db_field'], "'" + unicode(value) + "'")
-
-            # TODO: Execute query
-            query += ';'
-            if print_queries:
-                print("")
-                print(query)
-            if execute_queries:
-                #db_cursor.execute(query)
-                pass
-
-    # Done processing - update user
-    if print_progress:
-        print(" - Done")
+            print(" - Done")
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
-    # Success
+    # Success - commit inserts and destroy DB connections
+    db_conn.commit()
+    db_cursor.close()
+    db_conn.close()
     return 0
 
 
