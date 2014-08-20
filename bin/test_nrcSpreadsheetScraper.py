@@ -498,7 +498,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
 
     def test_platform_letter(self):
 
-        # TODO: Implement - currently returning NULL
+        # TODO: Implement
 
         global TO
 

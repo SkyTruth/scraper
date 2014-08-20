@@ -418,7 +418,7 @@ def name_current_file(input_name):
     dt = datetime.now()
     dt = dt.strftime("_%Y-%m-%d_%I:%M:%S")
     input_split = input_name.split('.')
-    input_split[0] = input_split[0] + dt
+    input_split[0] += dt
 
     return '.'.join(input_split)
 
