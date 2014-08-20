@@ -335,11 +335,12 @@ def report_exists(**kwargs):
     cursor = kwargs.get('cursor', None)
     table = kwargs.get('table', None)
     field = kwargs.get('field', 'reportnum')
+    schema = kwargs.get('schema', None)
 
-    if None in (reportnum, cursor, table, field):
-        raise ValueError("ERROR: Missing reportnum, cursor, table, or field")
+    if None in (reportnum, cursor, table, schema, field):
+        raise ValueError("ERROR: Missing reportnum, cursor, table, schema, or field")
 
-    cursor.execute("SELECT * FROM %s WHERE %s = %s" % (table, field, reportnum))
+    cursor.execute("""SELECT * FROM %s."%s" WHERE %s = %s""" % (schema, table, field, reportnum))
     return len(cursor.fetchall()) > 0
 
 
@@ -347,21 +348,21 @@ def report_exists(**kwargs):
 #/*     Define timestamp2datetime() function
 #/* ======================================================================= */#
 
-def timestamp2datetime(stamp, mode, formatter='%Y-%m-%d %I:%M:%S.%f'):
+def timestamp2datetime(stamp, workbook_datemode, formatter='%Y-%m-%d %I:%M:%S'):
 
         """
         Convert a float formatted date a Postgres supported timestamp
 
         :param stamp: timestamp from XLRD reading a date encoded field
         :type stamp: float
-        :param mode: from xlrd.Workbook.datemode
-        :type mode: int
+        :param workbook_datemode: from xlrd.Workbook.datemode
+        :type workbook_datemode: int
 
         :return: date capable of being inserted into Postgres timestamp field
         :rtype: str|unicode
         """
 
-        dt = datetime(*xlrd.xldate_as_tuple(stamp, mode))
+        dt = datetime(*xlrd.xldate_as_tuple(stamp, workbook_datemode))
 
         return dt.strftime(formatter)
 
@@ -399,10 +400,10 @@ def download(url, destination, overwrite=False):
 
 
 #/* ======================================================================= */#
-#/*     Define name_current_spreadsheet() function
+#/*     Define name_current_file() function
 #/* ======================================================================= */#
 
-def name_current_spreadsheet(input_name):
+def name_current_file(input_name):
 
     """
     Generate the output Current.xlsx name for permanent archival
@@ -414,10 +415,12 @@ def name_current_spreadsheet(input_name):
     :rtype: str|unicode
     """
 
-    filename, extension = input_name.split('.', -1)
     dt = datetime.now()
+    dt = dt.strftime("_%Y-%m-%d_%I:%M:%S")
+    input_split = input_name.split('.')
+    input_split[0] = input_split[0] + dt
 
-    return filename + dt.strftime("_%Y-%m-%d_%I:%M:%S") + "." + extension
+    return '.'.join(input_split)
 
 
 #/* ======================================================================= */#
@@ -607,7 +610,7 @@ class NrcParsedReportFields(object):
         return kwargs.get('null', None)
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Define _unit_normalizer() static method
+    #/*     Define _sheen_handler() static method
     #/* ----------------------------------------------------------------------- */#
 
     @staticmethod
@@ -628,7 +631,6 @@ class NrcParsedReportFields(object):
 
         # No sheen size - nothing to do
         if value == '' or unit == '':
-            # TODO: IF value and unit are both empty, don't insert?
             return kwargs.get('null', None)
 
         # Found a sheen size and unit - perform conversion
@@ -734,11 +736,6 @@ class NrcParsedReportFields(object):
             output = kwargs.get('null', None)
 
         return output
-
-    #/* ----------------------------------------------------------------------- */#
-    #/*     Define latitude() static method
-    #/* ----------------------------------------------------------------------- */#
-
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define latitude() static method
@@ -1234,7 +1231,7 @@ def main(args):
 
     # NRC file I/O
     download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
-    file_to_process = os.getcwd() + sep + name_current_spreadsheet(basename(download_url))
+    file_to_process = os.getcwd() + sep + name_current_file(basename(download_url))
     overwrite_downloaded_file = False
     download_file = True
 
@@ -1534,7 +1531,7 @@ def main(args):
                 if print_queries:
                     print("")
                     print(query)
-                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, table=_schema_table):
+                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, schema=_schema, table=_table):
                     db_cursor.execute(query)
 
         # Done processing - update user

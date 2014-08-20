@@ -40,13 +40,19 @@ Tests
 from __future__ import division
 from __future__ import unicode_literals
 
+from datetime import datetime
+import os
+from os.path import isfile, basename
 from pprint import pprint
+import random
 import sys
 import unittest
+import urllib2
 
 import getpass
 import nrcSpreadsheetScraper
 import psycopg2
+from psycopg2 import extras as psycopg2_extras
 import xlrd
 
 
@@ -62,13 +68,19 @@ if sys.version[0] is 2:
 #/*     Global variables
 #/* ======================================================================= */#
 
-TEST_OPTIONS = {
-    'dataset': 'Current.xlsx',
+# Test options
+TO = {
     'sheet': 'CALLS',
+    'temp_file': '_-Nonsense-TEst_FiLe.xlsx.ext',
     'db_host': 'localhost',
+    'db_schema': 'public',
     'db_name': 'test_skytruth',
     'db_user': getpass.getuser(),
     'db_pass': '',
+    'field_reportnum': 'reportnum',
+    'db_table': 'NrcParsedReport',
+    'dl_url': 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx',
+    'db_null': 'NULL'
 }
 
 
@@ -78,23 +90,43 @@ TEST_OPTIONS = {
 
 def setUpModule():
 
-    global TEST_OPTIONS
+    global TO
 
     print("Validating test parameters ...")
 
-    # Make sure required test file and sheet exist and can be read
-    with xlrd.open_workbook(TEST_OPTIONS['dataset']) as workbook:
-        sheet = workbook.sheet_by_name(TEST_OPTIONS['sheet'])
-
     # Make sure the DB parameters are correct
+    print("  Database")
     db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
-                           % (TEST_OPTIONS['db_host'], TEST_OPTIONS['db_name'],
-                              TEST_OPTIONS['db_user'], TEST_OPTIONS['db_pass'])
+                           % (TO['db_host'], TO['db_name'],
+                              TO['db_user'], TO['db_pass'])
     connection = psycopg2.connect(db_connection_string)
     connection.close()
 
-    print("Done validating test parameters")
+    # Make sure the temp file doesn't exist - download
+    print("  Getting test data")
+    if isfile(TO['temp_file']):
+        raise IOError("ERROR: Temp file already exists: %s" % TO['temp_file'])
+    response = urllib2.urlopen(TO['dl_url'])
+    with open(TO['temp_file'], 'w') as f:
+        f.write(response.read())
+
+    # Make sure required test file and sheet exist and can be read
+    with xlrd.open_workbook(TO['temp_file']) as workbook:
+        sheet = workbook.sheet_by_name(TO['sheet'])
+
     print("Running tests ...")
+
+
+#/* ======================================================================= */#
+#/*     Define tearDownModule() function
+#/* ======================================================================= */#
+
+def tearDownModule():
+
+    global TO
+
+    if isfile(TO['temp_file']):
+        os.remove(TO['temp_file'])
 
 
 #/* ======================================================================= */#
@@ -132,9 +164,9 @@ class TestColumnNames(unittest.TestCase):
         Test standard use-case
         """
 
-        global TEST_OPTIONS
+        global TO
 
-        with xlrd.open_workbook(TEST_OPTIONS['dataset']) as workbook:
+        with xlrd.open_workbook(TO['temp_file']) as workbook:
             sheet = workbook.sheet_by_name('CALLS')
             expected = [i.value for i in sheet.row(0)]
             actual = nrcSpreadsheetScraper.column_names(sheet)
@@ -153,12 +185,12 @@ class TestSheet2Dict(unittest.TestCase):
         Test standard use-case
         """
 
-        global TEST_OPTIONS
+        global TO
 
-        with xlrd.open_workbook(TEST_OPTIONS['dataset']) as workbook:
+        with xlrd.open_workbook(TO['temp_file']) as workbook:
 
             all_expected = []
-            sheet = workbook.sheet_by_name(TEST_OPTIONS['sheet'])
+            sheet = workbook.sheet_by_name(TO['sheet'])
             sheet_dict = nrcSpreadsheetScraper.sheet2dict(sheet)
 
             # Validate sheet
@@ -191,14 +223,432 @@ class TestSheet2Dict(unittest.TestCase):
 #/*     Define TestReportExists() class
 #/* ======================================================================= */#
 
-class TestReportExists(object):
+class TestReportExists(unittest.TestCase):
 
     def test_standard(self):
 
         """
         Test standard use-case
         """
+
+        global TO
+
+        test_report_number = 1010101
+
+        db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
+                       % (TO['db_host'], TO['db_name'],
+                          TO['db_user'], TO['db_pass'])
+
+        db_conn = psycopg2.connect(db_connection_string)
+        db_cursor = db_conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
+
+        # Check to see if the report number is already in the table
+        query = """SELECT %s FROM %s."%s" WHERE %s = %s""" \
+                % (TO['field_reportnum'], TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
+        db_cursor.execute(query)
+        self.assertEqual(0, db_cursor.rowcount, "ERROR: Test %s %s is already in table"
+                         % (TO['field_reportnum'], test_report_number))
+
+        # Only perform the actual test if the test report was not found
+        if db_cursor.rowcount is 0:
+
+            # Insert the value in order to test the function
+            query = """INSERT INTO %s."%s" (%s) VALUES (%s)""" \
+                    % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
+            db_cursor.execute(query)
+            self.assertTrue(nrcSpreadsheetScraper.report_exists(reportnum=test_report_number, cursor=db_cursor,
+                                                                table=TO['db_table'], schema=TO['db_schema'],
+                                                                field=TO['field_reportnum']))
+
+            # Delete the value - safe it was just inserted
+            query = """DELETE FROM %s."%s" WHERE %s = %s""" \
+                    % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
+
+
+#/* ======================================================================= */#
+#/*     Define TestTimeStamp2DateTime() class
+#/* ======================================================================= */#
+
+class TestTimeStamp2DateTime(unittest.TestCase):
+
+    def test_standard(self):
+
+        global TO
+
+        test_stamp = 41640.14775462963
+        actual = nrcSpreadsheetScraper.timestamp2datetime(test_stamp, 0)
+        expected = '2014-01-01 03:32:46'
+        self.assertEqual(expected, actual)
+
+
+#/* ======================================================================= */#
+#/*     Define TestTimestamp2datetime() class
+#/* ======================================================================= */#
+
+class TestDownload(unittest.TestCase):
+
+    def setUp(self):
+
+        global TO
+
+        # The sample file was downloaded in the setUpModule() function, but the method being tested
+        # in this class the exact same thing, so the test file needs to be deleted and re-downloaded
+        if isfile(TO['temp_file']):
+            os.remove(TO['temp_file'])
+
+    def test_standard(self):
+
+        """
+        Test standard use-case
+        """
+
+        global TO
+
+        test_url = TO['dl_url']
+        target_file = TO['temp_file']
+
+        # Make sure invalid URL's fail
+        self.assertRaises(ValueError, nrcSpreadsheetScraper.download, *['asdf', target_file], **{'overwrite': False})
+
+        # Standard test
+        self.assertEqual(target_file, nrcSpreadsheetScraper.download(test_url, target_file))
+
+    def test_overwrite(self):
+
+        """
+        Test overwriting an existing file
+        """
+
+        global TO
+
+        # Create an empty test file to see if an exception is raised when the target file exists and overwrite=False
+        with open(TO['temp_file'], 'w') as f:
+            f.write(str(''))
+        self.assertRaises(ValueError, nrcSpreadsheetScraper.download,
+                          *[TO['dl_url'], TO['temp_file']], **{'overwrite': False})
+
+        # Make sure file is still empty and nothing was downloaded
+        self.assertTrue(os.path.getsize(TO['temp_file']) == 0)
+
+        # Download file
+        self.assertEqual(TO['temp_file'], nrcSpreadsheetScraper.download(TO['dl_url'], TO['temp_file'], overwrite=True))
+
+
+#/* ======================================================================= */#
+#/*     Define TestNameCurrentFile() class
+#/* ======================================================================= */#
+
+class TestNameCurrentFile(unittest.TestCase):
+
+    def test_standard(self):
+
+        """
+        Test standard use-case
+        """
+
+        global TO
+
+        original = TO['temp_file']
+        result = nrcSpreadsheetScraper.name_current_file(basename(original))
+
+        self.assertTrue(isinstance(result, str) or isinstance(result, unicode))
+        self.assertNotEqual(original, result)
+
+
+#/* ======================================================================= */#
+#/*     Define TestNrcScrapedReportFields() class                           */#
+#/* ======================================================================= */#
+
+class TestNrcScrapedReportFields(unittest.TestCase):
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_material_name() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_material_name(self):
+
+        # TODO: Implement - DIFFICULT - currently returning NULL
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.material_name(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_full_report_url() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_full_report_url(self):
+
+        expected = 'http://cgmix.uscg.mil/NRC/'
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.full_report_url()
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_materials_url() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_materials_url(self):
+
+        expected = 'http://cgmix.uscg.mil/NRC/'
+        aactual = nrcSpreadsheetScraper.NrcScrapedReportFields.materials_url()
+        self.assertEqual(expected, aactual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_time_stamp() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_time_stamp(self):
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.time_stamp(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_ft_id() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_ft_id(self):
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.ft_id(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_recieved_datetime() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def recievedtest__datetime(self):
+
+        # NOTE: The misspelling of this method is intentional to match the DB field name
+
+        # Assemble the required arguments
+        # These arguments contain the bare minimum requirements needed to test the function
+        class _workbook(object):
+            datemode = 0
+        workbook = _workbook()
+        map_def = {'column': 'DATE'}
+        row = {'DATE': 41640.14775462963}
+
+        expected = nrcSpreadsheetScraper.timestamp2datetime(row['DATE'], workbook.datemode)
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.recieved_datetime(row=row, map_def=map_def, workbook=workbook)
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_incident_datetime() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_incident_datetime(self):
+
+        # Assemble the required arguments
+        # These arguments contain the bare minimum requirements needed to test the function
+        class _workbook(object):
+            datemode = 0
+        workbook = _workbook()
+        map_def = {'column': 'DATE'}
+        row = {'DATE': 41640.14775462963}
+
+        expected = nrcSpreadsheetScraper.timestamp2datetime(row['DATE'], workbook.datemode)
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.recieved_datetime(row=row, map_def=map_def, workbook=workbook)
+        self.assertEqual(expected, actual)
+
+
+#/* ======================================================================= */#
+#/*     Define TestNrcParsedReportFields() class
+#/* ======================================================================= */#
+
+class TestNrcParsedReportFields(unittest.TestCase):
+    
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_areaid() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_areaid(self):
+
+        # TODO: Implement
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.areaid(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_blockid() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_blockid(self):
+
+        # TODO: Implement
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.blockid(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+    
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_platform_letter() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_platform_letter(self):
+
+        # TODO: Implement - currently returning NULL
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.platform_letter(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_sheen_handler() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_sheen_handler(self):
+
+        # To update test, paste the updated multipliers dict below
+        multipliers = {'FEET': 0.3048,
+                       'IN': 0.0254,
+                       'INCHES': 0.0254,
+                       'KILOMETERS': 1000,
+                       'METER': 1,
+                       'METERS': 1,
+                       'MI': 1609.34,
+                       'MIL': 1609.34,
+                       'MILES': 1609.34,
+                       'YARDS': 0.9144}
+
+        # Check exceptions
+        self.assertRaises(ValueError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
+                          **{'map_def': 'TEMP'})
+        self.assertRaises(ValueError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
+                          **{'row': 'TEMP'})
+
+        # Test each unit
+        for m_unit, m_multi in multipliers.iteritems():
+            map_def = {
+                'column': 'value',
+                'processing': {
+                    'args': {
+                        'unit_field': 'unit'
+                    }
+                }
+            }
+            row = {
+                'value': random.randint(0, 10000),
+                'unit': m_unit}
+
+            # Run test
+            expected = row[map_def['column']] * m_multi
+            actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(map_def=map_def, row=row)
+            self.assertEqual(expected, actual)
+
+        # Test if value is empty
+        map_def = {
+            'column': 'value',
+            'processing': {
+                'args': {
+                    'unit_field': 'unit'
+                }
+            }
+        }
+        row = {
+            'value': '',
+            'unit': random.choice(multipliers.keys())}
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(null=TO['db_null'], map_def=map_def, row=row)
+        self.assertEqual(expected, actual)
+
+        # Test if unit is empty
+        map_def = {
+            'column': 'value',
+            'processing': {
+                'args': {
+                    'unit_field': 'unit'
+                }
+            }
+        }
+        row = {
+            'value': random.randint(0, 10000),
+            'unit': ''}
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length(null=TO['db_null'], map_def=map_def, row=row)
+        self.assertEqual(expected, actual)
+    
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_affected_area() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_affected_area(self):
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.affected_area(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_time_stamp() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_time_stamp(self):
+
+        global TO
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.time_stamp(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+    
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_ft_id() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_ft_id(self):
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.ft_id(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_coord_formatter() method
+    #/* ----------------------------------------------------------------------- */#
+    def test_coord_formatter(self):
+        
+        # TODO: Implement
         pass
+    
+    
+#/* ======================================================================= */#
+#/*     Define TestNrcScrapedMaterialFields() class
+#/* ======================================================================= */#
+
+class TestNrcScrapedMaterialFields(unittest.TestCase):
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_ft_id() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_ft_id(self):
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define test_st_id() method
+    #/* ----------------------------------------------------------------------- */#
+
+    def test_st_id(self):
+
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(null=TO['db_null'])
+        self.assertEqual(expected, actual)
 
 
 #/* ======================================================================= */#
@@ -222,12 +672,16 @@ Usage:
 
 Test Options (-to):
 
-    DATASET=path/to/file.xlsx
-    TEST_SHEET=SHEET_NAME
-    DB_HOST=str
-    DB_NAME=str
-    DB_USER=str
-    DB_PASS=str
+    DL_URL          URL from which Current.xlsx can be downloaded
+    TEMP_FILE       Where Current.xlsx will be downloaded
+    SHEET           Sheet to use for most tests
+    DB_HOST         Test database hostname
+    DB_NAME         Name of test database
+    DB_SCHEMA       Name of schema for test database
+    DB_TABLE        Name of table for most tests
+    DB_USER         User for test database
+    DB_PASS         Password for test database
+    DB_NULL         Value to use for NULL
     """.format(__file__))
 
     return 1
@@ -249,7 +703,7 @@ def main(args):
     :rtype: int
     """
 
-    global TEST_OPTIONS
+    global TO
 
     # Defaults
     run_tests = True
@@ -274,8 +728,8 @@ def main(args):
                 i += 2
                 option, value = args[i - 1].split('=', 1)
                 option = option.lower()
-                if option in TEST_OPTIONS:
-                    TEST_OPTIONS[option] = value
+                if option in TO:
+                    TO[option] = value
                 else:
                     arg_error = True
                     print("ERROR: Invalid test option: %s" % option)
@@ -304,8 +758,8 @@ def main(args):
 
     # Update user
     print("")
-    print("Running tests ...")
-    pprint(TEST_OPTIONS)
+    print("Test options:")
+    pprint(TO)
     print("")
 
     # Run tests
