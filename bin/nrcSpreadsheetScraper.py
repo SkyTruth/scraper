@@ -231,7 +231,7 @@ def dms2dd(degrees, minutes, seconds, quadrant):
     :rtype: float
     """
 
-    output = int(degrees) + (int(minutes) / 60) + (int(seconds) / 3600)
+    output = int(degrees) + int(minutes) / 60 + int(seconds) / 3600
 
     if quadrant.lower() in ('s', 'w'):
         output *= -1
@@ -444,7 +444,9 @@ class NrcScrapedReportFields(object):
 
     @staticmethod
     def material_name(**kwargs):
-        pass
+
+        # TODO: Implement - DIFFICULT - currently returning NULL
+        return kwargs.get('null', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define full_report_url() static method
@@ -483,7 +485,7 @@ class NrcScrapedReportFields(object):
         Required to insert a NULL value
         """
 
-        return 'NULL'
+        return kwargs.get('null', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() function
@@ -496,7 +498,7 @@ class NrcScrapedReportFields(object):
         Required to insert a NULL value
         """
 
-        return 'NULL'
+        return kwargs.get('null', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define _datetime_caller() function
@@ -580,15 +582,19 @@ class NrcParsedReportFields(object):
 
     @staticmethod
     def areaid(**kwargs):
-        pass
-    
+
+        # TODO: Implement - currently returning NULL
+        return kwargs.get('null', None)
+
     #/* ----------------------------------------------------------------------- */#
     #/*     Define blockid() static method
     #/* ----------------------------------------------------------------------- */#
 
     @staticmethod
     def blockid(**kwargs):
-        pass
+
+        # TODO: Implement - currently returning NULL
+        return kwargs.get('null', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define platform_letter() static method
@@ -596,15 +602,66 @@ class NrcParsedReportFields(object):
 
     @staticmethod
     def platform_letter(**kwargs):
-        pass
-    
+
+        # TODO: Implement - currently returning NULL
+        return kwargs.get('null', None)
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define _unit_normalizer() static method
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def _sheen_handler(**kwargs):
+
+        """
+        Several converters require
+        """
+
+        row = kwargs.get('row', None)
+        map_def = kwargs.get('map_def', None)
+
+        if None in (row, map_def):
+            raise ValueError("ERROR: Missing row or map_def")
+
+        value = row[map_def['column']]
+        unit = row[map_def['processing']['args']['unit_field']]
+
+        # No sheen size - nothing to do
+        if value == '' or unit == '':
+            # TODO: IF value and unit are both empty, don't insert?
+            return kwargs.get('null', None)
+
+        # Found a sheen size and unit - perform conversion
+        else:
+
+            multipliers = {'FEET': 0.3048,
+                           'IN': 0.0254,
+                           'INCHES': 0.0254,
+                           'KILOMETERS': 1000,
+                           'METER': 1,
+                           'METERS': 1,
+                           'MI': 1609.34,
+                           'MIL': 1609.34,
+                           'MILES': 1609.34,
+                           'NI': None,
+                           'UN': None,
+                           'YARDS': 0.9144}
+
+            return multipliers[unit.upper()] * value
+
+
     #/* ----------------------------------------------------------------------- */#
     #/*     Define sheen_size_length() static method
     #/* ----------------------------------------------------------------------- */#
 
     @staticmethod
     def sheen_size_length(**kwargs):
-        pass
+
+        """
+        See called function documentation
+        """
+
+        return NrcParsedReportFields._sheen_handler(**kwargs)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define sheen_size_width() static method
@@ -612,7 +669,12 @@ class NrcParsedReportFields(object):
 
     @staticmethod
     def sheen_size_width(**kwargs):
-        pass
+
+        """
+        See called function documentation
+        """
+
+        return NrcParsedReportFields._sheen_handler(**kwargs)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define affected_area() static method
@@ -620,7 +682,8 @@ class NrcParsedReportFields(object):
 
     @staticmethod
     def affected_area(**kwargs):
-        pass
+
+        return kwargs.get('null', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define time_stamp() static method
@@ -633,7 +696,7 @@ class NrcParsedReportFields(object):
         Required to insert a NULL value
         """
 
-        return 'NULL'
+        return kwargs.get('null', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() static method
@@ -646,7 +709,7 @@ class NrcParsedReportFields(object):
         Required to insert a NULL value
         """
 
-        return 'NULL'
+        return kwargs.get('null', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define _coord_formatter() protected static method
@@ -668,7 +731,7 @@ class NrcParsedReportFields(object):
             col_quad = kwargs['processing']['args']['col_quadrant']
             output = dms2dd(row[col_deg], row[col_min], row[col_sec], row[col_quad])
         except (ValueError, KeyError):
-            output = None
+            output = kwargs.get('null', None)
 
         return output
 
@@ -729,7 +792,7 @@ class NrcScrapedMaterialFields(object):
     @staticmethod
     def ft_id(**kwargs):
 
-        return None
+        return kwargs.get('null', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define st_id() static method
@@ -738,7 +801,7 @@ class NrcScrapedMaterialFields(object):
     @staticmethod
     def st_id(**kwargs):
 
-        return None
+        return kwargs.get('null', None)
 
 
 #/* ======================================================================= */#
@@ -1004,7 +1067,7 @@ def main(args):
                     'function': NrcParsedReportFields.platform_letter
                 }
             },
-            {  # TODO: Implement
+            {
                 'db_table': 'NrcParsedReport',
                 'db_field': 'sheen_size_length',
                 'db_schema': 'public',
@@ -1015,7 +1078,7 @@ def main(args):
                     'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
                 }
             },
-            {  # TODO: Implement
+            {
                 'db_table': 'NrcParsedReport',
                 'db_field': 'sheen_size_width',
                 'db_schema': 'public',
@@ -1173,6 +1236,7 @@ def main(args):
     download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
     file_to_process = os.getcwd() + sep + name_current_spreadsheet(basename(download_url))
     overwrite_downloaded_file = False
+    download_file = True
 
     # User feedback settings
     print_progress = True
@@ -1201,6 +1265,17 @@ def main(args):
                 return print_version()
             elif arg in ('--license', '-usage'):
                 return print_license()
+
+            # Spreadsheet I/O
+            elif arg == '--no-download':
+                i += 2
+                download_file = False
+            elif arg == '--download-url':
+                i += 2
+                download_url = args[i - 1]
+            elif arg == '--file-to-process':
+                i += 2
+                file_to_process = args[i - 1]
 
             # Database connection
             elif arg == '--db-connection-string':
@@ -1231,10 +1306,10 @@ def main(args):
                 i += 1
                 execute_queries = False
 
-            # TODO: Remove temp argument
-            elif arg == 'go':
+            # Additional options
+            elif arg == '--overwrite':
                 i += 1
-                pass
+                overwrite_downloaded_file = True
 
             # Positional arguments and errors
             else:
@@ -1261,7 +1336,6 @@ def main(args):
     if db_connection_string is None:
         db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" % (db_host, db_name, db_user, db_pass)
 
-
     #/* ----------------------------------------------------------------------- */#
     #/*     Validate parameters
     #/* ----------------------------------------------------------------------- */#
@@ -1274,7 +1348,7 @@ def main(args):
         print("ERROR: Did not successfully parse arguments")
 
     # Make sure the downloaded file is not going to be accidentally deleted
-    if not overwrite_downloaded_file and isfile(file_to_process):
+    if download_file and not overwrite_downloaded_file and isfile(file_to_process):
         bail = True
         print("ERROR: Overwrite=%s and download target exists: %s" % (overwrite_downloaded_file, file_to_process))
 
@@ -1291,14 +1365,15 @@ def main(args):
     #/*     Download the spreadsheet
     #/* ----------------------------------------------------------------------- */#
 
-    print("Downloading: %s" % download_url)
-    print("Target: %s" % file_to_process)
-    try:
-        download(download_url, file_to_process)
-    except urllib2.URLError, e:
-        print("ERROR: Could not download from URL: %s" % download_url)
-        print("       URLLIB Error: %s" % e)
-        return 1
+    if download_file:
+        print("Downloading: %s" % download_url)
+        print("Target: %s" % file_to_process)
+        try:
+            download(download_url, file_to_process)
+        except urllib2.URLError, e:
+            print("ERROR: Could not download from URL: %s" % download_url)
+            print("       URLLIB Error: %s" % e)
+            return 1
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Prep DB connection and XLRD workbook for processing
@@ -1422,10 +1497,17 @@ def main(args):
 
                             # Pass all necessary information to the processing function in order to get a result
                             else:
-                                value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook, row=row,
-                                                                          map_def=map_def, sheet=sheet_cache[map_def['sheet_name']])
+                                value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
+                                                                          row=row, null=db_null_value, map_def=map_def,
+                                                                          sheet=sheet_cache[map_def['sheet_name']])
+                                if value is None:
+                                    print("")
+                                    from pprint import pprint
+                                    pprint(map_def)
+                                    print("")
+                                    return 1
 
-                            # Handle NULL values
+                            # Handle NULL values - these should be handled elsewhere so this is more of a safety net
                             if value is None or not value:
                                 value = db_null_value
 
