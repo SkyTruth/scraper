@@ -40,7 +40,6 @@ Tests
 from __future__ import division
 from __future__ import unicode_literals
 
-from datetime import datetime
 import os
 from os.path import isfile, basename
 from pprint import pprint
@@ -78,9 +77,10 @@ TO = {
     'db_user': getpass.getuser(),
     'db_pass': '',
     'field_reportnum': 'reportnum',
-    'db_table': 'NrcParsedReport',
+    'db_table': '"NrcParsedReport"',
     'dl_url': 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx',
     'db_null': 'NULL',
+    'test_reportnum': 10101019,
 }
 _TO_DESCRIPTIONS = {
     'dl_url': 'URL from which Current.xlsx can be downloaded',
@@ -93,6 +93,7 @@ _TO_DESCRIPTIONS = {
     'db_user': 'User for test database',
     'db_pass': 'Password for test database',
     'db_null': 'Value to use for NULL',
+    'test_reportnum': 'Report number to use for report specific tests'
 }
 
 
@@ -245,7 +246,7 @@ class TestReportExists(unittest.TestCase):
 
         global TO
 
-        test_report_number = 1010101
+        test_report_number = TO['test_reportnum']
 
         db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
                        % (TO['db_host'], TO['db_name'],
@@ -255,7 +256,7 @@ class TestReportExists(unittest.TestCase):
         db_cursor = db_conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
 
         # Check to see if the report number is already in the table
-        query = """SELECT %s FROM %s."%s" WHERE %s = %s""" \
+        query = """SELECT %s FROM %s.%s WHERE %s = %s""" \
                 % (TO['field_reportnum'], TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
         db_cursor.execute(query)
         self.assertEqual(0, db_cursor.rowcount, "ERROR: Test %s %s is already in table"
@@ -265,7 +266,7 @@ class TestReportExists(unittest.TestCase):
         if db_cursor.rowcount is 0:
 
             # Insert the value in order to test the function
-            query = """INSERT INTO %s."%s" (%s) VALUES (%s)""" \
+            query = """INSERT INTO %s.%s (%s) VALUES (%s)""" \
                     % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
             db_cursor.execute(query)
             self.assertTrue(nrcSpreadsheetScraper.report_exists(reportnum=test_report_number, cursor=db_cursor,
@@ -273,8 +274,13 @@ class TestReportExists(unittest.TestCase):
                                                                 field=TO['field_reportnum']))
 
             # Delete the value - safe it was just inserted
-            query = """DELETE FROM %s."%s" WHERE %s = %s""" \
+            query = """DELETE FROM %s.%s WHERE %s = %s""" \
                     % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
+            db_cursor.execute(query)
+
+            # Close the connection
+            db_cursor.close()
+            db_conn.close()
 
 
 #/* ======================================================================= */#
@@ -365,6 +371,58 @@ class TestNameCurrentFile(unittest.TestCase):
 
         self.assertTrue(isinstance(result, str) or isinstance(result, unicode))
         self.assertNotEqual(original, result)
+
+
+#/* ======================================================================= */#
+#/*     Define TestDRRowCount() class
+#/* ======================================================================= */#
+
+class TestDBRowCount(unittest.TestCase):
+
+    def test_standard(self):
+
+        """
+        Test standard use-case
+        """
+        
+        global TO
+
+        # Connect to the DB
+        db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
+                       % (TO['db_host'], TO['db_name'],
+                          TO['db_user'], TO['db_pass'])
+        db_conn = psycopg2.connect(db_connection_string)
+        db_cursor = db_conn.cursor()
+        
+        # Make sure the table being tested is empty
+        expected = 0
+        select_count_query = """SELECT COUNT(1) FROM %s.%s;""" % (TO['db_schema'], TO['db_table'])
+        db_cursor.execute(select_count_query)
+        actual = db_cursor.fetchall()[0][0]
+        self.assertEqual(expected, actual)
+
+        # Make sure that the function is also showing a count of 0
+        expected = 0
+        actual = nrcSpreadsheetScraper.db_row_count(db_cursor, "%s.%s" % (TO['db_schema'], TO['db_table']))
+        self.assertEqual(expected, actual)
+
+        # Insert a row and make sure the function sees it
+        insert_query = """INSERT INTO %s.%s (%s) VALUES (%s)""" \
+                       % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], TO['test_reportnum'])
+        db_cursor.execute(insert_query)
+        db_cursor.execute(select_count_query)
+        expected = db_cursor.fetchall()[0][0]
+        actual = nrcSpreadsheetScraper.db_row_count(db_cursor, "%s.%s" % (TO['db_schema'], TO['db_table']))
+        self.assertEqual(expected, actual)
+
+        # Delete the value - safe it was just inserted
+        delete_query = """DELETE FROM %s.%s WHERE %s = %s""" \
+                       % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], TO['test_reportnum'])
+        db_cursor.execute(delete_query)
+
+        # Close DB connection
+        db_cursor.close()
+        db_conn.close()
 
 
 #/* ======================================================================= */#

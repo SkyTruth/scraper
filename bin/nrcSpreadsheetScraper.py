@@ -52,7 +52,7 @@ import sys
 import urllib2
 
 import psycopg2
-from psycopg2 import extras as psycopg2_extras
+import psycopg2.extras
 import xlrd
 
 
@@ -161,6 +161,8 @@ def print_help():
     print("""
 Help: {0}
 ------{1}
+
+This script automatically downloads the
     """.format(__docname__, '-' * len(__docname__)))
 
     return 1
@@ -231,6 +233,9 @@ def dms2dd(degrees, minutes, seconds, quadrant):
     :return: decimal degrees
     :rtype: float
     """
+
+    if quadrant.lower() not in ('n', 'e', 's', 'w'):
+        raise ValueError("ERROR: Invalid quadrant: %s" % quadrant)
 
     output = int(degrees) + int(minutes) / 60 + int(seconds) / 3600
 
@@ -341,7 +346,7 @@ def report_exists(**kwargs):
     if None in (reportnum, cursor, table, schema, field):
         raise ValueError("ERROR: Missing reportnum, cursor, table, schema, or field")
 
-    cursor.execute("""SELECT * FROM %s."%s" WHERE %s = %s""" % (schema, table, field, reportnum))
+    cursor.execute("""SELECT * FROM %s.%s WHERE %s = %s""" % (schema, table, field, reportnum))
     return len(cursor.fetchall()) > 0
 
 
@@ -422,6 +427,30 @@ def name_current_file(input_name):
     input_split[0] += dt
 
     return '.'.join(input_split)
+
+
+#/* ======================================================================= */#
+#/*     Define db_row_count() function
+#/* ======================================================================= */#
+
+def db_row_count(cursor, schema_table):
+
+    """
+
+    :param cursor: Postgres formatted database connection string
+    :type cursor: psycopg2.cursor
+    :param schema_table: schema.table
+    :type schema_table: str|unicode
+
+    :return: number of rows in the specified schema.table
+    :rtype: int
+    """
+
+    query = """SELECT COUNT(1) FROM %s;""" % schema_table
+    cursor.execute(query)
+    result = cursor.fetchall()
+
+    return int(result[0][0])
 
 
 #/* ======================================================================= */#
@@ -832,9 +861,9 @@ def main(args):
     #/* ----------------------------------------------------------------------- */#
 
     field_map = {
-        'public.NrcScrapedReport': [
+        'public."NrcScrapedReport"': [
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'reportnum',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -842,7 +871,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'recieved_datetime',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -852,7 +881,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'calltype',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -860,7 +889,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'suspected_responsible_company',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -868,7 +897,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'description',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -876,7 +905,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'incident_datetime',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -886,7 +915,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'incidenttype',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -894,7 +923,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'cause',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -902,7 +931,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'location',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -910,7 +939,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'state',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -918,7 +947,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'nearestcity',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -926,7 +955,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'county',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -934,7 +963,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'medium_affected',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_DETAILS',
@@ -942,7 +971,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'material_name',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INVOLVED',
@@ -950,12 +979,12 @@ def main(args):
                 'processing': {
                     'function': NrcScrapedReportFields.material_name,
                     'args': {
-                        'extras_table': 'NrcScrapedMaterial'
+                        'extras_table': '"NrcScrapedMaterial"'
                     }
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'full_report_url',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -965,7 +994,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'materials_url',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -975,7 +1004,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'time_stamp',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -985,7 +1014,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedReport',
+                'db_table': '"NrcScrapedReport"',
                 'db_field': 'ft_id',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -995,9 +1024,9 @@ def main(args):
                 }
             }
         ],
-        'public.NrcParsedReport': [
+        'public."NrcParsedReport"': [
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'reportnum',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1005,7 +1034,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'latitude',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1021,7 +1050,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'longitude',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1037,7 +1066,7 @@ def main(args):
                 }
             },
             {  # TODO: Implement - check notes about which column to use
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'areaid',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1047,7 +1076,7 @@ def main(args):
                 }
             },
             {  # TODO: Implement - check notes about which column to use
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'blockid',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1057,7 +1086,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'zip',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1065,7 +1094,7 @@ def main(args):
                 'processing': None
             },
             {  # TODO: Implement - check notes about which column to use
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'platform_letter',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1075,7 +1104,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'sheen_size_length',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_DETAILS',
@@ -1086,7 +1115,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'sheen_size_width',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_DETAILS',
@@ -1097,7 +1126,7 @@ def main(args):
                 }
             },
             {  # TODO: Implement
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'affected_area',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1107,7 +1136,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'county',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
@@ -1115,7 +1144,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'time_stamp',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -1125,7 +1154,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcParsedReport',
+                'db_table': '"NrcParsedReport"',
                 'db_field': 'ft_id',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -1135,9 +1164,9 @@ def main(args):
                 }
             }
         ],
-        'public.NrcScrapedMaterial': [
+        'public."NrcScrapedMaterial"': [
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'reportnum',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -1145,7 +1174,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'chris_code',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -1153,7 +1182,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'name',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -1161,7 +1190,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'amount',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -1169,7 +1198,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'unit',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INV0LVED_CR',
@@ -1177,7 +1206,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'reached_water',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INVOLVED',
@@ -1185,7 +1214,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'amt_in_water',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INVOLVED',
@@ -1193,7 +1222,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'amt_in_water_unit',
                 'db_schema': 'public',
                 'sheet_name': 'MATERIAL_INVOLVED',
@@ -1201,7 +1230,7 @@ def main(args):
                 'processing': None
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'ft_id',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -1211,7 +1240,7 @@ def main(args):
                 }
             },
             {
-                'db_table': 'NrcScrapedMaterial',
+                'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'st_id',
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
@@ -1402,7 +1431,7 @@ def main(args):
 
         # Establish a DB connection  and turn on dict reading
         db_conn = psycopg2.connect(db_connection_string)
-        db_cursor = db_conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
+        db_cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Validate field map definitions
@@ -1432,7 +1461,7 @@ def main(args):
 
                 # Make sure schema and table exist in the DB
                 query = "SELECT * FROM information_schema.columns WHERE table_schema = '%s' AND table_name = '%s' AND column_name = '%s';" \
-                        % (map_def['db_schema'], map_def['db_table'], map_def['db_field'])
+                        % (map_def['db_schema'], map_def['db_table'].replace('"', ''), map_def['db_field'])
                 db_cursor.execute(query)
                 results = db_cursor.fetchall()
                 if not results:
@@ -1445,6 +1474,12 @@ def main(args):
             db_cursor.close()
             db_conn.close()
             return 1
+
+        #/* ----------------------------------------------------------------------- */#
+        #/*     Cache initial DB row counts for final stat printing
+        #/* ----------------------------------------------------------------------- */#
+
+        initial_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in field_map.keys()}
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Additional prep
@@ -1527,15 +1562,14 @@ def main(args):
                                     query_values.append("%s" % value)
 
                 # Execute query, but not if the report already exists
-                _schema, _table = db_map.split('.')
-                _schema_table = _schema + '."%s"' % _table
-                query = """%s %s %s VALUES %s;""" % (db_write_mode, _schema_table,
+                query = """%s %s %s VALUES %s;""" % (db_write_mode, db_map,
                                                      "(" + ", ".join(query_fields) + ")",
                                                      "(" + ", ".join(query_values) + ")")
                 if print_queries:
                     print("")
                     print(query)
-                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, schema=_schema, table=_table):
+                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, schema=map_def['db_schema'],
+                                                         table=map_def['db_table']):
                     db_cursor.execute(query)
 
         # Done processing - update user
@@ -1546,10 +1580,26 @@ def main(args):
     #/*     Cleanup and final return
     #/* ----------------------------------------------------------------------- */#
 
+    # Update user
+    padding = max([len(i) for i in field_map.keys()])
+    indent = " " * 2
+    print("Initial row counts:")
+    for schema_table, count in initial_db_row_counts.iteritems():
+        print("%s%s%s" % (indent, schema_table + ' ' * (padding - len(schema_table) + 4), count))
+    print("Final row counts:")
+    final_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in field_map.keys()}
+    for schema_table, count in final_db_row_counts.iteritems():
+        print("%s%s%s" % (indent, schema_table + ' ' * (padding - len(schema_table) + 4), count))
+    print("New rows:")
+    for schema_table, count in final_db_row_counts.iteritems():
+        print("%s%s%s" % (indent, schema_table + ' ' * (padding - len(schema_table) + 4),
+                          final_db_row_counts[schema_table] - initial_db_row_counts[schema_table]))
+
     # Success - commit inserts and destroy DB connections
     db_conn.commit()
     db_cursor.close()
     db_conn.close()
+
     return 0
 
 
