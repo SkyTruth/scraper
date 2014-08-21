@@ -847,7 +847,147 @@ class NrcScrapedMaterialFields(object):
 def main(args):
 
     """
-    Main routine
+    Main routine to parse, transform, and insert Current.xlsx into the tables
+    used by the Alerts system.
+
+    http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx
+
+    Before doing any transformations, a set of SEQNOS/reportnum's are gathered
+    from one of the workbook's sheets.  The default column in 'CALLS' but can be
+    specified by the user.  This set of ID's are treated as primary keys and drive
+    processing.
+
+    Rather than process the input document sheet by sheet and row by row, a set
+    of field map definitions are declared to describe which fields in which
+    sheets should be inserted into which table in which schema.  Each field map
+    is applied against each ID which means that if ID number 1234 is being
+    processed, the bare minimum field map example below states that whatever
+    value is in sheet 'CALLS' and column 'RESPONSIBLE_COMPANY' can be sent to
+    public."NrcScrapedReport".suspected_responsible_company  The more complicated
+    field map states that a specific function must do more of the heavy lifting.
+
+    Field maps are grouped by table and center around the target field.  There
+    should be one map for every field in a table.  The structure for field maps
+    is roughly as follows:
+
+        All field maps = {
+            'table_name': [
+                {
+                    'db_table': Name of target table,
+                    'db_field': Name of target field,
+                    'db_schema': Name of target schema,
+                    'sheet_name': Name of source sheet in input file,
+                    'column': Name of source column in sheet_name,
+                    'processing': {  # Optional - should be set to None if not used
+                        'function': Callable object responsible for additional sub-processing
+                        'args': {  # Essentially kwargs
+                            'Arg1': parameter,
+                            'Arg2': ...
+                        }
+                    }
+                },
+                {
+                    'db_table': Name of target table,
+                    'db_field': Name of target field,
+                    'db_schema': Name of target schema,
+                    'sheet_name': Name of source sheet in input file,
+                    'column': Name of source column in sheet_name,
+                    'processing': {  # Optional - should be set to None if not used
+                        'function': Callable object responsible for additional sub-processing
+                        'args': {  # Essentially kwargs
+                            'Arg1': parameter,
+                            'Arg2': ...
+                        }
+                    }
+                },
+            ],
+            'TABLE_NAME': [
+                {
+                    'db_table': Name of target table,
+                    'db_field': Name of target field,
+                    'db_schema': Name of target schema,
+                    'sheet_name': Name of source sheet in input file,
+                    'column': Name of source column in sheet_name,
+                    'processing': {  # Optional - should be set to None if not used
+                        'function': Callable object responsible for additional sub-processing
+                        'args': {  # Essentially kwargs
+                            'Arg1': parameter,
+                            'Arg2': ...
+                        }
+                    }
+                }
+            ],
+        }
+
+
+    The order of operations for a given ID is as follows:
+
+        1. Get an ID
+        2. Get a set of field maps for one target table
+        3. Process all field maps and assemble an insert query
+        4. Execute the insert statement
+        5. Repeat steps 2-4 until all tables have been processed
+
+
+    Example bare minimum field map:
+
+        The field map below shows that the value in the 'RESPONSIBLE_COMPANY'
+        column in the 'CALLS' sheet can be sent directly to
+        public."NrcScrapedReport".suspected_responsible_company without any
+        additional processing.  Note the quotes around the table name.
+
+        {
+            'db_table': '"NrcScrapedReport"',
+            'db_field': 'suspected_responsible_company',
+            'db_schema': 'public',
+            'sheet_name': 'CALLS',
+            'column': 'RESPONSIBLE_COMPANY',
+            'processing': None
+        },
+
+
+    Example field map with all options:
+
+        This field map shows that no specific column contains the value required
+        for public."NrcParsedReport".longitude  Instead, some information must be
+        passed to the NrcParsedReportFields.longitude() function where the actual
+        processing happens.  Field maps using additional processing always receive
+        the following kwargs:
+
+            cursor      The cursor to be used for all queries
+            row         The current row being processed - structured just like a
+                        csv.DictReader row
+            null        Value to use for NULL
+            map_def     Current map definition being processed (example below)
+            sheet       The entire sheet from which the row was extracted as
+                        described in the field map
+            uid         The current SEQNOS/reportnum being processed
+            workbook    XLRD workbook object
+
+        The callable object specified in map_def['processing']['function'] is
+        responsible for ALL queries.  The processing functions are intended
+        to return a final value to be inserted into the target field described
+        in the field map but this behavior is not required.  If the function
+        itself handles all queries internally it can return '__NO_QUERY__' in
+        order to be excluded from the insert statement for that table.
+
+        {
+            'db_table': '"NrcParsedReport"',
+            'db_field': 'longitude',
+            'db_schema': 'public',
+            'sheet_name': 'INCIDENT_COMMONS',
+            'column': None,
+            'processing': {
+                'function': NrcParsedReportFields.longitude,
+                'args': {
+                    'col_degrees': 'LONG_DEG',
+                    'col_minutes': 'LONG_MIN',
+                    'col_seconds': 'LONG_SEC',
+                    'col_quadrant': 'LONG_QUAD'
+                }
+            }
+        },
+
 
     :param args: arguments from the commandline (sys.argv[1:] in order to drop the script name)
     :type args: list
@@ -1502,9 +1642,17 @@ def main(args):
         #/*     Process data
         #/* ----------------------------------------------------------------------- */#
 
+        # Loops:
+
+        # Get a report number to process
+        #   Get a set of field maps for a single table to process
+        #       Get a field map to process
+
         print("Processing workbook ...")
         num_ids = len(unique_report_ids)
         uid_i = 0
+
+        # Loop through the primary keys
         for uid in unique_report_ids:
 
             # Update user
@@ -1513,12 +1661,13 @@ def main(args):
                 sys.stdout.write("\r\x1b[K" + "  %s/%s" % (uid_i, num_ids))
                 sys.stdout.flush()
 
-            # Assemble the query by grabbing all necessary values
+            # Get field maps for one table
             for db_map in field_map.keys():
 
                 query_fields = [db_seqnos_field]
                 query_values = [str(uid)]
 
+                # Get a single field map to process
                 for map_def in field_map[db_map]:
 
                     # Don't need to process the reportnum information since it was added to the initial query above
@@ -1530,6 +1679,10 @@ def main(args):
                         # If no additional processing is required, simply grab the value from the sheet and add to the query
                         if row is not None:
 
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                            #/*     Value goes from input file straight into DB
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
                             if map_def['processing'] is None:
                                 try:
                                     value = row[map_def['column']]
@@ -1537,11 +1690,19 @@ def main(args):
                                     # UID doesn't appear in the specified sheet - populate a NULL value
                                     value = db_null_value
 
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                            #/*     Value with additional processing
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
                             # Pass all necessary information to the processing function in order to get a result
                             else:
                                 value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
                                                                           row=row, null=db_null_value, map_def=map_def,
                                                                           sheet=sheet_cache[map_def['sheet_name']])
+
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                            #/*     Add this field map to the insert statementf
+                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
 
                             # Handle NULL values - these should be handled elsewhere so this is more of a safety net
                             if value is None or not value:
@@ -1561,10 +1722,13 @@ def main(args):
                                 else:
                                     query_values.append("%s" % value)
 
+                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                #/*     Execute the query
+                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
                 # Execute query, but not if the report already exists
-                query = """%s %s %s VALUES %s;""" % (db_write_mode, db_map,
-                                                     "(" + ", ".join(query_fields) + ")",
-                                                     "(" + ", ".join(query_values) + ")")
+                query = """%s %s %s VALUES %s;""" \
+                        % (db_write_mode, db_map, "(" + ", ".join(query_fields) + ")", "(" + ", ".join(query_values) + ")")
                 if print_queries:
                     print("")
                     print(query)
