@@ -118,8 +118,6 @@ def print_usage():
     :rtype: int
     """
 
-    # TODO: Populate usage
-
     print("""
 Usage:
 
@@ -193,7 +191,7 @@ def print_help():
     :return: 1 for exit code purposes
     :rtype: int
     """
-    # TODO: Populate help information
+
     print("""
 Help: {0}
 ------{1}
