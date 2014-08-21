@@ -630,6 +630,12 @@ class NrcParsedReportFields(object):
         value = row[map_def['column']]
         unit = row[map_def['processing']['args']['unit_field']]
 
+        # If the value is not a float, change it to nothing so the next test fails
+        try:
+            value = float(value)
+        except ValueError:
+            value = ''
+
         # No sheen size - nothing to do
         if value == '' or unit == '':
             return kwargs.get('null', None)
@@ -637,18 +643,21 @@ class NrcParsedReportFields(object):
         # Found a sheen size and unit - perform conversion
         else:
 
-            multipliers = {'FEET': 0.3048,
-                           'IN': 0.0254,
-                           'INCHES': 0.0254,
-                           'KILOMETERS': 1000,
-                           'METER': 1,
-                           'METERS': 1,
-                           'MI': 1609.34,
-                           'MIL': 1609.34,
-                           'MILES': 1609.34,
-                           'NI': None,
-                           'UN': None,
-                           'YARDS': 0.9144}
+            multipliers = {
+                'FE': 0.3048,
+                'FEET': 0.3048,
+                'IN': 0.0254,
+                'INCHES': 0.0254,
+                'KILOMETERS': 1000,
+                'METER': 1,
+                'METERS': 1,
+                'MI': 1609.34,
+                'MIL': 1609.34,
+                'MILES': 1609.34,
+                'NI': 1609.34,  # TODO: Assumed mistyping of 'MI'
+                'UN': 0.0254,  # TODO: Assumed mistyping of 'IN'
+                'YARDS': 0.9144
+            }
 
             return multipliers[unit.upper()] * value
 
@@ -1073,7 +1082,7 @@ def main(args):
                 'column': 'SHEEN_SIZE_LENGTH',
                 'processing': {
                     'function': NrcParsedReportFields.sheen_size_length,
-                    'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
+                    'args': {'unit_field': 'SHEEN_SIZE_LENGTH_UNITS'}
                 }
             },
             {
@@ -1084,7 +1093,7 @@ def main(args):
                 'column': 'SHEEN_SIZE_WIDTH',
                 'processing': {
                     'function': NrcParsedReportFields.sheen_size_width,
-                    'args': {'unit_field': 'SHEEN_SIZE_UNITS'}
+                    'args': {'unit_field': 'SHEEN_SIZE_WIDTH_UNITS'}
                 }
             },
             {  # TODO: Implement
@@ -1266,7 +1275,7 @@ def main(args):
 
             # Spreadsheet I/O
             elif arg == '--no-download':
-                i += 2
+                i += 1
                 download_file = False
             elif arg == '--download-url':
                 i += 2
@@ -1498,13 +1507,6 @@ def main(args):
                                 value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
                                                                           row=row, null=db_null_value, map_def=map_def,
                                                                           sheet=sheet_cache[map_def['sheet_name']])
-                                if map_def['db_field'] == 'longitude' and row['LAT_DEG'] != '':
-                                    print("")
-                                    print(value)
-                                    print("")
-                                    from pprint import pprint
-                                    pprint(row)
-                                    return 1
 
                             # Handle NULL values - these should be handled elsewhere so this is more of a safety net
                             if value is None or not value:
@@ -1557,10 +1559,4 @@ def main(args):
 
 if __name__ == '__main__':
 
-    # Not enough arguments - print usage
-    if len(sys.argv) is 1:
-        sys.exit(print_usage())
-
-    # Got enough arguments - give all but the script name to the main() function
-    else:
-        sys.exit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:]))
