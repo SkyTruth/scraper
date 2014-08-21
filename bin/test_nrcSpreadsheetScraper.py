@@ -80,7 +80,19 @@ TO = {
     'field_reportnum': 'reportnum',
     'db_table': 'NrcParsedReport',
     'dl_url': 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx',
-    'db_null': 'NULL'
+    'db_null': 'NULL',
+}
+_TO_DESCRIPTIONS = {
+    'dl_url': 'URL from which Current.xlsx can be downloaded',
+    'temp_file': 'Where Current.xlsx will be downloaded',
+    'sheet': 'Sheet to use for most tests',
+    'db_host': 'Test database hostname',
+    'db_name': 'Name of test database',
+    'db_schema': 'Name of schema for test database',
+    'db_table': 'Name of table for most tests',
+    'db_user': 'User for test database',
+    'db_pass': 'Password for test database',
+    'db_null': 'Value to use for NULL',
 }
 
 
@@ -102,7 +114,7 @@ def setUpModule():
     connection = psycopg2.connect(db_connection_string)
     connection.close()
 
-    # Make sure the temp file doesn't exist - download
+    # Make sure the temp file doesn't exist - download unless explicitly specified not to
     print("  Getting test data")
     if isfile(TO['temp_file']):
         raise IOError("ERROR: Temp file already exists: %s" % TO['temp_file'])
@@ -618,12 +630,41 @@ class TestNrcParsedReportFields(unittest.TestCase):
     #/* ----------------------------------------------------------------------- */#
     #/*     Define test_coord_formatter() method
     #/* ----------------------------------------------------------------------- */#
+
     def test_coord_formatter(self):
-        
-        # TODO: Implement
-        pass
-    
-    
+
+        global TO
+
+        # Test errors - all should return NULL
+        expected = TO['db_null']
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'])
+        self.assertEqual(expected, actual)
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'], **{'NOTHING': None})
+        self.assertEqual(expected, actual)
+
+        # Test with actual content
+        row = {
+            'degree': 28.0,
+            'minute': 24.0,
+            'second': 25.0,
+            'quadrant': 'N'
+        }
+        map_def = {
+            'processing': {
+                'args': {
+                    'col_degrees': 'degree',
+                    'col_minutes': 'minute',
+                    'col_seconds': 'second',
+                    'col_quadrant': 'quadrant'
+                }
+            }
+        }
+        expected = nrcSpreadsheetScraper.dms2dd(row['degree'], row['minute'], row['second'], row['quadrant'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'], row=row,
+                                                                              map_def=map_def)
+        self.assertEqual(expected, actual)
+
+
 #/* ======================================================================= */#
 #/*     Define TestNrcScrapedMaterialFields() class
 #/* ======================================================================= */#
@@ -664,6 +705,8 @@ def print_usage():
     :rtype: int
     """
 
+    global _TO_DESCRIPTIONS
+
     print("""
 Usage:
 
@@ -671,18 +714,20 @@ Usage:
 
 
 Test Options (-to):
+    """.format(basename(__file__)))
 
-    DL_URL          URL from which Current.xlsx can be downloaded
-    TEMP_FILE       Where Current.xlsx will be downloaded
-    SHEET           Sheet to use for most tests
-    DB_HOST         Test database hostname
-    DB_NAME         Name of test database
-    DB_SCHEMA       Name of schema for test database
-    DB_TABLE        Name of table for most tests
-    DB_USER         User for test database
-    DB_PASS         Password for test database
-    DB_NULL         Value to use for NULL
-    """.format(__file__))
+    # Get longest key and add padding
+    max_key_width_plus_padding = max([len(i) for i in TO.keys()]) + 4
+
+    # Print test options
+    iter_keys = _TO_DESCRIPTIONS.keys()
+    iter_keys.sort()
+    for key in iter_keys:
+        value = _TO_DESCRIPTIONS[key]
+        indent = " " * 4
+        key_with_padding = "%s%s" % (key, " " * (max_key_width_plus_padding - len(key)))
+        print("%s%s%s" % (indent, key_with_padding, value))
+    print("")
 
     return 1
 
@@ -728,6 +773,16 @@ def main(args):
                 i += 2
                 option, value = args[i - 1].split('=', 1)
                 option = option.lower()
+
+                # Cast to type
+                if value.upper() == 'NONE':
+                    value = None
+                elif value.upper() == 'TRUE':
+                    value = True
+                elif value.upper() == 'FALSE':
+                    value = False
+
+                # Make sure option is valid
                 if option in TO:
                     TO[option] = value
                 else:

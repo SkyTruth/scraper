@@ -45,6 +45,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
+import getpass
 import os
 from os.path import *
 import sys
@@ -721,16 +722,16 @@ class NrcParsedReportFields(object):
     def _coord_formatter(**kwargs):
 
         """
-        The latitude() and longitude() static methods require the same general
+        The latitude() and longitude() methods require the same general
         logic.
         """
 
         try:
-            row = kwargs['row'].copy()
-            col_deg = kwargs['processing']['args']['col_degrees']
-            col_min = kwargs['processing']['args']['col_minutes']
-            col_sec = kwargs['processing']['args']['col_seconds']
-            col_quad = kwargs['processing']['args']['col_quadrant']
+            row = kwargs['row']
+            col_deg = kwargs['map_def']['processing']['args']['col_degrees']
+            col_min = kwargs['map_def']['processing']['args']['col_minutes']
+            col_sec = kwargs['map_def']['processing']['args']['col_seconds']
+            col_quad = kwargs['map_def']['processing']['args']['col_quadrant']
             output = dms2dd(row[col_deg], row[col_min], row[col_sec], row[col_quad])
         except (ValueError, KeyError):
             output = kwargs.get('null', None)
@@ -1219,9 +1220,9 @@ def main(args):
 
     # Database
     db_connection_string = None
-    db_host = 'ewn3'
+    db_host = 'localhost'
     db_name = 'skytruth'
-    db_user = 'scraper'
+    db_user = getpass.getuser()
     db_pass = ''
     db_write_mode = 'INSERT INTO'
     db_seqnos_field = 'reportnum'
@@ -1497,11 +1498,12 @@ def main(args):
                                 value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
                                                                           row=row, null=db_null_value, map_def=map_def,
                                                                           sheet=sheet_cache[map_def['sheet_name']])
-                                if value is None:
+                                if map_def['db_field'] == 'longitude' and row['LAT_DEG'] != '':
+                                    print("")
+                                    print(value)
                                     print("")
                                     from pprint import pprint
-                                    pprint(map_def)
-                                    print("")
+                                    pprint(row)
                                     return 1
 
                             # Handle NULL values - these should be handled elsewhere so this is more of a safety net
