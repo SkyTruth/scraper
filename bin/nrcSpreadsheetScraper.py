@@ -122,8 +122,44 @@ def print_usage():
 
     print("""
 Usage:
-    %s [options]
-""" % __docname__)
+
+    {0} [--help-info] [options] [--no-download] [--download-url URL]
+    {1} [--db-connection-string] [--db-host hostname] [--db-user username]
+    {1} [--db-pass password] [--no-print-progress] [--print-queries]
+    {1} [--no-execute-queries] [--overwrite]
+
+Options:
+
+    --db-connection-string  Explicitly define a Postgres supported connection
+                            string.  All other --db-* options are ignored.
+    --db-host               Hostname for the target database
+                            [default: localhost]
+    --db-user               Username used for database connection
+                            [default: current user]
+    --db-name               Name of target database
+                            [default: skytruth]
+    --db-pass               Password for database user
+                            [default: '']
+
+    --download-url          URL from which to download the input file
+    --no-download           Don't download the input file
+    --overwrite-download    If the --file-to-process already exists and --no-download
+                            has not been specified, blindly overwrite the file.
+                            Unless the user is specifying a specific target for
+                            the download, this flag is not needed due the default
+                            file name containing datetime down to the second.
+
+    --file-to-process       Specify where the input file will be downloaded to
+                            If used in conjunction with --no-download it is
+                            assumed that the specified file already exists and
+                            should be used for processing
+                            [default: Current_<CURRENT_DATETIME>.xlsx]
+    --no-print-progress     Don't print the progress indicator
+    --print-queries         Print queries immediately before execution
+                            Automatically turns off the progress indicator
+    --no-execute-queries    Don't execute queries
+
+""".format(__docname__, " " * len(__docname__)))
     return 1
 
 
@@ -161,9 +197,8 @@ def print_help():
     print("""
 Help: {0}
 ------{1}
-
-This script automatically downloads the
-    """.format(__docname__, '-' * len(__docname__)))
+{2}
+    """.format(__docname__, '-' * len(__docname__), main.__doc__))
 
     return 1
 
@@ -1483,7 +1518,7 @@ def main(args):
                 execute_queries = False
 
             # Additional options
-            elif arg == '--overwrite':
+            elif arg == '--overwrite-download':
                 i += 1
                 overwrite_downloaded_file = True
 
