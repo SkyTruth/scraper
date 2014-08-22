@@ -32,9 +32,7 @@
 # =================================================================================== #
 
 
-"""
-Tests
-"""
+"""Tests"""
 
 
 from __future__ import division
@@ -107,12 +105,21 @@ def setUpModule():
 
     print("Validating test parameters ...")
 
-    # Make sure the DB parameters are correct
+    # Make sure the DB parameters are correct and that the test table is empty
     print("  Database")
     db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
                            % (TO['db_host'], TO['db_name'],
                               TO['db_user'], TO['db_pass'])
     connection = psycopg2.connect(db_connection_string)
+    cursor = connection.cursor()
+    query = """SELECT COUNT(1) FROM %s.%s;""" % (TO['db_schema'], TO['db_table'])
+    cursor.execute(query)
+    result = int(cursor.fetchall()[0][0])
+    if result > 0:
+        cursor.close()
+        connection.close()
+        raise IOError("ERROR: DB table is not empty: %s.%s" % (TO['db_schema'], TO['db_table']))
+    cursor.close()
     connection.close()
 
     # Make sure the temp file doesn't exist - download unless explicitly specified not to
@@ -256,7 +263,7 @@ class TestReportExists(unittest.TestCase):
         db_cursor = db_conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
 
         # Check to see if the report number is already in the table
-        query = """SELECT %s FROM %s.%s WHERE %s = %s""" \
+        query = """SELECT %s FROM %s.%s WHERE %s = %s;""" \
                 % (TO['field_reportnum'], TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
         db_cursor.execute(query)
         self.assertEqual(0, db_cursor.rowcount, "ERROR: Test %s %s is already in table"
@@ -266,7 +273,7 @@ class TestReportExists(unittest.TestCase):
         if db_cursor.rowcount is 0:
 
             # Insert the value in order to test the function
-            query = """INSERT INTO %s.%s (%s) VALUES (%s)""" \
+            query = """INSERT INTO %s.%s (%s) VALUES (%s);""" \
                     % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
             db_cursor.execute(query)
             self.assertTrue(nrcSpreadsheetScraper.report_exists(reportnum=test_report_number, cursor=db_cursor,
@@ -274,7 +281,7 @@ class TestReportExists(unittest.TestCase):
                                                                 field=TO['field_reportnum']))
 
             # Delete the value - safe it was just inserted
-            query = """DELETE FROM %s.%s WHERE %s = %s""" \
+            query = """DELETE FROM %s.%s WHERE %s = %s;""" \
                     % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
             db_cursor.execute(query)
 
@@ -389,8 +396,7 @@ class TestDBRowCount(unittest.TestCase):
 
         # Connect to the DB
         db_connection_string = "host='%s' dbname='%s' user='%s' password='%s'" \
-                       % (TO['db_host'], TO['db_name'],
-                          TO['db_user'], TO['db_pass'])
+                               % (TO['db_host'], TO['db_name'], TO['db_user'], TO['db_pass'])
         db_conn = psycopg2.connect(db_connection_string)
         db_cursor = db_conn.cursor()
         
@@ -407,7 +413,7 @@ class TestDBRowCount(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         # Insert a row and make sure the function sees it
-        insert_query = """INSERT INTO %s.%s (%s) VALUES (%s)""" \
+        insert_query = """INSERT INTO %s.%s (%s) VALUES (%s);""" \
                        % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], TO['test_reportnum'])
         db_cursor.execute(insert_query)
         db_cursor.execute(select_count_query)
@@ -416,7 +422,7 @@ class TestDBRowCount(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         # Delete the value - safe it was just inserted
-        delete_query = """DELETE FROM %s.%s WHERE %s = %s""" \
+        delete_query = """DELETE FROM %s.%s WHERE %s = %s;""" \
                        % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], TO['test_reportnum'])
         db_cursor.execute(delete_query)
 
@@ -595,9 +601,9 @@ class TestNrcParsedReportFields(unittest.TestCase):
                        'YARDS': 0.9144}
 
         # Check exceptions
-        self.assertRaises(ValueError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
+        self.assertRaises(KeyError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
                           **{'map_def': 'TEMP'})
-        self.assertRaises(ValueError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
+        self.assertRaises(KeyError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
                           **{'row': 'TEMP'})
 
         # Test each unit
@@ -616,7 +622,8 @@ class TestNrcParsedReportFields(unittest.TestCase):
 
             # Run test
             expected = row[map_def['column']] * m_multi
-            actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(map_def=map_def, row=row)
+            actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(map_def=map_def, row=row,
+                                                                                null=TO['db_null'])
             self.assertEqual(expected, actual)
 
         # Test if value is empty

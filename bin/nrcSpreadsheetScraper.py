@@ -361,7 +361,7 @@ def report_exists(**kwargs):
     """
     Check to see if a report has already been submitted to a table
 
-    :param seqnos: SEQNOS/reportnum
+    :param seqnos: reportnum
     :type seqnos: int|float
     :param field:
     :type field:
@@ -370,14 +370,11 @@ def report_exists(**kwargs):
     :rtype: bool
     """
 
-    reportnum = kwargs.get('reportnum', None)
-    cursor = kwargs.get('cursor', None)
-    table = kwargs.get('table', None)
+    reportnum = kwargs['reportnum']
+    cursor = kwargs['cursor']
+    table = kwargs['table']
     field = kwargs.get('field', 'reportnum')
-    schema = kwargs.get('schema', None)
-
-    if None in (reportnum, cursor, table, schema, field):
-        raise ValueError("ERROR: Missing reportnum, cursor, table, schema, or field")
+    schema = kwargs['schema']
 
     cursor.execute("""SELECT * FROM %s.%s WHERE %s = %s""" % (schema, table, field, reportnum))
     return len(cursor.fetchall()) > 0
@@ -511,7 +508,34 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def material_name(**kwargs):
 
-        # TODO: Implement - DIFFICULT - currently returning NULL
+
+        # cursor
+        # uid
+        # workbook
+        # row
+        # null
+        # map_def
+        # sheet
+        # all_field_maps
+
+
+        null = kwargs['null']
+        all_field_maps = kwargs['all_field_maps']
+        row = kwargs['row']
+        uid = kwargs['uid']
+        sheet = kwargs['sheet']
+        map_def = kwargs['map_def']
+        db_write_mode = kwargs['db_write_mode']
+
+        extra_rows = [i for i in sheet if uid in i.values()]
+
+        if row[map_def['column']] != '':
+
+            # Insert the first occurrence based on the field map
+            query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode, map_def['db_schema'], map_def['db_table'], map_def['db_field'], uid))
+
+
+
         return kwargs.get('null', None)
     
     #/* ----------------------------------------------------------------------- */#
@@ -588,12 +612,9 @@ class NrcScrapedReportFields(object):
         :return:
         """
 
-        workbook = kwargs.get('workbook')
-        row = kwargs.get('row')
-        map_def = kwargs.get('map_def')
-
-        if None in (workbook, row, map_def):
-            raise ValueError("ERROR: Missing a workbook, row, or map_def")
+        workbook = kwargs['workbook']
+        row = kwargs['row']
+        map_def = kwargs['map_def']
 
         return timestamp2datetime(row[map_def['column']], workbook.datemode)
 
@@ -683,11 +704,9 @@ class NrcParsedReportFields(object):
         Several converters require
         """
 
-        row = kwargs.get('row', None)
-        map_def = kwargs.get('map_def', None)
-
-        if None in (row, map_def):
-            raise ValueError("ERROR: Missing row or map_def")
+        row = kwargs['row']
+        map_def = kwargs['map_def']
+        db_null_value = kwargs['null']
 
         value = row[map_def['column']]
         unit = row[map_def['processing']['args']['unit_field']]
@@ -700,7 +719,7 @@ class NrcParsedReportFields(object):
 
         # No sheen size - nothing to do
         if value == '' or unit == '':
-            return kwargs.get('null', None)
+            return db_null_value
 
         # Found a sheen size and unit - perform conversion
         else:
@@ -805,7 +824,7 @@ class NrcParsedReportFields(object):
             col_quad = kwargs['map_def']['processing']['args']['col_quadrant']
             output = dms2dd(row[col_deg], row[col_min], row[col_sec], row[col_quad])
         except (ValueError, KeyError):
-            output = kwargs.get('null', None)
+            output = kwargs['null']
 
         return output
 
@@ -987,15 +1006,18 @@ def main(args):
         processing happens.  Field maps using additional processing always receive
         the following kwargs:
 
-            cursor      The cursor to be used for all queries
-            row         The current row being processed - structured just like a
-                        csv.DictReader row
-            null        Value to use for NULL
-            map_def     Current map definition being processed (example below)
-            sheet       The entire sheet from which the row was extracted as
-                        described in the field map
-            uid         The current SEQNOS/reportnum being processed
-            workbook    XLRD workbook object
+            cursor              The cursor to be used for all queries
+            row                 The current row being processed - structured just like a
+                                csv.DictReader row
+            null                Value to use for NULL
+            map_def             Current map definition being processed (example below)
+            sheet               The entire sheet from which the row was extracted as
+                                described in the field map
+            uid                 The current SEQNOS/reportnum being processed
+            workbook            XLRD workbook object
+            all_field_maps      All field maps with keys set to schema.table
+            sheet_seqnos_field  The field in all sheets containing the reportnum
+            db_write_mode       The first part of the SQL statement for writes (e.g. INSERT INTO)
 
         The callable object specified in map_def['processing']['function'] is
         responsible for ALL queries.  The processing functions are intended
@@ -1152,7 +1174,9 @@ def main(args):
                 'processing': {
                     'function': NrcScrapedReportFields.material_name,
                     'args': {
-                        'extras_table': '"NrcScrapedMaterial"'
+                        'extras_table': '"NrcScrapedMaterial"',
+                        'extras_schema': 'public',
+                        'extras_field_maps': 'public."NrcScrapedMaterial"'
                     }
                 }
             },
@@ -1665,8 +1689,7 @@ def main(args):
             for map_def in field_map[db_map]:
                 sname = map_def['sheet_name']
                 if sname is not None and sname not in sheet_cache:
-                    # Make each row be reference-able by report number
-                    sheet_cache[sname] = {row[sheet_seqnos_field]: row for row in sheet2dict(workbook.sheet_by_name(sname))}
+                    sheet_cache[sname] = sheet2dict(sname)
 
         # Get a list of unique report id's
         unique_report_ids = list(set(sheet_cache[sheet_primary_sheet].keys()))
@@ -1707,7 +1730,10 @@ def main(args):
                     if map_def['db_field'] != db_seqnos_field:
 
                         # Get the row for this sheet
-                        row = sheet_cache[map_def['sheet_name']].get(uid, None)
+                        row = None
+                        for item in sheet_cache['sheet_name']:
+                            if item[sheet_seqnos_field] == uid:
+                                row = item
 
                         # If no additional processing is required, simply grab the value from the sheet and add to the query
                         if row is not None:
@@ -1731,10 +1757,13 @@ def main(args):
                             else:
                                 value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
                                                                           row=row, null=db_null_value, map_def=map_def,
-                                                                          sheet=sheet_cache[map_def['sheet_name']])
+                                                                          sheet=sheet_cache[map_def['sheet_name']],
+                                                                          all_field_maps=field_map,
+                                                                          sheet_seqnos_field=sheet_seqnos_field,
+                                                                          db_write_mode=db_write_mode)
 
                             #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-                            #/*     Add this field map to the insert statementf
+                            #/*     Add this field map to the insert statement
                             #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
 
                             # Handle NULL values - these should be handled elsewhere so this is more of a safety net
