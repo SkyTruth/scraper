@@ -371,7 +371,7 @@ def report_exists(**kwargs):
     """
 
     reportnum = kwargs['reportnum']
-    cursor = kwargs['cursor']
+    cursor = kwargs['db_cursor']
     table = kwargs['table']
     field = kwargs.get('field', 'reportnum')
     schema = kwargs['schema']
@@ -508,7 +508,6 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def material_name(**kwargs):
 
-
         # cursor
         # uid
         # workbook
@@ -517,26 +516,121 @@ class NrcScrapedReportFields(object):
         # map_def
         # sheet
         # all_field_maps
+        # sheet_seqnos_field
+        # db_write_mode
 
+        # Field map for this method
+        # {
+        #     'db_table': '"NrcScrapedReport"',
+        #     'db_field': 'material_name',
+        #     'db_schema': 'public',
+        #     'sheet_name': 'MATERIAL_INVOLVED',
+        #     'column': 'NAME_OF_MATERIAL',
+        #     'processing': {
+        #         'function': NrcScrapedReportFields.material_name,
+        #         'args': {
+        #             'extras_table': '"NrcScrapedMaterial"',
+        #             'extras_schema': 'public',
+        #             'extras_field_maps': 'public."NrcScrapedMaterial"'
+        #         }
+        #     }
+        # },
 
-        null = kwargs['null']
-        all_field_maps = kwargs['all_field_maps']
-        row = kwargs['row']
-        uid = kwargs['uid']
-        sheet = kwargs['sheet']
+        # # Handle NULL values - these should be handled elsewhere so this is more of a safety net
+        # if value is None or not value:
+        #     value = db_null_value
+        #
+        # # Assemble query
+        # if value not in ('__NO_QUERY__', db_null_value):
+        #     query_fields.append(map_def['db_field'])
+        #
+        #     # Only put quotes around specific values
+        #     if isinstance(value, str) or isinstance(value, unicode):
+        #
+        #         # Having single quotes in the string causes problems on insert because the entire
+        #         # value is single quoted
+        #         value = value.replace("'", '"')
+        #         query_values.append("'%s'" % value)
+        #     else:
+        #         query_values.append("%s" % value)
+
+        # NrcScrapedReport
+        # *** MATERIAL_INVOLVED.NAME_OF_MATERIAL (first occurrence only - put all occurrences in the NrcScrapedMaterial table)
+
+        # Parse arguments
         map_def = kwargs['map_def']
+        print_queries = kwargs['print_queries']
+        execute_queries = kwargs['execute_queries']
+        extras_field_maps = map_def['processing']['args']['extras_field_maps']
         db_write_mode = kwargs['db_write_mode']
+        uid = kwargs['uid']
+        sheet_seqnos_field = kwargs['sheet_seqnos_field']
+        db_cursor = kwargs['db_cursor']
+        raw_sheet_cache = kwargs['raw_sheet_cache']
+        db_seqnos_field = kwargs['db_seqnos_field']
+        db_null_value = kwargs['db_null_value']
 
-        extra_rows = [i for i in sheet if uid in i.values()]
+        # Build query
+        initial_query_completed = False
+        extra_query_fields = []
+        extra_query_values = []
+        for row in raw_sheet_cache[map_def['sheet_name']]:
 
-        if row[map_def['column']] != '':
+            # Found a matching row
+            if row[sheet_seqnos_field] == uid:
 
-            # Insert the first occurrence based on the field map
-            query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode, map_def['db_schema'], map_def['db_table'], map_def['db_field'], uid))
+                print("")
+                print("  ROW MATCH")
 
+                # The first instance goes into the table specified in the field map
+                if not initial_query_completed:
+                    print("")
+                    print("  INITIAL QUERY")
+                    query = """UPDATE %s.%s SET %s = '%s' WHERE %s = %s;""" \
+                            % (map_def['db_schema'], map_def['db_table'], map_def['db_field'],
+                               row[map_def['column']], db_seqnos_field, uid)
+                    # Do something with the query
+                    if print_queries:
+                        print("")
+                        print(query)
+                    if execute_queries:
+                        db_cursor.execute(query)
 
+                    # IMPORTANT - must set to true in order to prevent subsequent queries from updating this report
+                    initial_query_completed = True
 
-        return kwargs.get('null', None)
+                # ALL occurrences are sent to a different table - specified in the field map arguments
+                for e_db_map in extras_field_maps:
+                    print("")
+                    print("  SUBSEQUENT QUERY")
+                    for e_map_def in extras_field_maps[e_db_map]:
+                        field = e_map_def['db_field']
+                        value = row.get(e_map_def['column'], db_null_value)
+
+                        # Only insert non-null values - DB default is NULL
+                        if value != '':
+
+                            extra_query_fields.append(field)
+                            if isinstance(value, str) or isinstance(value, unicode):
+                                value = value.replace("'", '"')  # Single quotes cause problems on insert
+                                extra_query_values.append("'%s'" % value)  # String value
+                            else:
+                                extra_query_values.append("%s" % value)  # int|float value
+
+                    query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode,
+                                                                map_def['processing']['args']['extras_schema'],
+                                                                map_def['processing']['args']['extras_table'],
+                                                                ', '.join(extra_query_fields),
+                                                                ', '.join(extra_query_values))
+                    # Do something with the query
+                    if print_queries:
+                        print("")
+                        print(query)
+                    if execute_queries:
+                        db_cursor.execute(query)
+
+        # This processing function handled ALL inserts - tell parent process there's nothing left to do
+        return '__NO_QUERY__'
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define full_report_url() static method
@@ -575,7 +669,7 @@ class NrcScrapedReportFields(object):
         Required to insert a NULL value
         """
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() function
@@ -588,7 +682,7 @@ class NrcScrapedReportFields(object):
         Required to insert a NULL value
         """
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define _datetime_caller() function
@@ -671,7 +765,7 @@ class NrcParsedReportFields(object):
     def areaid(**kwargs):
 
         # TODO: Implement - currently returning NULL
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define blockid() static method
@@ -681,7 +775,7 @@ class NrcParsedReportFields(object):
     def blockid(**kwargs):
 
         # TODO: Implement - currently returning NULL
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define platform_letter() static method
@@ -691,7 +785,7 @@ class NrcParsedReportFields(object):
     def platform_letter(**kwargs):
 
         # TODO: Implement - currently returning NULL
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define _sheen_handler() static method
@@ -706,7 +800,7 @@ class NrcParsedReportFields(object):
 
         row = kwargs['row']
         map_def = kwargs['map_def']
-        db_null_value = kwargs['null']
+        db_null_value = kwargs['db_null_value']
 
         value = row[map_def['column']]
         unit = row[map_def['processing']['args']['unit_field']]
@@ -776,7 +870,7 @@ class NrcParsedReportFields(object):
     @staticmethod
     def affected_area(**kwargs):
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define time_stamp() static method
@@ -789,7 +883,7 @@ class NrcParsedReportFields(object):
         Required to insert a NULL value
         """
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define ft_id() static method
@@ -802,7 +896,7 @@ class NrcParsedReportFields(object):
         Required to insert a NULL value
         """
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define _coord_formatter() protected static method
@@ -824,7 +918,7 @@ class NrcParsedReportFields(object):
             col_quad = kwargs['map_def']['processing']['args']['col_quadrant']
             output = dms2dd(row[col_deg], row[col_min], row[col_sec], row[col_quad])
         except (ValueError, KeyError):
-            output = kwargs['null']
+            output = kwargs['db_null_value']
 
         return output
 
@@ -880,7 +974,7 @@ class NrcScrapedMaterialFields(object):
     @staticmethod
     def ft_id(**kwargs):
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define st_id() static method
@@ -889,7 +983,7 @@ class NrcScrapedMaterialFields(object):
     @staticmethod
     def st_id(**kwargs):
 
-        return kwargs.get('null', None)
+        return kwargs.get('db_null_value', None)
 
 
 #/* ======================================================================= */#
@@ -1176,7 +1270,43 @@ def main(args):
                     'args': {
                         'extras_table': '"NrcScrapedMaterial"',
                         'extras_schema': 'public',
-                        'extras_field_maps': 'public."NrcScrapedMaterial"'
+                        'extras_field_maps': {
+                            'public."NrcScrapedReport"': [
+                                {  # NOTE: This is the same as the parent field map but it is required to write the
+                                   #        specified value to the extras table
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'material_name',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
+                                    'column': 'NAME_OF_MATERIAL',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': "NrcScrapedMaterial",
+                                    'db_field': 'reached_water',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'NAME_OF_MATERIAL',
+                                    'column': 'IF_REACHED_WATER',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'amt_in_water',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
+                                    'column': 'AMOUNT_IN_WATER',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'amt_in_water_unit',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
+                                    'column': 'UNIT_OF_MEASURE_REACH_WATER',
+                                    'processing': None
+                                }
+                            ]
+                        }
                     }
                 }
             },
@@ -1402,30 +1532,36 @@ def main(args):
                 'column': 'UPPER_BOUNDS_UNIT',
                 'processing': None
             },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'reached_water',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INVOLVED',
-                'column': 'IF_REACHED_WATER',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'amt_in_water',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INVOLVED',
-                'column': 'AMOUNT_IN_WATER',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'amt_in_water_unit',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INVOLVED',
-                'column': 'UNIT_OF_MEASURE_REACH_WATER',
-                'processing': None
-            },
+            #
+            # TODO: The below definitions are handled by the material_name() function
+            #       which means they should not be included elsewhere, right?  This is
+            #       the only sheet containing duplicate ID's so it should only be updated
+            #       by the appropriate processing function
+            #
+            # {
+            #     'db_table': '"NrcScrapedMaterial"',
+            #     'db_field': 'reached_water',
+            #     'db_schema': 'public',
+            #     'sheet_name': 'MATERIAL_INVOLVED',
+            #     'column': 'IF_REACHED_WATER',
+            #     'processing': None
+            # },
+            # {
+            #     'db_table': '"NrcScrapedMaterial"',
+            #     'db_field': 'amt_in_water',
+            #     'db_schema': 'public',
+            #     'sheet_name': 'MATERIAL_INVOLVED',
+            #     'column': 'AMOUNT_IN_WATER',
+            #     'processing': None
+            # },
+            # {
+            #     'db_table': '"NrcScrapedMaterial"',
+            #     'db_field': 'amt_in_water_unit',
+            #     'db_schema': 'public',
+            #     'sheet_name': 'MATERIAL_INVOLVED',
+            #     'column': 'UNIT_OF_MEASURE_REACH_WATER',
+            #     'processing': None
+            # },
             {
                 'db_table': '"NrcScrapedMaterial"',
                 'db_field': 'ft_id',
@@ -1508,7 +1644,7 @@ def main(args):
                 download_url = args[i - 1]
             elif arg == '--file-to-process':
                 i += 2
-                file_to_process = args[i - 1]
+                file_to_process = abspath(args[i - 1])
 
             # Database connection
             elif arg == '--db-connection-string':
@@ -1685,14 +1821,21 @@ def main(args):
         # Cache all sheets needed by the field definitions as dictionaries
         print("Caching sheets ...")
         sheet_cache = {}
+        raw_sheet_cache = {}
         for db_map in field_map.keys():
             for map_def in field_map[db_map]:
                 sname = map_def['sheet_name']
                 if sname is not None and sname not in sheet_cache:
-                    sheet_cache[sname] = sheet2dict(sname)
+                    sheet_dict = sheet2dict(workbook.sheet_by_name(sname))
+                    raw_sheet_cache[sname] = sheet_dict
+                    sheet_cache[sname] = {row[sheet_seqnos_field]: row for row in sheet_dict}
 
         # Get a list of unique report id's
-        unique_report_ids = list(set(sheet_cache[sheet_primary_sheet].keys()))
+        unique_report_ids = []
+        for s_name, s_rows in sheet_cache.iteritems():
+            for reportnum in s_rows.keys():
+                unique_report_ids.append(reportnum)
+        unique_report_ids = list(set(unique_report_ids))
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data
@@ -1723,80 +1866,88 @@ def main(args):
                 query_fields = [db_seqnos_field]
                 query_values = [str(uid)]
 
-                # Get a single field map to process
-                for map_def in field_map[db_map]:
+                # If the report already exists, in the target table, skip everything else
+                _schema, _table = db_map.split('.')
+                if not report_exists(db_cursor=db_cursor, reportnum=uid, schema=_schema, table=_table):
 
-                    # Don't need to process the reportnum information since it was added to the initial query above
-                    if map_def['db_field'] != db_seqnos_field:
+                    # Get a single field map to process
+                    for map_def in field_map[db_map]:
 
-                        # Get the row for this sheet
-                        row = None
-                        for item in sheet_cache['sheet_name']:
-                            if item[sheet_seqnos_field] == uid:
-                                row = item
+                        # Don't need to process the reportnum information since it was added to the initial query above
+                        if map_def['db_field'] != db_seqnos_field:
 
-                        # If no additional processing is required, simply grab the value from the sheet and add to the query
-                        if row is not None:
+                            # Get the row for this sheet
+                            try:
+                                row = sheet_cache[map_def['sheet_name']][uid]
+                            except KeyError:
+                                row = None
 
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-                            #/*     Value goes from input file straight into DB
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                            # If no additional processing is required, simply grab the value from the sheet and add to the query
+                            if row is not None:
 
-                            if map_def['processing'] is None:
-                                try:
-                                    value = row[map_def['column']]
-                                except KeyError:
-                                    # UID doesn't appear in the specified sheet - populate a NULL value
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                                #/*     Value goes from input file straight into DB
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
+                                if map_def['processing'] is None:
+                                    try:
+                                        value = row[map_def['column']]
+                                    except KeyError:
+                                        # UID doesn't appear in the specified sheet - populate a NULL value
+                                        value = db_null_value
+
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                                #/*     Value with additional processing
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
+                                # Pass all necessary information to the processing function in order to get a result
+                                else:
+                                    value = map_def['processing']['function'](db_cursor=db_cursor, uid=uid, workbook=workbook,
+                                                                              row=row, db_null_value=db_null_value,
+                                                                              map_def=map_def,
+                                                                              sheet=sheet_cache[map_def['sheet_name']],
+                                                                              all_field_maps=field_map,
+                                                                              sheet_seqnos_field=sheet_seqnos_field,
+                                                                              db_write_mode=db_write_mode,
+                                                                              print_queries=print_queries,
+                                                                              execute_queries=execute_queries,
+                                                                              raw_sheet_cache=raw_sheet_cache,
+                                                                              db_seqnos_field=db_seqnos_field)
+
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                                #/*     Add this field map to the insert statement
+                                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+
+                                # Handle NULL values - these should be handled elsewhere so this is more of a safety net
+                                if value is None or not value:
                                     value = db_null_value
 
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-                            #/*     Value with additional processing
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                                # Assemble query
+                                if value not in ('__NO_QUERY__', db_null_value):
+                                    query_fields.append(map_def['db_field'])
 
-                            # Pass all necessary information to the processing function in order to get a result
-                            else:
-                                value = map_def['processing']['function'](cursor=db_cursor, uid=uid, workbook=workbook,
-                                                                          row=row, null=db_null_value, map_def=map_def,
-                                                                          sheet=sheet_cache[map_def['sheet_name']],
-                                                                          all_field_maps=field_map,
-                                                                          sheet_seqnos_field=sheet_seqnos_field,
-                                                                          db_write_mode=db_write_mode)
+                                    # Only put quotes around specific values
+                                    if isinstance(value, str) or isinstance(value, unicode):
 
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-                            #/*     Add this field map to the insert statement
-                            #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                                        # Having single quotes in the string causes problems on insert because the entire
+                                        # value is single quoted
+                                        value = value.replace("'", '"')
+                                        query_values.append("'%s'" % value)
+                                    else:
+                                        query_values.append("%s" % value)
 
-                            # Handle NULL values - these should be handled elsewhere so this is more of a safety net
-                            if value is None or not value:
-                                value = db_null_value
+                    #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
+                    #/*     Execute query
+                    #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
 
-                            # Assemble query
-                            if value not in ('__NO_QUERY__', db_null_value):
-                                query_fields.append(map_def['db_field'])
-
-                                # Only put quotes around specific values
-                                if isinstance(value, str) or isinstance(value, unicode):
-
-                                    # Having single quotes in the string causes problems on insert because the entire
-                                    # value is single quoted
-                                    value = value.replace("'", '"')
-                                    query_values.append("'%s'" % value)
-                                else:
-                                    query_values.append("%s" % value)
-
-                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-                #/*     Execute the query
-                #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
-
-                # Execute query, but not if the report already exists
-                query = """%s %s %s VALUES %s;""" \
-                        % (db_write_mode, db_map, "(" + ", ".join(query_fields) + ")", "(" + ", ".join(query_values) + ")")
-                if print_queries:
-                    print("")
-                    print(query)
-                if execute_queries and not report_exists(cursor=db_cursor, reportnum=uid, schema=map_def['db_schema'],
-                                                         table=map_def['db_table']):
-                    db_cursor.execute(query)
+                    # Execute query, but not if the report already exists
+                    query = """%s %s (%s) VALUES (%s);""" \
+                            % (db_write_mode, db_map, ", ".join(query_fields), ", ".join(query_values))
+                    if print_queries:
+                        print("")
+                        print(query)
+                    if execute_queries:
+                        db_cursor.execute(query)
 
         # Done processing - update user
         if print_progress:

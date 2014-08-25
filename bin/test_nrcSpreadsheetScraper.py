@@ -276,7 +276,7 @@ class TestReportExists(unittest.TestCase):
             query = """INSERT INTO %s.%s (%s) VALUES (%s);""" \
                     % (TO['db_schema'], TO['db_table'], TO['field_reportnum'], test_report_number)
             db_cursor.execute(query)
-            self.assertTrue(nrcSpreadsheetScraper.report_exists(reportnum=test_report_number, cursor=db_cursor,
+            self.assertTrue(nrcSpreadsheetScraper.report_exists(reportnum=test_report_number, db_cursor=db_cursor,
                                                                 table=TO['db_table'], schema=TO['db_schema'],
                                                                 field=TO['field_reportnum']))
 
@@ -447,9 +447,14 @@ class TestNrcScrapedReportFields(unittest.TestCase):
 
         global TO
 
-        expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.material_name(null=TO['db_null'])
-        self.assertEqual(expected, actual)
+        # expected = TO['db_null']
+        # actual = nrcSpreadsheetScraper.NrcScrapedReportFields.material_name(workbook=None, map_def=None,
+        #                                                                     print_queries=None, execute_queries=None,
+        #                                                                     extras_field_map=None, db_write_mode=None,
+        #                                                                     uid=None, sheet=None,
+        #                                                                     sheet_seqnos_field=None, db_cursor=None,
+        #                                                                     db_null_value=TO['db_null'])
+        # self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define test_full_report_url() method
@@ -480,7 +485,7 @@ class TestNrcScrapedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.time_stamp(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.time_stamp(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -492,7 +497,7 @@ class TestNrcScrapedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.ft_id(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcScrapedReportFields.ft_id(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -551,7 +556,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.areaid(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.areaid(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -565,7 +570,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.blockid(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.blockid(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
     
     #/* ----------------------------------------------------------------------- */#
@@ -579,7 +584,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.platform_letter(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.platform_letter(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -623,7 +628,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
             # Run test
             expected = row[map_def['column']] * m_multi
             actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(map_def=map_def, row=row,
-                                                                                null=TO['db_null'])
+                                                                                db_null_value=TO['db_null'])
             self.assertEqual(expected, actual)
 
         # Test if value is empty
@@ -639,7 +644,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
             'value': '',
             'unit': random.choice(multipliers.keys())}
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(null=TO['db_null'], map_def=map_def, row=row)
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._sheen_handler(db_null_value=TO['db_null'], map_def=map_def, row=row)
         self.assertEqual(expected, actual)
 
         # Test if unit is empty
@@ -655,7 +660,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
             'value': random.randint(0, 10000),
             'unit': ''}
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length(null=TO['db_null'], map_def=map_def, row=row)
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length(db_null_value=TO['db_null'], map_def=map_def, row=row)
         self.assertEqual(expected, actual)
     
     #/* ----------------------------------------------------------------------- */#
@@ -667,7 +672,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.affected_area(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.affected_area(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -679,7 +684,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
         global TO
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.time_stamp(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.time_stamp(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
     
     #/* ----------------------------------------------------------------------- */#
@@ -689,7 +694,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
     def test_ft_id(self):
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields.ft_id(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields.ft_id(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -702,9 +707,9 @@ class TestNrcParsedReportFields(unittest.TestCase):
 
         # Test errors - all should return NULL
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'], **{'NOTHING': None})
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(db_null_value=TO['db_null'], **{'NOTHING': None})
         self.assertEqual(expected, actual)
 
         # Test with actual content
@@ -725,7 +730,7 @@ class TestNrcParsedReportFields(unittest.TestCase):
             }
         }
         expected = nrcSpreadsheetScraper.dms2dd(row['degree'], row['minute'], row['second'], row['quadrant'])
-        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(null=TO['db_null'], row=row,
+        actual = nrcSpreadsheetScraper.NrcParsedReportFields._coord_formatter(db_null_value=TO['db_null'], row=row,
                                                                               map_def=map_def)
         self.assertEqual(expected, actual)
 
@@ -743,7 +748,7 @@ class TestNrcScrapedMaterialFields(unittest.TestCase):
     def test_ft_id(self):
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
     #/* ----------------------------------------------------------------------- */#
@@ -753,7 +758,7 @@ class TestNrcScrapedMaterialFields(unittest.TestCase):
     def test_st_id(self):
 
         expected = TO['db_null']
-        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(null=TO['db_null'])
+        actual = nrcSpreadsheetScraper.NrcScrapedMaterialFields.ft_id(db_null_value=TO['db_null'])
         self.assertEqual(expected, actual)
 
 
