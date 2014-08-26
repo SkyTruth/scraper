@@ -484,6 +484,52 @@ def db_row_count(cursor, schema_table):
 
 
 #/* ======================================================================= */#
+#/*     Define process_field_map() function
+#/* ======================================================================= */#
+
+def process_field_map(**kwargs):
+
+    db_cursor = kwargs['db_cursor']
+    uid = kwargs['uid']
+    workbook = kwargs['workbook']
+    row = kwargs['row']
+    db_null_value = kwargs['db_null_value']
+    map_def = kwargs['map_def']
+    sheet = kwargs['sheet']
+    all_field_maps = kwargs['all_field_maps']
+    sheet_seqnos_field = kwargs['sheet_seqnos_field']
+    db_write_mode = kwargs['db_write_mode']
+    print_queries = kwargs['print_queries']
+    execute_queries = kwargs['execute_queries']
+    raw_sheet_cache = kwargs['raw_sheet_cache']
+    db_seqnos_field = kwargs['db_seqnos_field']
+
+    if map_def['processing'] is None:
+        try:
+            value = row[map_def['column']]
+        except KeyError:
+            # UID doesn't appear in the specified sheet - populate a NULL value
+            value = db_null_value
+
+    # Pass all necessary information to the processing function in order to get a result
+    else:
+        value = map_def['processing']['function'](db_cursor=db_cursor, uid=uid,
+                                                  workbook=workbook,
+                                                  row=row, db_null_value=db_null_value,
+                                                  map_def=map_def,
+                                                  sheet=sheet,
+                                                  all_field_maps=all_field_maps,
+                                                  sheet_seqnos_field=sheet_seqnos_field,
+                                                  db_write_mode=db_write_mode,
+                                                  print_queries=print_queries,
+                                                  execute_queries=execute_queries,
+                                                  raw_sheet_cache=raw_sheet_cache,
+                                                  db_seqnos_field=db_seqnos_field)
+
+    return value
+
+
+#/* ======================================================================= */#
 #/*     Define NrcScrapedReportField() class
 #/* ======================================================================= */#
 
@@ -561,7 +607,7 @@ class NrcScrapedReportFields(object):
         """
         The public."NrcScrapedMaterial" field maps are currently being processed first, which means that every row
         in the MATERIAL_INVOLVED sheet already has an INCOMPLETE entry in the table.  Performing an update will
-        only update the row originally inserted, but we want one row per material.
+        only update the row originally inserted, but we want one row per material in the MATERIAL_INVOLVED sheet.
 
         The solution is to let material_name() handle ALL of the public."NrcScrapedMaterial" queries, so when a row
         is encountered in the MATERIAL_INVOLVED sheet, additional field maps are processed that point to the other
@@ -581,6 +627,7 @@ class NrcScrapedReportFields(object):
         raw_sheet_cache = kwargs['raw_sheet_cache']
         db_seqnos_field = kwargs['db_seqnos_field']
         db_null_value = kwargs['db_null_value']
+        sheet_cache = kwargs['sheet_cache']
 
         # Build query
         initial_value_to_be_returned = None
@@ -601,13 +648,17 @@ class NrcScrapedReportFields(object):
                 # ALL occurrences are sent to a different table - specified in the field map arguments
                 for e_db_map in extras_field_maps:
                     for e_map_def in extras_field_maps[e_db_map]:
-                        field = e_map_def['db_field']
-                        value = row.get(e_map_def['column'], db_null_value)
+                        value = process_field_map(db_cursor=db_cursor, uid=uid, workbook=kwargs['workbook'],
+                                                  row=row, db_null_value=db_null_value, map_def=e_map_def,
+                                                  sheet=sheet_cache[e_map_def['sheet_name']],
+                                                  all_field_maps=kwargs['all_field_maps'],
+                                                  sheet_seqnos_field=sheet_seqnos_field, db_write_mode=db_write_mode,
+                                                  print_queries=print_queries, execute_queries=execute_queries,
+                                                  raw_sheet_cache=raw_sheet_cache,
+                                                  db_seqnos_field=db_seqnos_field)
 
-                        # Only insert non-null values - DB default is NULL
-                        if value != '':
-
-                            extra_query_fields.append(field)
+                        # Make sure the value is properly quoted
+                        if value not in (None, '', u'', db_null_value):
                             if isinstance(value, str) or isinstance(value, unicode):
                                 value = value.replace("'", '"')  # Single quotes cause problems on insert
                                 try:
@@ -618,25 +669,14 @@ class NrcScrapedReportFields(object):
                                 extra_query_values.append("'%s'" % value)  # String value
                             else:
                                 extra_query_values.append("%s" % value)  # int|float value
-
-                    # The field maps for the NrcScrapedMaterials may (probably?) have inserted some reports before
-                    # this set of field maps is processed.  In these cases an update needs to be performed in order
-                    # to retain all previously inserted data
-                    if report_exists(reportnum=uid, db_cursor=db_cursor, table=e_map_def['db_table'],
-                                     schema=e_map_def['db_schema']):
-                        query = """UPDATE %s.%s SET""" % (e_map_def['db_schema'], e_map_def['db_table'])
-                        for u_field, u_value in zip(extra_query_fields, extra_query_values):
-                            query += " %s = %s," % (u_field, u_value)
-                        query = query[:-1]  # Remove the trailing comma left over from the SET command
-                        query += """ WHERE %s = %s;""" % (db_seqnos_field, uid)
-                    else:
-                        query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode,
-                                                                    e_map_def['db_schema'],
-                                                                    e_map_def['db_table'],
-                                                                    ', '.join(extra_query_fields),
-                                                                    ', '.join(extra_query_values))
+                            extra_query_fields.append(e_map_def['db_field'])
 
                     # Do something with the query
+                    query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode,
+                                                                e_map_def['db_schema'],
+                                                                e_map_def['db_table'],
+                                                                ', '.join(extra_query_fields),
+                                                                ', '.join(extra_query_values))
                     if print_queries:
                         print("")
                         print(query)
@@ -1175,7 +1215,7 @@ def main(args):
     #/*     Define Field Maps
     #/* ----------------------------------------------------------------------- */#
 
-    field_map_order = ['public."NrcScrapedMaterial"', 'public."NrcScrapedReport"', 'public."NrcParsedReport"', ]
+    field_map_order = ['public."NrcScrapedReport"', 'public."NrcParsedReport"', ]
     field_map = {
         'public."NrcScrapedReport"': [
             {
@@ -1303,7 +1343,7 @@ def main(args):
                                     'db_table': "NrcScrapedMaterial",
                                     'db_field': 'reportnum',
                                     'db_schema': 'public',
-                                    'sheet_name': 'NAME_OF_MATERIAL',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'SEQNOS',
                                     'processing': None
                                 },
@@ -1321,7 +1361,7 @@ def main(args):
                                     'db_table': "NrcScrapedMaterial",
                                     'db_field': 'reached_water',
                                     'db_schema': 'public',
-                                    'sheet_name': 'NAME_OF_MATERIAL',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'IF_REACHED_WATER',
                                     'processing': None
                                 },
@@ -1340,6 +1380,50 @@ def main(args):
                                     'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'UNIT_OF_MEASURE_REACH_WATER',
                                     'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'chris_code',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'column': 'CHRIS_CODE',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'amount',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'column': 'UPPER_BOUNDS',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'unit',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'column': 'UPPER_BOUNDS_UNIT',
+                                    'processing': None
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'ft_id',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'CALLS',
+                                    'column': None,
+                                    'processing': {
+                                        'function': NrcScrapedMaterialFields.ft_id
+                                    }
+                                },
+                                {
+                                    'db_table': '"NrcScrapedMaterial"',
+                                    'db_field': 'st_id',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'CALLS',
+                                    'column': None,
+                                    'processing': {
+                                        'function': NrcScrapedMaterialFields.st_id
+                                    }
                                 }
                             ]
                         }
@@ -1527,97 +1611,6 @@ def main(args):
                 }
             }
         ],
-        'public."NrcScrapedMaterial"': [
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'reportnum',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INV0LVED_CR',
-                'column': 'SEQNOS',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'chris_code',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INV0LVED_CR',
-                'column': 'CHRIS_CODE',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'name',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INV0LVED_CR',
-                'column': 'NAME_OF_MATERIAL',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'amount',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INV0LVED_CR',
-                'column': 'UPPER_BOUNDS',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'unit',
-                'db_schema': 'public',
-                'sheet_name': 'MATERIAL_INV0LVED_CR',
-                'column': 'UPPER_BOUNDS_UNIT',
-                'processing': None
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'ft_id',
-                'db_schema': 'public',
-                'sheet_name': 'CALLS',
-                'column': None,
-                'processing': {
-                    'function': NrcScrapedMaterialFields.ft_id
-                }
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'st_id',
-                'db_schema': 'public',
-                'sheet_name': 'CALLS',
-                'column': None,
-                'processing': {
-                    'function': NrcScrapedMaterialFields.st_id
-                }
-            }
-            #
-            #       which means they should not be included elsewhere, right?  This is
-            #       the only sheet containing duplicate ID's so it should only be updated
-            #       by the appropriate processing function
-            #
-            # {
-            #     'db_table': '"NrcScrapedMaterial"',
-            #     'db_field': 'reached_water',
-            #     'db_schema': 'public',
-            #     'sheet_name': 'MATERIAL_INVOLVED',
-            #     'column': 'IF_REACHED_WATER',
-            #     'processing': None
-            # },
-            # {
-            #     'db_table': '"NrcScrapedMaterial"',
-            #     'db_field': 'amt_in_water',
-            #     'db_schema': 'public',
-            #     'sheet_name': 'MATERIAL_INVOLVED',
-            #     'column': 'AMOUNT_IN_WATER',
-            #     'processing': None
-            # },
-            # {
-            #     'db_table': '"NrcScrapedMaterial"',
-            #     'db_field': 'amt_in_water_unit',
-            #     'db_schema': 'public',
-            #     'sheet_name': 'MATERIAL_INVOLVED',
-            #     'column': 'UNIT_OF_MEASURE_REACH_WATER',
-            #     'processing': None
-            # }
-        ]
     }
 
 
@@ -1635,7 +1628,6 @@ def main(args):
     db_seqnos_field = 'reportnum'
     db_null_value = 'NULL'
     sheet_seqnos_field = 'SEQNOS'
-    sheet_primary_sheet = 'CALLS'
 
     # NRC file I/O
     download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
@@ -1647,6 +1639,7 @@ def main(args):
     print_progress = True
     print_queries = False
     execute_queries = True
+    final_table_counts = ['public."NrcParsedReport"', 'public."NrcScrapedMaterial"', 'public."NrcScrapedReport"']
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Parse arguments
@@ -1848,7 +1841,7 @@ def main(args):
         #/*     Cache initial DB row counts for final stat printing
         #/* ----------------------------------------------------------------------- */#
 
-        initial_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in field_map.keys()}
+        initial_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in final_table_counts}
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Additional prep
@@ -1858,13 +1851,15 @@ def main(args):
         print("Caching sheets ...")
         sheet_cache = {}
         raw_sheet_cache = {}
-        for db_map in field_map_order:
-            for map_def in field_map[db_map]:
-                sname = map_def['sheet_name']
-                if sname is not None and sname not in sheet_cache:
+        for sname in workbook.sheet_names():
+            if sname not in sheet_cache:
+                try:
                     sheet_dict = sheet2dict(workbook.sheet_by_name(sname))
                     raw_sheet_cache[sname] = sheet_dict
                     sheet_cache[sname] = {row[sheet_seqnos_field]: row for row in sheet_dict}
+                except IndexError:
+                    # Sheet was empty
+                    pass
 
         # Get a list of unique report id's
         unique_report_ids = []
@@ -1948,7 +1943,8 @@ def main(args):
                                                                               print_queries=print_queries,
                                                                               execute_queries=execute_queries,
                                                                               raw_sheet_cache=raw_sheet_cache,
-                                                                              db_seqnos_field=db_seqnos_field)
+                                                                              db_seqnos_field=db_seqnos_field,
+                                                                              sheet_cache=sheet_cache)
 
                                 #/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */#
                                 #/*     Add this field map to the insert statement
@@ -2000,7 +1996,7 @@ def main(args):
     for schema_table, count in initial_db_row_counts.iteritems():
         print("%s%s%s" % (indent, schema_table + ' ' * (padding - len(schema_table) + 4), count))
     print("Final row counts:")
-    final_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in field_map.keys()}
+    final_db_row_counts = {ts: db_row_count(db_cursor, ts) for ts in final_table_counts}
     for schema_table, count in final_db_row_counts.iteritems():
         print("%s%s%s" % (indent, schema_table + ' ' * (padding - len(schema_table) + 4), count))
     print("New rows:")
