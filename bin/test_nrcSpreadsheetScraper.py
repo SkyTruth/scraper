@@ -443,18 +443,9 @@ class TestNrcScrapedReportFields(unittest.TestCase):
 
     def test_material_name(self):
 
-        # TODO: Implement - DIFFICULT - currently returning NULL
-
         global TO
 
-        # expected = TO['db_null']
-        # actual = nrcSpreadsheetScraper.NrcScrapedReportFields.material_name(workbook=None, map_def=None,
-        #                                                                     print_queries=None, execute_queries=None,
-        #                                                                     extras_field_map=None, db_write_mode=None,
-        #                                                                     uid=None, sheet=None,
-        #                                                                     sheet_seqnos_field=None, db_cursor=None,
-        #                                                                     db_null_value=TO['db_null'])
-        # self.assertEqual(expected, actual)
+
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define test_full_report_url() method

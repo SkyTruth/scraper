@@ -557,6 +557,18 @@ class NrcScrapedReportFields(object):
         # NrcScrapedReport
         # *** MATERIAL_INVOLVED.NAME_OF_MATERIAL (first occurrence only - put all occurrences in the NrcScrapedMaterial table)
 
+        # TODO: Address the situation outlined below
+        """
+        The public."NrcScrapedMaterial" field maps are currently being processed first, which means that every row
+        in the MATERIAL_INVOLVED sheet already has an INCOMPLETE entry in the table.  Performing an update will
+        only update the row originally inserted, but we want one row per material.
+
+        The solution is to let material_name() handle ALL of the public."NrcScrapedMaterial" queries, so when a row
+        is encountered in the MATERIAL_INVOLVED sheet, additional field maps are processed that point to the other
+        sheets to collect additional information.  The resulting queries can all be inserts.  Some of these field
+        maps have processing functions, which means that material_name needs to be able to execute them.
+        """
+
         # Parse arguments
         map_def = kwargs['map_def']
         print_queries = kwargs['print_queries']
@@ -571,38 +583,23 @@ class NrcScrapedReportFields(object):
         db_null_value = kwargs['db_null_value']
 
         # Build query
-        initial_query_completed = False
-        extra_query_fields = []
-        extra_query_values = []
+        initial_value_to_be_returned = None
         for row in raw_sheet_cache[map_def['sheet_name']]:
+
+            extra_query_fields = []
+            extra_query_values = []
 
             # Found a matching row
             if row[sheet_seqnos_field] == uid:
 
-                print("")
-                print("  ROW MATCH")
-
                 # The first instance goes into the table specified in the field map
-                if not initial_query_completed:
-                    print("")
-                    print("  INITIAL QUERY")
-                    query = """UPDATE %s.%s SET %s = '%s' WHERE %s = %s;""" \
-                            % (map_def['db_schema'], map_def['db_table'], map_def['db_field'],
-                               row[map_def['column']], db_seqnos_field, uid)
-                    # Do something with the query
-                    if print_queries:
-                        print("")
-                        print(query)
-                    if execute_queries:
-                        db_cursor.execute(query)
-
-                    # IMPORTANT - must set to true in order to prevent subsequent queries from updating this report
-                    initial_query_completed = True
+                # This query must be handled by the parent process so this value is
+                # returned at the very end
+                if not initial_value_to_be_returned is None:
+                    initial_value_to_be_returned = row[map_def['column']]
 
                 # ALL occurrences are sent to a different table - specified in the field map arguments
                 for e_db_map in extras_field_maps:
-                    print("")
-                    print("  SUBSEQUENT QUERY")
                     for e_map_def in extras_field_maps[e_db_map]:
                         field = e_map_def['db_field']
                         value = row.get(e_map_def['column'], db_null_value)
@@ -613,15 +610,32 @@ class NrcScrapedReportFields(object):
                             extra_query_fields.append(field)
                             if isinstance(value, str) or isinstance(value, unicode):
                                 value = value.replace("'", '"')  # Single quotes cause problems on insert
+                                try:
+                                    if e_map_def['db_field_width']:
+                                        value = value[:e_map_def['db_field_width']]
+                                except KeyError:
+                                    pass
                                 extra_query_values.append("'%s'" % value)  # String value
                             else:
                                 extra_query_values.append("%s" % value)  # int|float value
 
-                    query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode,
-                                                                map_def['processing']['args']['extras_schema'],
-                                                                map_def['processing']['args']['extras_table'],
-                                                                ', '.join(extra_query_fields),
-                                                                ', '.join(extra_query_values))
+                    # The field maps for the NrcScrapedMaterials may (probably?) have inserted some reports before
+                    # this set of field maps is processed.  In these cases an update needs to be performed in order
+                    # to retain all previously inserted data
+                    if report_exists(reportnum=uid, db_cursor=db_cursor, table=e_map_def['db_table'],
+                                     schema=e_map_def['db_schema']):
+                        query = """UPDATE %s.%s SET""" % (e_map_def['db_schema'], e_map_def['db_table'])
+                        for u_field, u_value in zip(extra_query_fields, extra_query_values):
+                            query += " %s = %s," % (u_field, u_value)
+                        query = query[:-1]  # Remove the trailing comma left over from the SET command
+                        query += """ WHERE %s = %s;""" % (db_seqnos_field, uid)
+                    else:
+                        query = """%s %s.%s (%s) VALUES (%s);""" % (db_write_mode,
+                                                                    e_map_def['db_schema'],
+                                                                    e_map_def['db_table'],
+                                                                    ', '.join(extra_query_fields),
+                                                                    ', '.join(extra_query_values))
+
                     # Do something with the query
                     if print_queries:
                         print("")
@@ -630,7 +644,7 @@ class NrcScrapedReportFields(object):
                         db_cursor.execute(query)
 
         # This processing function handled ALL inserts - tell parent process there's nothing left to do
-        return '__NO_QUERY__'
+        return initial_value_to_be_returned
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define full_report_url() static method
@@ -819,19 +833,19 @@ class NrcParsedReportFields(object):
         else:
 
             multipliers = {
-                'FE': 0.3048,
-                'FEET': 0.3048,
-                'IN': 0.0254,
-                'INCHES': 0.0254,
-                'KILOMETERS': 1000,
-                'METER': 1,
-                'METERS': 1,
-                'MI': 1609.34,
-                'MIL': 1609.34,
-                'MILES': 1609.34,
-                'NI': 1609.34,  # TODO: Assumed mistyping of 'MI'
-                'UN': 0.0254,  # TODO: Assumed mistyping of 'IN'
-                'YARDS': 0.9144
+                'FE': 1,
+                'FEET': 1,
+                'IN': 0.0833333,
+                'INCHES': 0.0833333,
+                'KILOMETERS': 3280.84,
+                'METER': 3.28084,
+                'METERS': 3.28084,
+                'MI': 5280,
+                'MIL': 5280,
+                'MILES': 5280,
+                'NI': 5280,  # Assumed mistyping of 'MI'
+                'UN': 0.0833333,  # Assumed mistyping of 'IN'
+                'YARDS': 3
             }
 
             return multipliers[unit.upper()] * value
@@ -1021,6 +1035,7 @@ def main(args):
                 {
                     'db_table': Name of target table,
                     'db_field': Name of target field,
+                    'db_field_width': Maximum width for this field - used in string slicing
                     'db_schema': Name of target schema,
                     'sheet_name': Name of source sheet in input file,
                     'column': Name of source column in sheet_name,
@@ -1085,6 +1100,7 @@ def main(args):
         {
             'db_table': '"NrcScrapedReport"',
             'db_field': 'suspected_responsible_company',
+            'db_field_width': 32,
             'db_schema': 'public',
             'sheet_name': 'CALLS',
             'column': 'RESPONSIBLE_COMPANY',
@@ -1100,18 +1116,28 @@ def main(args):
         processing happens.  Field maps using additional processing always receive
         the following kwargs:
 
-            cursor              The cursor to be used for all queries
-            row                 The current row being processed - structured just like a
-                                csv.DictReader row
-            null                Value to use for NULL
-            map_def             Current map definition being processed (example below)
-            sheet               The entire sheet from which the row was extracted as
-                                described in the field map
+            all_field_maps      All field maps with keys set to schema.table
+            db_cursor           The cursor to be used for all queries
+            db_null_value       Value to use for NULL
+            db_seqnos_field     The reportnum field in the database
+            db_write_mode       The first part of the SQL statement for writes
+                                (e.g. INSERT INTO)
+            execute_queries     Specifies whether or not queries should actually
+                                be executed
+            map_def             Current map definition being processed (example
+                                below)
+            print_queries       Specifies whether or not queries should be printed
+                                as they are executed
+            raw_sheet_cache     Structured similar to the normal sheet cache,
+                                but with a list of rows instead of a dictionary
+                                containing reportnums as keys and rows as values
+            row                 The current row being processed - structured
+                                just like a csv.DictReader row
+            sheet               The entire sheet from which the row was extracted
+                                as described in the field map
+            sheet_seqnos_field  The field in all sheets containing the reportnum
             uid                 The current SEQNOS/reportnum being processed
             workbook            XLRD workbook object
-            all_field_maps      All field maps with keys set to schema.table
-            sheet_seqnos_field  The field in all sheets containing the reportnum
-            db_write_mode       The first part of the SQL statement for writes (e.g. INSERT INTO)
 
         The callable object specified in map_def['processing']['function'] is
         responsible for ALL queries.  The processing functions are intended
@@ -1149,6 +1175,7 @@ def main(args):
     #/*     Define Field Maps
     #/* ----------------------------------------------------------------------- */#
 
+    field_map_order = ['public."NrcScrapedMaterial"', 'public."NrcScrapedReport"', 'public."NrcParsedReport"', ]
     field_map = {
         'public."NrcScrapedReport"': [
             {
@@ -1272,10 +1299,19 @@ def main(args):
                         'extras_schema': 'public',
                         'extras_field_maps': {
                             'public."NrcScrapedReport"': [
+                                {
+                                    'db_table': "NrcScrapedMaterial",
+                                    'db_field': 'reportnum',
+                                    'db_schema': 'public',
+                                    'sheet_name': 'NAME_OF_MATERIAL',
+                                    'column': 'SEQNOS',
+                                    'processing': None
+                                },
                                 {  # NOTE: This is the same as the parent field map but it is required to write the
                                    #        specified value to the extras table
                                     'db_table': '"NrcScrapedMaterial"',
-                                    'db_field': 'material_name',
+                                    'db_field': 'name',
+                                    'db_field_width': 32,
                                     'db_schema': 'public',
                                     'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'NAME_OF_MATERIAL',
@@ -1532,8 +1568,27 @@ def main(args):
                 'column': 'UPPER_BOUNDS_UNIT',
                 'processing': None
             },
+            {
+                'db_table': '"NrcScrapedMaterial"',
+                'db_field': 'ft_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedMaterialFields.ft_id
+                }
+            },
+            {
+                'db_table': '"NrcScrapedMaterial"',
+                'db_field': 'st_id',
+                'db_schema': 'public',
+                'sheet_name': 'CALLS',
+                'column': None,
+                'processing': {
+                    'function': NrcScrapedMaterialFields.st_id
+                }
+            }
             #
-            # TODO: The below definitions are handled by the material_name() function
             #       which means they should not be included elsewhere, right?  This is
             #       the only sheet containing duplicate ID's so it should only be updated
             #       by the appropriate processing function
@@ -1561,29 +1616,10 @@ def main(args):
             #     'sheet_name': 'MATERIAL_INVOLVED',
             #     'column': 'UNIT_OF_MEASURE_REACH_WATER',
             #     'processing': None
-            # },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'ft_id',
-                'db_schema': 'public',
-                'sheet_name': 'CALLS',
-                'column': None,
-                'processing': {
-                    'function': NrcScrapedMaterialFields.ft_id
-                }
-            },
-            {
-                'db_table': '"NrcScrapedMaterial"',
-                'db_field': 'st_id',
-                'db_schema': 'public',
-                'sheet_name': 'CALLS',
-                'column': None,
-                'processing': {
-                    'function': NrcScrapedMaterialFields.st_id
-                }
-            }
+            # }
         ]
     }
+
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define Defaults
@@ -1773,7 +1809,7 @@ def main(args):
         validate_field_map_error = False
 
         print("Validating field mapping ...")
-        for db_map in field_map.keys():
+        for db_map in field_map_order:
 
             # Check each field definition in the set of mappings
             for map_def in field_map[db_map]:
@@ -1822,7 +1858,7 @@ def main(args):
         print("Caching sheets ...")
         sheet_cache = {}
         raw_sheet_cache = {}
-        for db_map in field_map.keys():
+        for db_map in field_map_order:
             for map_def in field_map[db_map]:
                 sname = map_def['sheet_name']
                 if sname is not None and sname not in sheet_cache:
@@ -1861,7 +1897,7 @@ def main(args):
                 sys.stdout.flush()
 
             # Get field maps for one table
-            for db_map in field_map.keys():
+            for db_map in field_map_order:
 
                 query_fields = [db_seqnos_field]
                 query_values = [str(uid)]
