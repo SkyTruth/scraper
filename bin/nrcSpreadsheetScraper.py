@@ -1829,6 +1829,7 @@ def main(args):
         # Grab a subsample if necessary
         if process_subsample is not None or process_subsample < len(unique_report_ids):
             unique_report_ids = unique_report_ids[:process_subsample]
+            unique_report_ids.sort()
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data
