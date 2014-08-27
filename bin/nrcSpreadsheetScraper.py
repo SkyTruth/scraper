@@ -707,6 +707,8 @@ class NrcScrapedReportFields(object):
         :return:
         """
 
+        # TODO: Use 24 hour time
+
         workbook = kwargs['workbook']
         row = kwargs['row']
         map_def = kwargs['map_def']
@@ -1189,7 +1191,7 @@ def main(args):
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
                 'column': 'CALLTYPE',
-                'processing': None
+                'processing': None  # TODO: Create field map for sheet vs. expected in DB (i.e. INC vs. Incident)
             },
             {
                 'db_table': '"NrcScrapedReport"',
@@ -1335,20 +1337,20 @@ def main(args):
                                     'column': 'CHRIS_CODE',
                                     'processing': None
                                 },
-                                {
+                                {  # TODO: Not populated
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'amount',
                                     'db_schema': 'public',
                                     'sheet_name': 'MATERIAL_INVOLVED',
-                                    'column': 'UPPER_BOUNDS',
+                                    'column': 'AMOUNT_OF_MATERIAL',
                                     'processing': None
                                 },
-                                {
+                                {  # TODO: Not populated
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'unit',
                                     'db_schema': 'public',
                                     'sheet_name': 'MATERIAL_INVOLVED',
-                                    'column': 'UPPER_BOUNDS_UNIT',
+                                    'column': 'UNIT_OF_MEASURE',
                                     'processing': None
                                 },
                                 {
