@@ -267,6 +267,11 @@ def dms2dd(degrees, minutes, seconds, quadrant):
     :rtype: float
     """
 
+    illegal_vals = (None, '', u'')
+    for iv in illegal_vals:
+        if iv in (degrees, minutes, seconds, quadrant):
+            raise ValueError("ERROR: Illegal value: %s" % iv)
+
     if quadrant.lower() not in ('n', 'e', 's', 'w'):
         raise ValueError("ERROR: Invalid quadrant: %s" % quadrant)
 
@@ -554,67 +559,6 @@ class NrcScrapedReportFields(object):
     @staticmethod
     def material_name(**kwargs):
 
-        # cursor
-        # uid
-        # workbook
-        # row
-        # null
-        # map_def
-        # sheet
-        # all_field_maps
-        # sheet_seqnos_field
-        # db_write_mode
-
-        # Field map for this method
-        # {
-        #     'db_table': '"NrcScrapedReport"',
-        #     'db_field': 'material_name',
-        #     'db_schema': 'public',
-        #     'sheet_name': 'MATERIAL_INVOLVED',
-        #     'column': 'NAME_OF_MATERIAL',
-        #     'processing': {
-        #         'function': NrcScrapedReportFields.material_name,
-        #         'args': {
-        #             'extras_table': '"NrcScrapedMaterial"',
-        #             'extras_schema': 'public',
-        #             'extras_field_maps': 'public."NrcScrapedMaterial"'
-        #         }
-        #     }
-        # },
-
-        # # Handle NULL values - these should be handled elsewhere so this is more of a safety net
-        # if value is None or not value:
-        #     value = db_null_value
-        #
-        # # Assemble query
-        # if value not in ('__NO_QUERY__', db_null_value):
-        #     query_fields.append(map_def['db_field'])
-        #
-        #     # Only put quotes around specific values
-        #     if isinstance(value, str) or isinstance(value, unicode):
-        #
-        #         # Having single quotes in the string causes problems on insert because the entire
-        #         # value is single quoted
-        #         value = value.replace("'", '"')
-        #         query_values.append("'%s'" % value)
-        #     else:
-        #         query_values.append("%s" % value)
-
-        # NrcScrapedReport
-        # *** MATERIAL_INVOLVED.NAME_OF_MATERIAL (first occurrence only - put all occurrences in the NrcScrapedMaterial table)
-
-        # TODO: Address the situation outlined below
-        """
-        The public."NrcScrapedMaterial" field maps are currently being processed first, which means that every row
-        in the MATERIAL_INVOLVED sheet already has an INCOMPLETE entry in the table.  Performing an update will
-        only update the row originally inserted, but we want one row per material in the MATERIAL_INVOLVED sheet.
-
-        The solution is to let material_name() handle ALL of the public."NrcScrapedMaterial" queries, so when a row
-        is encountered in the MATERIAL_INVOLVED sheet, additional field maps are processed that point to the other
-        sheets to collect additional information.  The resulting queries can all be inserts.  Some of these field
-        maps have processing functions, which means that material_name needs to be able to execute them.
-        """
-
         # Parse arguments
         map_def = kwargs['map_def']
         print_queries = kwargs['print_queries']
@@ -629,6 +573,9 @@ class NrcScrapedReportFields(object):
         db_null_value = kwargs['db_null_value']
         sheet_cache = kwargs['sheet_cache']
 
+        # TODO: This currently only reads rows from the sheet specified in the field map and NOT the extra field maps
+        #   specified in the processing args.  Currently not a problem since
+
         # Build query
         initial_value_to_be_returned = None
         for row in raw_sheet_cache[map_def['sheet_name']]:
@@ -642,7 +589,7 @@ class NrcScrapedReportFields(object):
                 # The first instance goes into the table specified in the field map
                 # This query must be handled by the parent process so this value is
                 # returned at the very end
-                if not initial_value_to_be_returned is None:
+                if initial_value_to_be_returned is None:
                     initial_value_to_be_returned = row[map_def['column']]
 
                 # ALL occurrences are sent to a different table - specified in the field map arguments
@@ -1347,8 +1294,7 @@ def main(args):
                                     'column': 'SEQNOS',
                                     'processing': None
                                 },
-                                {  # NOTE: This is the same as the parent field map but it is required to write the
-                                   #        specified value to the extras table
+                                {
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'name',
                                     'db_field_width': 32,
@@ -1385,7 +1331,7 @@ def main(args):
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'chris_code',
                                     'db_schema': 'public',
-                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'CHRIS_CODE',
                                     'processing': None
                                 },
@@ -1393,7 +1339,7 @@ def main(args):
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'amount',
                                     'db_schema': 'public',
-                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'UPPER_BOUNDS',
                                     'processing': None
                                 },
@@ -1401,7 +1347,7 @@ def main(args):
                                     'db_table': '"NrcScrapedMaterial"',
                                     'db_field': 'unit',
                                     'db_schema': 'public',
-                                    'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                    'sheet_name': 'MATERIAL_INVOLVED',
                                     'column': 'UPPER_BOUNDS_UNIT',
                                     'processing': None
                                 },
@@ -1634,6 +1580,7 @@ def main(args):
     file_to_process = os.getcwd() + sep + name_current_file(basename(download_url))
     overwrite_downloaded_file = False
     download_file = True
+    process_subsample = None
 
     # User feedback settings
     print_progress = True
@@ -1708,6 +1655,9 @@ def main(args):
             elif arg == '--overwrite-download':
                 i += 1
                 overwrite_downloaded_file = True
+            elif arg == '--subsample':
+                i += 2
+                process_subsample = args[i - 1]
 
             # Positional arguments and errors
             else:
@@ -1754,6 +1704,14 @@ def main(args):
     if not os.access(dirname(file_to_process), os.W_OK):
         bail = True
         print("ERROR: Need write permission for download directory: %s" % dirname(file_to_process))
+
+    # Handle subsample
+    if process_subsample is not None:
+        try:
+            process_subsample = int(process_subsample)
+        except ValueError:
+            bail = True
+            print("ERROR: Invalid subsample - must be an int: %s" % process_subsample)
 
     # Exit if any problems were encountered
     if bail:
@@ -1867,6 +1825,10 @@ def main(args):
             for reportnum in s_rows.keys():
                 unique_report_ids.append(reportnum)
         unique_report_ids = list(set(unique_report_ids))
+
+        # Grab a subsample if necessary
+        if process_subsample is not None or process_subsample < len(unique_report_ids):
+            unique_report_ids = unique_report_ids[:process_subsample]
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data

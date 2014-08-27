@@ -443,9 +443,218 @@ class TestNrcScrapedReportFields(unittest.TestCase):
 
     def test_material_name(self):
 
+        """
+        This test only confirms the appropriate number of rows and reportnums
+        are inserted into the target table.  It's also pretty ugly ...
+        """
+
         global TO
 
+        #
+        # TO = {
+        #     'sheet': 'CALLS',
+        #     'temp_file': '_-Nonsense-TEst_FiLe.xlsx.ext',
+        #     'db_host': 'localhost',
+        #     'db_schema': 'public',
+        #     'db_name': 'test_skytruth',
+        #     'db_user': getpass.getuser(),
+        #     'db_pass': '',
+        #     'field_reportnum': 'reportnum',
+        #     'db_table': '"NrcParsedReport"',
+        #     'dl_url': 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx',
+        #     'db_null': 'NULL',
+        #     'test_reportnum': 10101019,
+        # }
+        #
+        # # Parse arguments
+        # map_def = kwargs['map_def']
+        # print_queries = kwargs['print_queries']
+        # execute_queries = kwargs['execute_queries']
+        # extras_field_maps = map_def['processing']['args']['extras_field_maps']
+        # db_write_mode = kwargs['db_write_mode']
+        # uid = kwargs['uid']
+        # sheet_seqnos_field = kwargs['sheet_seqnos_field']
+        # db_cursor = kwargs['db_cursor']
+        # raw_sheet_cache = kwargs['raw_sheet_cache']
+        # db_seqnos_field = kwargs['db_seqnos_field']
+        # db_null_value = kwargs['db_null_value']
+        # sheet_cache = kwargs['sheet_cache']
+        #
 
+        # Don't need to call processing functions so create a pseudo function that doesn't actually do anything
+        def processing_placeholder(*args, **kwargs):
+            return None
+
+        # Construct needed objects for test
+        db_conn_str = "host='%s' dbname='%s' user='%s' password='%s'" % (TO['db_host'], TO['db_name'],
+                                                                         TO['db_user'], TO['db_pass'])
+        db_conn = psycopg2.connect(db_conn_str)
+        db_cursor = db_conn.cursor()
+        if not isfile(TO['temp_file']):
+            response = urllib2.urlopen(TO['dl_url'])
+            with open(TO['temp_file'], 'w') as f:
+                f.write(response.read())
+        workbook = xlrd.open_workbook(TO['temp_file'])
+        print_queries = False
+        execute_queries = True
+        db_write_mode = 'INSERT INTO'
+        uid = 1090442.0
+        sheet_seqnos_field = 'SEQNOS'
+        db_seqnos_field = 'reportnum'
+        sheet_cache = {}
+        raw_sheet_cache = {}
+        db_null_value = 'NULL'
+        for sname in workbook.sheet_names():
+            if sname not in sheet_cache:
+                try:
+                    sheet_dict = nrcSpreadsheetScraper.sheet2dict(workbook.sheet_by_name(sname))
+                    raw_sheet_cache[sname] = sheet_dict
+                    sheet_cache[sname] = {row[sheet_seqnos_field]: row for row in sheet_dict}
+                except IndexError:
+                    # Sheet was empty
+                    pass
+        map_def = {
+            'db_table': '"NrcScrapedReport"',
+            'db_field': 'material_name',
+            'db_schema': 'public',
+            'sheet_name': 'MATERIAL_INVOLVED',
+            'column': 'NAME_OF_MATERIAL',
+            'processing': {
+                'function': None,  # Not needed for testing - at this point it has already been called
+                'args': {
+                    'extras_table': '"NrcScrapedMaterial"',
+                    'extras_schema': 'public',
+                    'extras_field_maps': {
+                        'public."NrcScrapedReport"': [
+                            {
+                                'db_table': "NrcScrapedMaterial",
+                                'db_field': 'reportnum',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INVOLVED',
+                                'column': 'SEQNOS',
+                                'processing': None
+                            },
+                            {  # NOTE: This is the same as the parent field map but it is required to write the
+                               #        specified value to the extras table
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'name',
+                                'db_field_width': 32,
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INVOLVED',
+                                'column': 'NAME_OF_MATERIAL',
+                                'processing': None
+                            },
+                            {
+                                'db_table': "NrcScrapedMaterial",
+                                'db_field': 'reached_water',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INVOLVED',
+                                'column': 'IF_REACHED_WATER',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'amt_in_water',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INVOLVED',
+                                'column': 'AMOUNT_IN_WATER',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'amt_in_water_unit',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INVOLVED',
+                                'column': 'UNIT_OF_MEASURE_REACH_WATER',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'chris_code',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                'column': 'CHRIS_CODE',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'amount',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                'column': 'UPPER_BOUNDS',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'unit',
+                                'db_schema': 'public',
+                                'sheet_name': 'MATERIAL_INV0LVED_CR',
+                                'column': 'UPPER_BOUNDS_UNIT',
+                                'processing': None
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'ft_id',
+                                'db_schema': 'public',
+                                'sheet_name': 'CALLS',
+                                'column': None,
+                                'processing': {
+                                    'function': processing_placeholder
+                                }
+                            },
+                            {
+                                'db_table': '"NrcScrapedMaterial"',
+                                'db_field': 'st_id',
+                                'db_schema': 'public',
+                                'sheet_name': 'CALLS',
+                                'column': None,
+                                'processing': {
+                                    'function': processing_placeholder
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+        # Execute function
+        return_val = nrcSpreadsheetScraper.NrcScrapedReportFields.material_name(db_cursor=db_cursor, uid=uid, workbook=workbook,
+                                                                                row=None, db_null_value=db_null_value,
+                                                                                map_def=map_def,
+                                                                                sheet=sheet_cache[map_def['sheet_name']],
+                                                                                all_field_maps=None,
+                                                                                sheet_seqnos_field=sheet_seqnos_field,
+                                                                                db_write_mode=db_write_mode,
+                                                                                print_queries=print_queries,
+                                                                                execute_queries=execute_queries,
+                                                                                raw_sheet_cache=raw_sheet_cache,
+                                                                                db_seqnos_field=db_seqnos_field,
+                                                                                sheet_cache=sheet_cache)
+
+        # The processing function is supposed to return a material that is then included in the parent query
+        # Make sure the proper value was returned
+        self.assertEqual(return_val, "GASOLINE: AUTOMOTIVE (UNLEADED)")
+
+        # Make sure the proper number of records were inserted into the NrcScrapedMaterial table
+        count_query = """SELECT COUNT(1) FROM public."NrcScrapedMaterial";"""
+        e_sheet = workbook.sheet_by_name('MATERIAL_INVOLVED')
+        expected = len([c.value for c in e_sheet.col(0) if c.value == uid])
+        db_cursor.execute(count_query)
+        result = db_cursor.fetchall()
+        actual = int(result[0][0])
+        self.assertEqual(expected, actual)
+
+        # Cleanup
+        truncate_query = """TRUNCATE public."NrcScrapedMaterial";"""
+        db_cursor.execute(truncate_query)
+        expected = 0
+        db_cursor.execute(count_query)
+        actual = int(db_cursor.fetchall()[0][0])
+        self.assertEqual(expected, actual)
+        e_sheet = None
+        db_cursor.close()
+        db_conn.close()
 
     #/* ----------------------------------------------------------------------- */#
     #/*     Define test_full_report_url() method
@@ -585,16 +794,21 @@ class TestNrcParsedReportFields(unittest.TestCase):
     def test_sheen_handler(self):
 
         # To update test, paste the updated multipliers dict below
-        multipliers = {'FEET': 0.3048,
-                       'IN': 0.0254,
-                       'INCHES': 0.0254,
-                       'KILOMETERS': 1000,
-                       'METER': 1,
-                       'METERS': 1,
-                       'MI': 1609.34,
-                       'MIL': 1609.34,
-                       'MILES': 1609.34,
-                       'YARDS': 0.9144}
+        multipliers = {
+            'FE': 1,
+            'FEET': 1,
+            'IN': 0.0833333,
+            'INCHES': 0.0833333,
+            'KILOMETERS': 3280.84,
+            'METER': 3.28084,
+            'METERS': 3.28084,
+            'MI': 5280,
+            'MIL': 5280,
+            'MILES': 5280,
+            'NI': 5280,  # Assumed mistyping of 'MI'
+            'UN': 0.0833333,  # Assumed mistyping of 'IN'
+            'YARDS': 3
+        }
 
         # Check exceptions
         self.assertRaises(KeyError, nrcSpreadsheetScraper.NrcParsedReportFields.sheen_size_length,
