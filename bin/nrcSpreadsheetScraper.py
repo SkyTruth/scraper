@@ -1714,20 +1714,6 @@ def main(args):
         return 1
 
     #/* ----------------------------------------------------------------------- */#
-    #/*     Download the spreadsheet
-    #/* ----------------------------------------------------------------------- */#
-
-    if download_file:
-        print("Downloading: %s" % download_url)
-        print("Target: %s" % file_to_process)
-        try:
-            download(download_url, file_to_process)
-        except urllib2.URLError, e:
-            print("ERROR: Could not download from URL: %s" % download_url)
-            print("       URLLIB Error: %s" % e)
-            return 1
-
-    #/* ----------------------------------------------------------------------- */#
     #/*     Prep DB connection and XLRD workbook for processing
     #/* ----------------------------------------------------------------------- */#
 
@@ -1740,6 +1726,20 @@ def main(args):
         print("ERROR: Could not connect to database: %s" % db_connection_string)
         print("  Postgres Error: %s" % e)
         return 1
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Download the spreadsheet
+    #/* ----------------------------------------------------------------------- */#
+
+    if download_file:
+        print("Downloading: %s" % download_url)
+        print("Target: %s" % file_to_process)
+        try:
+            download(download_url, file_to_process)
+        except urllib2.URLError, e:
+            print("ERROR: Could not download from URL: %s" % download_url)
+            print("       URLLIB Error: %s" % e)
+            return 1
 
     # Prep workbook
     print("Opening workbook: %s" % file_to_process)
@@ -1824,6 +1824,10 @@ def main(args):
 
         # Grab a subsample if necessary
         if process_subsample is not None or process_subsample < len(unique_report_ids):
+
+            # TODO: Delete constraining line - needed to verify everything was wroking
+            unique_report_ids = [i for i in unique_report_ids if i > 1074683]
+
             unique_report_ids = unique_report_ids[:process_subsample]
             unique_report_ids.sort()
 
@@ -1832,7 +1836,6 @@ def main(args):
         #/* ----------------------------------------------------------------------- */#
 
         # Loops:
-
         # Get a report number to process
         #   Get a set of field maps for a single table to process
         #       Get a field map to process
