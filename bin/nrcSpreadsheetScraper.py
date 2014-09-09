@@ -735,6 +735,26 @@ class NrcScrapedReportFields(object):
 
         return NrcScrapedReportFields._datetime_caller(**kwargs)
 
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define incident_datetime() function
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def calltype(**kwargs):
+
+        """
+        Database is expecting
+        """
+
+        map_def = kwargs['map_def']
+        row = kwargs['row']
+
+        value = row[map_def['column']]
+        if value == 'INC':
+            value = 'INCIDENT'
+
+        return value
+
 
 #/* ======================================================================= */#
 #/*     Define NrcParsedReportFields() class
@@ -1185,7 +1205,9 @@ def main(args):
                 'db_schema': 'public',
                 'sheet_name': 'CALLS',
                 'column': 'CALLTYPE',
-                'processing': None  # TODO: Create field map for sheet vs. expected in DB (i.e. INC vs. Incident)
+                'processing': {
+                    'function': NrcScrapedReportFields.calltype
+                }
             },
             {
                 'db_table': '"NrcScrapedReport"',
@@ -1828,8 +1850,8 @@ def main(args):
             # TODO: Delete constraining line - needed to verify everything was wroking
             unique_report_ids = [i for i in unique_report_ids if i > 1074683]
 
-            unique_report_ids = unique_report_ids[:process_subsample]
             unique_report_ids.sort()
+            unique_report_ids = unique_report_ids[:process_subsample]
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data
