@@ -851,7 +851,9 @@ class NrcParsedReportFields(object):
                 'YARDS': 3
             }
 
-            return multipliers[unit.upper()] * value
+            # Database is expecting to handle the normalization by reading from a field containing "1.23 METERS"
+            # This function takes care of that but must still supply the expected post-normalization format
+            return unicode(multipliers[unit.upper()] * value) + ' FEET'
 
 
     #/* ----------------------------------------------------------------------- */#
