@@ -38,6 +38,7 @@ addons:
   - postgresql: "9.3"
 
 before_script:
+  - "pip install -r spreadsheet_scraper_requirements.txt"
   - "psql -c 'CREATE DATABASE test;' -U postgres"
   - "psql -d test -a -f docs/Create_Table_NrcScrapedReport.sql"
   - "psql -d test -a -f docs/Create_Table_NrcParsedReport.sql"

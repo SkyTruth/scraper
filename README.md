@@ -1,3 +1,11 @@
+# Spreadsheet Scraper #
+
+Scrape and load the new NRC spreadsheet.
+
+[![Build Status](https://travis-ci.org/SkyTruth/scraper.svg?branch=master)](https://travis-ci.org/SkyTruth/scraper)
+
+
+
 # SkyTruth Web Scraper Tool
 
 ## Installation ##
