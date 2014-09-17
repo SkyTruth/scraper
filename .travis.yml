@@ -44,6 +44,3 @@ before_script:
   - "psql -d test -a -f docs/Create_Table_NrcScrapedMaterial.sql"
 
 script: "./bin/test_nrcSpreadsheetScraper.py --db-name test --db-user postgres"
-
-notifications:
-  flowdock: d155ceb5c276d1065a2e6be5b057da84
