@@ -35,7 +35,7 @@ python:
   - "2.7"
 
 addons:
-  - postgresql: "9.3"
+  postgresql: "9.3"
 
 before_script:
   - "pip install -r spreadsheet_scraper_requirements.txt"
