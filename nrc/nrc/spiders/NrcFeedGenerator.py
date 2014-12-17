@@ -157,6 +157,10 @@ class NrcFeedGenerator (NrcBot):
         l.add_value ('source_id', 1)
         l.add_value ('source_item_id', task_id)
 
+        # TODO: remove this when testing is complete
+        # Temporarily set status to 'draft' while testing new NRC scraper
+        l.add_value ('status', 'draft')
+
         return l.load_item()
 
     def create_tag_items (self, task_id, item_id):
