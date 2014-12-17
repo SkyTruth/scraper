@@ -1858,7 +1858,7 @@ def main(args):
             unique_report_ids = [i for i in unique_report_ids if i > 1074683]
 
             unique_report_ids.sort()
-            unique_report_ids = unique_report_ids[process_subsample_min:process_subsample]
+            unique_report_ids = unique_report_ids[process_subsample_min:process_subsample_min + process_subsample]
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data
