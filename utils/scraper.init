@@ -7,14 +7,14 @@
 case "$1" in
 start)
 
-	start-stop-daemon --start -m -p /var/run/scraper -c scraper -d /srv/scraper -b -a /srv/scraper/scraper/utils/scrapyd
+	start-stop-daemon --start -m -p /var/run/scrapy -c scrapy -d /srv/scrapy -b -a /srv/scrapy/scraper/utils/scrapyd
 ;;
 
 stop)
 	
-	start-stop-daemon --stop -p /var/run/scraper
+	start-stop-daemon --stop -p /var/run/scrapy
 ;;
 status)
-	status_of_proc -p /var/run/scraper scraper scraper && exit 0 || exit $?
+	status_of_proc -p /var/run/scrapy scraper scraper && exit 0 || exit $?
 ;;
 esac
