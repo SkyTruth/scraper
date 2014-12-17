@@ -37,7 +37,8 @@ class NrcBot(BaseSpider):
     status_updated = 'UPDATED'
 
     #TODO: get this from config
-    botmaster_url_template = 'http://ewn2.skytruth.org/nrc/botmaster.php?bot={0}'
+#    botmaster_url_template = 'http://ewn2.skytruth.org/nrc/botmaster.php?bot={0}'
+    local_scrapy_url = 'http://localhost:6800/'
     task_conditions = {}
 
     # Default values - override in subclass
@@ -59,14 +60,15 @@ class NrcBot(BaseSpider):
 
 
     def start_requests(self):
-        url = self.botmaster_url_template.format(self.name)
+#        url = self.botmaster_url_template.format(self.name)
+	url = self.local_scrapy_url
         return [Request (url, callback=self.parse)]
 
     # Parse execution params from botmaster
     def parse(self, response):
 
-        hxs = XmlXPathSelector(response)
-        name = hxs.select('//name').extract()
+#        hxs = XmlXPathSelector(response)
+#        name = hxs.select('//name').extract()
 
         if self.task_id is not None:
             self.log('Processing item %s' % self.task_id, log.INFO)
