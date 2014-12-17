@@ -195,8 +195,12 @@ class RssSubscriptionEmailer (NrcBot):
 
 
     def start_update_interval(self, sub):
-        # if last_item_updated is not set, start interval 3 days ago.
-        return sub['last_item_updated'] or datetime.now() - timedelta(days=3)
+        if sub['last_item_updated']:
+            # never send an alert for items more than 7 days old
+            return max(sub['last_item_updated'], datetime.now() - timedelta(days=7))
+        else:
+            # if last_item_updated is not set, include only items that are less than 3 days old
+            return datetime.now() - timedelta(days=3)
 
     def complete_url(self, sub):
         rss_url = sub['rss_url']
@@ -217,6 +221,7 @@ class RssSubscriptionEmailer (NrcBot):
         for item in  feed_data['items']:
             item_updated = datetime(*item['updated_parsed'][:6])
 
+            self.log("item_updated:%s last_item_updated:%s" % (item_updated, last_item_updated) , log.DEBUG)
             # check to see if this is a new item
             if item_updated > last_item_updated:
                 new_last_item_updated = max (new_last_item_updated, item_updated)
