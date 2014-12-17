@@ -98,8 +98,7 @@ class NrcFeedGenerator (NrcBot):
         title = re.sub('&[a-zA-Z]+;', untitle_entity, title)
 
         #feed_entry_id = uuid.uuid3(uuid.NAMESPACE_URL, scraped_report['full_report_url'].encode('ASCII'))
-        feed_entry_id = self.db.uuid3_str(
-                name=scraped_report['full_report_url'].encode('ASCII'))
+        feed_entry_id = self.db.uuid3_str(name="%s/%s" % (scraped_report['full_report_url'].encode('ASCII'), task_id))
         l.add_value ('id', feed_entry_id)
         l.add_value ('title', title)
         l.add_value ('link', scraped_report['full_report_url'])
