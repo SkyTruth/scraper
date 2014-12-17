@@ -1737,9 +1737,6 @@ def main(args):
         except ValueError:
             bail = True
             print("ERROR: Invalid subsample or subsample min - must be an int: %s" % process_subsample)
-    if process_subsample_min >= process_subsample:
-        print("ERROR: Process subsample min is greater than process subsample")
-        bail = True
 
     # Exit if any problems were encountered
     if bail:
