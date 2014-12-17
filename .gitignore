@@ -49,4 +49,5 @@ settings.py
 .idea
 env2
 env3
+venv
  
