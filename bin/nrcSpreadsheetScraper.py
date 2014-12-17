@@ -1601,6 +1601,7 @@ def main(args):
     overwrite_downloaded_file = False
     download_file = True
     process_subsample = None
+    process_subsample_min = 0
 
     # User feedback settings
     print_progress = True
@@ -1678,6 +1679,9 @@ def main(args):
             elif arg == '--subsample':
                 i += 2
                 process_subsample = args[i - 1]
+            elif arg == '--subsample-min':
+                i += 2
+                process_subsample_min = args[i - 1]
 
             # Positional arguments and errors
             else:
@@ -1729,9 +1733,13 @@ def main(args):
     if process_subsample is not None:
         try:
             process_subsample = int(process_subsample)
+            process_subsample_min = int(process_subsample_min)
         except ValueError:
             bail = True
-            print("ERROR: Invalid subsample - must be an int: %s" % process_subsample)
+            print("ERROR: Invalid subsample or subsample min - must be an int: %s" % process_subsample)
+    if process_subsample_min >= process_subsample:
+        print("ERROR: Process subsample min is greater than process subsample")
+        bail = True
 
     # Exit if any problems were encountered
     if bail:
@@ -1853,7 +1861,7 @@ def main(args):
             unique_report_ids = [i for i in unique_report_ids if i > 1074683]
 
             unique_report_ids.sort()
-            unique_report_ids = unique_report_ids[:process_subsample]
+            unique_report_ids = unique_report_ids[process_subsample_min:process_subsample]
 
         #/* ----------------------------------------------------------------------- */#
         #/*     Process data
