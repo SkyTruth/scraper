@@ -1919,7 +1919,7 @@ def main(args):
         unique_report_ids = list(set(unique_report_ids))
 
         # Grab a subsample if necessary
-        if process_subsample is not None or process_subsample < len(unique_report_ids):
+        if process_subsample is not None and process_subsample < len(unique_report_ids):
 
             # TODO: Delete constraining line - needed to verify everything was wroking
             unique_report_ids = [i for i in unique_report_ids if i > 1074683]
