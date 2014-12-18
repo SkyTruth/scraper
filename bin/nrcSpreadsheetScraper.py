@@ -1959,6 +1959,9 @@ def main(args):
             # Get field maps for one table
             for db_map in field_map_order:
 
+                query_fields = []
+                query_values = []
+
                 # If the report already exists, in the target table, skip everything else
                 _schema, _table = db_map.split('.')
                 if not report_exists(db_cursor=db_cursor, reportnum=uid, schema=_schema, table=_table):
