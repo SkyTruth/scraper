@@ -1006,6 +1006,43 @@ class NrcScrapedMaterialFields(object):
 
 
 #/* ======================================================================= */#
+#/*     Define BotTaskStatusFields() class
+#/* ======================================================================= */#
+
+class BotTaskStatusFields(object):
+
+    """
+    Some fields in the NRC spreadsheet do not map directly to a column in the
+    database.  These fields require an additional processing step that is
+    highly specific and cannot be re-used.  The field map definition contains
+    all of the additional arguments and information necessary to execute one
+    of these processing functions.
+
+    A class is used as a namespace to provide better organization and to
+    prevent having to name functions something like:
+    'get_NrcScrapedReport_material_name_field'
+    """
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define status() static method
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def status(**kwargs):
+
+        return 'DONE'
+
+    #/* ----------------------------------------------------------------------- */#
+    #/*     Define bot() static method
+    #/* ----------------------------------------------------------------------- */#
+
+    @staticmethod
+    def bot(**kwargs):
+
+        return 'NrcExtractor'
+
+
+#/* ======================================================================= */#
 #/*     Define main() function
 #/* ======================================================================= */#
 
@@ -1180,7 +1217,7 @@ def main(args):
     #/*     Define Field Maps
     #/* ----------------------------------------------------------------------- */#
 
-    field_map_order = ['public."NrcScrapedReport"', 'public."NrcParsedReport"', ]
+    field_map_order = ['public."NrcScrapedReport"', 'public."NrcParsedReport"','public."BotTaskStatus"' ]
     field_map = {
         'public."NrcScrapedReport"': [
             {
@@ -1576,6 +1613,36 @@ def main(args):
                     'function': NrcParsedReportFields.ft_id,
                 }
             }
+        ],
+        'public."BotTaskStatus"': [
+            {
+                'db_table': '"BotTaskStatus"',
+                'db_field': 'task_id',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': 'SEQNOS',
+                'processing': None
+            },
+            {
+                'db_table': '"BotTaskStatus"',
+                'db_field': 'status',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': BotTaskStatusFields.status,
+                }
+            },
+            {
+                'db_table': '"BotTaskStatus"',
+                'db_field': 'status',
+                'db_schema': 'public',
+                'sheet_name': 'INCIDENT_COMMONS',
+                'column': None,
+                'processing': {
+                    'function': BotTaskStatusFields.bot,
+                }
+            },
         ],
     }
 
