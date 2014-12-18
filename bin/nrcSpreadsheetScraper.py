@@ -1642,7 +1642,7 @@ def main(args):
             },
             {
                 'db_table': '"BotTaskStatus"',
-                'db_field': 'status',
+                'db_field': 'bot',
                 'db_schema': 'public',
                 'sheet_name': 'INCIDENT_COMMONS',
                 'column': None,
@@ -1959,9 +1959,6 @@ def main(args):
             # Get field maps for one table
             for db_map in field_map_order:
 
-                query_fields = [db_seqnos_field]
-                query_values = [str(uid)]
-
                 # If the report already exists, in the target table, skip everything else
                 _schema, _table = db_map.split('.')
                 if not report_exists(db_cursor=db_cursor, reportnum=uid, schema=_schema, table=_table):
@@ -1970,7 +1967,10 @@ def main(args):
                     for map_def in field_map[db_map]:
 
                         # Don't need to process the reportnum information since it was added to the initial query above
-                        if map_def['db_field'] != db_seqnos_field:
+                        if map_def['db_field'] == db_seqnos_field:
+                            query_fields = [db_seqnos_field]
+                            query_values = [str(uid)]
+                        else:
 
                             # Get the row for this sheet
                             try:
