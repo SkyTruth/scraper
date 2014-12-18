@@ -2046,7 +2046,12 @@ def main(args):
                             % (db_write_mode, db_map, ", ".join(query_fields), ", ".join(query_values))
                     if print_queries:
                         print("")
-                        print(query)
+                        try:
+                            print(query)
+                        except Exception as e:
+                            print ("Error printing SQL query to console (unicode weirdness?")
+                            print (e.message)
+
                     if execute_queries:
                         db_cursor.execute(query)
 
