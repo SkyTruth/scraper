@@ -375,7 +375,14 @@ def report_exists(**kwargs):
     field = kwargs.get('field', 'reportnum')
     schema = kwargs['schema']
 
-    cursor.execute("""SELECT * FROM %s.%s WHERE %s = %s""" % (schema, table, field, reportnum))
+    # TODO: replace this hack with something better.
+    # Perhpas have a report_exists method on each of the field map classes so we don't have to
+    # have the same existance test for all tables
+
+    if table=='BotTaskStatus':
+        cursor.execute("""SELECT * FROM %s.%s WHERE bot='NrcExtractor' AND task_id = %s""" % (schema, table, reportnum))
+    else:
+        cursor.execute("""SELECT * FROM %s.%s WHERE %s = %s""" % (schema, table, field, reportnum))
     return len(cursor.fetchall()) > 0
 
 
