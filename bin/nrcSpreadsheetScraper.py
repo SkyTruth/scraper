@@ -1850,6 +1850,7 @@ def main(args):
 
         # Establish a DB connection  and turn on dict reading
         db_conn = psycopg2.connect(db_connection_string)
+        db_conn.autocommit = True
         db_cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
         #/* ----------------------------------------------------------------------- */#
@@ -2073,7 +2074,7 @@ def main(args):
                           final_db_row_counts[schema_table] - initial_db_row_counts[schema_table]))
 
     # Success - commit inserts and destroy DB connections
-    db_conn.commit()
+    # db_conn.commit()  # connection is now set to autocommit
     db_cursor.close()
     db_conn.close()
 
