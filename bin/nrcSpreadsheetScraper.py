@@ -645,7 +645,7 @@ class NrcScrapedReportFields(object):
         Default value
         """
 
-        return 'http://cgmix.uscg.mil/NRC/'
+        return 'http://nrc.uscg.mil/'
     
     #/* ----------------------------------------------------------------------- */#
     #/*     Define materials_url() static method
@@ -1059,7 +1059,7 @@ def main(args):
     Main routine to parse, transform, and insert Current.xlsx into the tables
     used by the Alerts system.
 
-    http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx
+    http://nrc.uscg.mil/FOIAFiles/Current.xlsx
 
     Before doing any transformations, a set of SEQNOS/reportnum's are gathered
     from one of the workbook's sheets.  The default column in 'CALLS' but can be
@@ -1670,7 +1670,7 @@ def main(args):
     sheet_seqnos_field = 'SEQNOS'
 
     # NRC file I/O
-    download_url = 'http://cgmix.uscg.mil/NRC/FOIAFiles/Current.xlsx'
+    download_url = 'http://nrc.uscg.mil/FOIAFiles/Current.xlsx'
     file_to_process = os.getcwd() + sep + name_current_file(basename(download_url))
     overwrite_downloaded_file = False
     download_file = True
