@@ -843,6 +843,7 @@ class NrcParsedReportFields(object):
         else:
 
             multipliers = {
+                'F': 1,
                 'FE': 1,
                 'FEET': 1,
                 'IN': 0.0833333,
@@ -860,6 +861,9 @@ class NrcParsedReportFields(object):
 
             # Database is expecting to handle the normalization by reading from a field containing "1.23 METERS"
             # This function takes care of that but must still supply the expected post-normalization format
+            if unit.upper() not in multipliers:
+                return db_null_value
+
             return unicode(multipliers[unit.upper()] * value) + ' FEET'
 
 
